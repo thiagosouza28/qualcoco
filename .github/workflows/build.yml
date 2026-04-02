@@ -91,8 +91,12 @@ jobs:
             exit 1
           fi
 
-      - name: Copy Capacitor web assets
-        run: npx cap copy android
+      - name: Copy web assets into Android project
+        run: |
+          rm -rf android/app/src/main/assets/public
+          mkdir -p android/app/src/main/assets/public
+          cp -R dist/. android/app/src/main/assets/public/
+          cp capacitor.config.json android/app/src/main/assets/capacitor.config.json
 
       - name: Prepare Android keystore
         run: |
