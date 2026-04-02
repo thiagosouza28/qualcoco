@@ -20,9 +20,9 @@ env:
   JAVA_VERSION: "21"
   APP_VERSION_NAME: 1.0.${{ github.run_number }}
   APP_VERSION_CODE: ${{ github.run_number }}
-  RELEASE_TAG: v1.${{ github.run_number }}
+  RELEASE_TAG: v1.0.${{ github.run_number }}
   RELEASE_APK_NAME: qualcoco.apk
-  RELEASE_APK_URL: https://github.com/${{ github.repository }}/releases/download/v1.${{ github.run_number }}/qualcoco.apk
+  RELEASE_APK_URL: https://github.com/${{ github.repository }}/releases/download/v1.0.${{ github.run_number }}/qualcoco.apk
   REQUIRED_UPDATE: ${{ vars.APP_UPDATE_REQUIRED || 'false' }}
 
 jobs:
