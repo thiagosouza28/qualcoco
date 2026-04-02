@@ -1,0 +1,150 @@
+name: Build Expo APK
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - version.json
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: expo-android-main
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: "18"
+  RELEASE_TAG: v1.${{ github.run_number }}
+  APP_VERSION: 1.0.${{ github.run_number }}
+  RELEASE_APK_URL: https://github.com/${{ github.repository }}/releases/download/v1.${{ github.run_number }}/app.apk
+  REQUIRED_UPDATE: ${{ vars.APP_UPDATE_REQUIRED || 'false' }}
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Validate Expo prerequisites
+        run: |
+          if [ ! -f app.json ] && [ ! -f app.config.js ] && [ ! -f app.config.ts ]; then
+            echo "::error::Expo app config not found. Add app.json, app.config.js, or app.config.ts before using this workflow."
+            exit 1
+          fi
+
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const deps = {
+            ...(pkg.dependencies || {}),
+            ...(pkg.devDependencies || {}),
+          };
+
+          if (!deps.expo) {
+            console.error('::error::The expo package is missing from package.json. This workflow is intended for Expo/EAS projects.');
+            process.exit(1);
+          }
+          NODE
+
+      - name: Build APK with EAS
+        id: eas_build
+        run: |
+          eas build \
+            --platform android \
+            --profile preview \
+            --non-interactive \
+            --wait \
+            --json > eas-build.json
+
+          node - <<'NODE'
+          const fs = require('node:fs');
+
+          const raw = fs.readFileSync('eas-build.json', 'utf8').trim();
+          const parsed = JSON.parse(raw);
+          const build = Array.isArray(parsed) ? parsed[0] : parsed;
+
+          const artifactUrl =
+            build?.artifacts?.applicationArchiveUrl ||
+            build?.artifacts?.buildUrl ||
+            build?.artifactUrl ||
+            build?.applicationArchiveUrl ||
+            build?.buildUrl;
+
+          if (!artifactUrl) {
+            console.error('::error::Unable to find the APK artifact URL in eas-build.json');
+            console.error(raw);
+            process.exit(1);
+          }
+
+          const output = process.env.GITHUB_OUTPUT;
+          fs.appendFileSync(output, `artifact_url=${artifactUrl}\n`);
+          fs.appendFileSync(output, `build_id=${build?.id || ''}\n`);
+          NODE
+
+      - name: Download APK artifact
+        run: curl -L "${{ steps.eas_build.outputs.artifact_url }}" -o app.apk
+
+      - name: Generate version.json
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+
+          const required = String(process.env.REQUIRED_UPDATE || 'false')
+            .trim()
+            .toLowerCase() === 'true';
+
+          const payload = {
+            version: process.env.APP_VERSION,
+            required,
+            url: process.env.RELEASE_APK_URL,
+          };
+
+          fs.writeFileSync('version.json', `${JSON.stringify(payload, null, 2)}\n`);
+          NODE
+
+      - name: Create GitHub release and upload APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: ${{ env.RELEASE_TAG }}
+          files: app.apk
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Commit updated version.json
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add version.json
+
+          if git diff --cached --quiet; then
+            echo "No manifest changes to commit."
+            exit 0
+          fi
+
+          git commit -m "chore: update version manifest to ${APP_VERSION} [skip ci]"
+          git push origin HEAD:${GITHUB_REF_NAME}

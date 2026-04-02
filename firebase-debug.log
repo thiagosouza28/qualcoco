@@ -1,0 +1,539 @@
+[debug] [2026-03-27T01:40:26.927Z] ----------------------------------------------------------------------
+[debug] [2026-03-27T01:40:26.934Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\thgds\Desktop\qualcoco\node_modules\firebase-tools\lib\bin\firebase.js projects:list --json
+[debug] [2026-03-27T01:40:26.936Z] CLI Version:   15.11.0
+[debug] [2026-03-27T01:40:26.937Z] Platform:      win32
+[debug] [2026-03-27T01:40:26.937Z] Node Version:  v24.11.1
+[debug] [2026-03-27T01:40:26.938Z] Time:          Thu Mar 26 2026 22:40:26 GMT-0300 (Horário Padrão de Brasília)
+[debug] [2026-03-27T01:40:26.939Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-03-27T01:40:27.796Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-03-27T01:40:27.797Z] > authorizing via signed-in user (thgdsztls@gmail.com)
+[debug] [2026-03-27T01:40:27.807Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:40:27.807Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:40:27.811Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects pageSize=1000
+[debug] [2026-03-27T01:40:28.844Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects 200
+[debug] [2026-03-27T01:40:28.844Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects [omitted]
+[info] ┌──────────────────────┬─────────────────────┬────────────────┬──────────────────────┐
+│ Project Display Name │ Project ID          │ Project Number │ Resource Location ID │
+├──────────────────────┼─────────────────────┼────────────────┼──────────────────────┤
+│ controlretiro        │ controlretiro-e8611 │ 227211398942   │ [Not specified]      │
+├──────────────────────┼─────────────────────┼────────────────┼──────────────────────┤
+│ qualcoco             │ qualcoco-96f38      │ 497251186279   │ [Not specified]      │
+└──────────────────────┴─────────────────────┴────────────────┴──────────────────────┘
+[info] 
+[info] 2 project(s) total.
+[debug] [2026-03-27T01:40:26.928Z] ----------------------------------------------------------------------
+[debug] [2026-03-27T01:40:26.935Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\thgds\Desktop\qualcoco\node_modules\firebase-tools\lib\bin\firebase.js deploy --only firestore:rules,firestore:indexes --project qualcoco-96f38 --non-interactive
+[debug] [2026-03-27T01:40:26.937Z] CLI Version:   15.11.0
+[debug] [2026-03-27T01:40:26.940Z] Platform:      win32
+[debug] [2026-03-27T01:40:26.941Z] Node Version:  v24.11.1
+[debug] [2026-03-27T01:40:26.941Z] Time:          Thu Mar 26 2026 22:40:26 GMT-0300 (Horário Padrão de Brasília)
+[debug] [2026-03-27T01:40:26.942Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-03-27T01:40:33.662Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-03-27T01:40:33.665Z] > authorizing via signed-in user (thgdsztls@gmail.com)
+[debug] [2026-03-27T01:40:33.665Z] [iam] checking project qualcoco-96f38 for permissions ["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]
+[debug] [2026-03-27T01:40:33.669Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:40:33.669Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:40:33.672Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/qualcoco-96f38:testIamPermissions [none]
+[debug] [2026-03-27T01:40:33.672Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/qualcoco-96f38:testIamPermissions  x-goog-user-project=qualcoco-96f38
+[debug] [2026-03-27T01:40:33.673Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/qualcoco-96f38:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[debug] [2026-03-27T01:40:34.857Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/qualcoco-96f38:testIamPermissions 200
+[debug] [2026-03-27T01:40:34.858Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/qualcoco-96f38:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[info] 
+[info] === Deploying to 'qualcoco-96f38'...
+[info] 
+[info] i  deploying firestore 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[debug] [2026-03-27T01:40:34.866Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:40:34.866Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:40:34.866Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/qualcoco-96f38/services/firestore.googleapis.com [none]
+[debug] [2026-03-27T01:40:34.867Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/qualcoco-96f38/services/firestore.googleapis.com  x-goog-user-project=qualcoco-96f38
+[debug] [2026-03-27T01:40:36.108Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/qualcoco-96f38/services/firestore.googleapis.com 200
+[debug] [2026-03-27T01:40:36.108Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/qualcoco-96f38/services/firestore.googleapis.com [omitted]
+[info] +  firestore: required API firestore.googleapis.com is enabled 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[debug] [2026-03-27T01:40:36.119Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:40:36.120Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:40:36.120Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default) [none]
+[debug] [2026-03-27T01:40:36.513Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default) 200
+[debug] [2026-03-27T01:40:36.513Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default) {"name":"projects/qualcoco-96f38/databases/(default)","uid":"6e9b762a-4c72-443e-9575-12b7980fae51","createTime":"2026-03-27T01:06:30.936114Z","updateTime":"2026-03-27T01:06:30.936114Z","locationId":"southamerica-east1","type":"FIRESTORE_NATIVE","concurrencyMode":"PESSIMISTIC","versionRetentionPeriod":"3600s","earliestVersionTime":"2026-03-27T01:06:30.936114Z","appEngineIntegrationMode":"DISABLED","keyPrefix":"i","pointInTimeRecoveryEnablement":"POINT_IN_TIME_RECOVERY_DISABLED","deleteProtectionState":"DELETE_PROTECTION_DISABLED","databaseEdition":"STANDARD","freeTier":true,"realtimeUpdatesMode":"REALTIME_UPDATES_MODE_ENABLED","etag":"ILjWx7P5vpMDMLL0j+TxvpMD"}
+[info] i  firestore: reading indexes from firestore.indexes.json... 
+[info] i  cloud.firestore: checking firestore.rules for compilation errors... 
+[debug] [2026-03-27T01:40:36.519Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:40:36.520Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:40:36.520Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38:test [none]
+[debug] [2026-03-27T01:40:36.521Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38:test [omitted]
+[debug] [2026-03-27T01:40:38.004Z] <<< [apiv2][status] POST https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38:test 200
+[debug] [2026-03-27T01:40:38.005Z] <<< [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38:test {}
+[info] +  cloud.firestore: rules file firestore.rules compiled successfully 
+[debug] [2026-03-27T01:40:38.008Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:40:38.008Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:40:38.010Z] >>> [apiv2][query] GET https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/releases pageSize=10&pageToken=
+[debug] [2026-03-27T01:40:39.235Z] <<< [apiv2][status] GET https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/releases 200
+[debug] [2026-03-27T01:40:39.235Z] <<< [apiv2][body] GET https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/releases {"releases":[{"name":"projects/qualcoco-96f38/releases/cloud.firestore","rulesetName":"projects/qualcoco-96f38/rulesets/456d18b4-33f0-4e93-9a98-917fb38f5479","createTime":"2026-03-27T01:06:35.852778Z","updateTime":"2026-03-27T01:06:35.852778Z"}]}
+[debug] [2026-03-27T01:40:39.236Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:40:39.236Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:40:39.236Z] >>> [apiv2][query] GET https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/rulesets/456d18b4-33f0-4e93-9a98-917fb38f5479 [none]
+[debug] [2026-03-27T01:40:40.464Z] <<< [apiv2][status] GET https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/rulesets/456d18b4-33f0-4e93-9a98-917fb38f5479 200
+[debug] [2026-03-27T01:40:40.464Z] <<< [apiv2][body] GET https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/rulesets/456d18b4-33f0-4e93-9a98-917fb38f5479 [omitted]
+[info] i  firestore: uploading rules firestore.rules... 
+[debug] [2026-03-27T01:40:40.468Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:40:40.468Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:40:40.468Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/rulesets [none]
+[debug] [2026-03-27T01:40:40.469Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/rulesets [omitted]
+[debug] [2026-03-27T01:40:41.738Z] <<< [apiv2][status] POST https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/rulesets 200
+[debug] [2026-03-27T01:40:41.739Z] <<< [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/rulesets {"name":"projects/qualcoco-96f38/rulesets/9340c2ce-38b5-4d47-a6f3-33a37762f3dc","source":{"files":[{"content":"rules_version = '2';\n\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    match /{document=**} {\n      allow read, write: if request.auth != null;\n    }\n  }\n}\n","name":"firestore.rules"}]},"createTime":"2026-03-27T01:40:41.663471Z","metadata":{"services":["cloud.firestore"]}}
+[debug] [2026-03-27T01:40:41.739Z] [rules] created ruleset projects/qualcoco-96f38/rulesets/9340c2ce-38b5-4d47-a6f3-33a37762f3dc
+[info] i  firestore: deploying indexes... 
+[debug] [2026-03-27T01:40:41.743Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:40:41.743Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:40:41.744Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/-/indexes [none]
+[debug] [2026-03-27T01:40:42.157Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/-/indexes 200
+[debug] [2026-03-27T01:40:42.157Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/-/indexes {}
+[debug] [2026-03-27T01:40:42.159Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:40:42.159Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:40:42.159Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/-/fields?filter=indexConfig.usesAncestorConfig=false OR ttlConfig:* [none]
+[debug] [2026-03-27T01:40:42.421Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/-/fields?filter=indexConfig.usesAncestorConfig=false OR ttlConfig:* 200
+[debug] [2026-03-27T01:40:42.422Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/-/fields?filter=indexConfig.usesAncestorConfig=false OR ttlConfig:* {"fields":[{"name":"projects/qualcoco-96f38/databases/(default)/collectionGroups/__default__/fields/*","indexConfig":{"indexes":[{"queryScope":"COLLECTION","fields":[{"fieldPath":"*","order":"ASCENDING"}],"state":"READY"},{"queryScope":"COLLECTION","fields":[{"fieldPath":"*","order":"DESCENDING"}],"state":"READY"},{"queryScope":"COLLECTION","fields":[{"fieldPath":"*","arrayConfig":"CONTAINS"}],"state":"READY"}]}}]}
+[debug] [2026-03-27T01:40:42.422Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:40:42.423Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:40:42.424Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default) [none]
+[debug] [2026-03-27T01:40:42.531Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default) 200
+[debug] [2026-03-27T01:40:42.531Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default) {"name":"projects/qualcoco-96f38/databases/(default)","uid":"6e9b762a-4c72-443e-9575-12b7980fae51","createTime":"2026-03-27T01:06:30.936114Z","updateTime":"2026-03-27T01:06:30.936114Z","locationId":"southamerica-east1","type":"FIRESTORE_NATIVE","concurrencyMode":"PESSIMISTIC","versionRetentionPeriod":"3600s","earliestVersionTime":"2026-03-27T01:06:30.936114Z","appEngineIntegrationMode":"DISABLED","keyPrefix":"i","pointInTimeRecoveryEnablement":"POINT_IN_TIME_RECOVERY_DISABLED","deleteProtectionState":"DELETE_PROTECTION_DISABLED","databaseEdition":"STANDARD","freeTier":true,"realtimeUpdatesMode":"REALTIME_UPDATES_MODE_ENABLED","etag":"IICFt7b5vpMDMLK2r7b5vpMD"}
+[debug] [2026-03-27T01:40:42.531Z] Creating new index: {"collectionGroup":"colaboradores","queryScope":"COLLECTION","fields":[{"fieldPath":"ativo","order":"ASCENDING"},{"fieldPath":"deletado_em","order":"ASCENDING"},{"fieldPath":"atualizado_em","order":"ASCENDING"}]}
+[debug] [2026-03-27T01:40:42.532Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:40:42.532Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:40:42.533Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/colaboradores/indexes [none]
+[debug] [2026-03-27T01:40:42.533Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/colaboradores/indexes {"fields":[{"fieldPath":"ativo","order":"ASCENDING"},{"fieldPath":"deletado_em","order":"ASCENDING"},{"fieldPath":"atualizado_em","order":"ASCENDING"}],"queryScope":"COLLECTION"}
+[debug] [2026-03-27T01:40:42.951Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/colaboradores/indexes 200
+[debug] [2026-03-27T01:40:42.952Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/colaboradores/indexes {"name":"projects/qualcoco-96f38/databases/(default)/operations/S0U0aFhqT2dBQ0lDDCoDIGRiN2UxZmQwYWY4My0xMjA4LWIzMzQtMTZiNi1iOTQ2N2Y5OSQac2VuaWxlcGlwCQpBEg","metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.IndexOperationMetadata","startTime":"2026-03-27T01:40:42.925235Z","index":"projects/qualcoco-96f38/databases/(default)/collectionGroups/colaboradores/indexes/CICAgOjXh4EK","state":"INITIALIZING"}}
+[debug] [2026-03-27T01:40:42.952Z] Creating new index: {"collectionGroup":"colaboradores","queryScope":"COLLECTION","fields":[{"fieldPath":"matricula","order":"ASCENDING"}]}
+[debug] [2026-03-27T01:40:42.952Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:40:42.952Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:40:42.953Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/colaboradores/indexes [none]
+[debug] [2026-03-27T01:40:42.953Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/colaboradores/indexes {"fields":[{"fieldPath":"matricula","order":"ASCENDING"}],"queryScope":"COLLECTION"}
+[debug] [2026-03-27T01:40:43.045Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/colaboradores/indexes 400
+[debug] [2026-03-27T01:40:43.045Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/colaboradores/indexes {"error":{"code":400,"message":"this index is not necessary, configure using single field index controls","status":"INVALID_ARGUMENT"}}
+[error] 
+[error] Error: Request to https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/colaboradores/indexes had HTTP Error: 400, this index is not necessary, configure using single field index controls
+[debug] [2026-03-27T01:40:43.330Z] Error Context: {
+  "body": {
+    "error": {
+      "code": 400,
+      "message": "this index is not necessary, configure using single field index controls",
+      "status": "INVALID_ARGUMENT"
+    }
+  },
+  "response": {
+    "statusCode": 400
+  }
+}
+[debug] [2026-03-27T01:42:16.345Z] ----------------------------------------------------------------------
+[debug] [2026-03-27T01:42:16.350Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\thgds\Desktop\qualcoco\node_modules\firebase-tools\lib\bin\firebase.js deploy --only firestore:indexes --project qualcoco-96f38 --non-interactive
+[debug] [2026-03-27T01:42:16.351Z] CLI Version:   15.11.0
+[debug] [2026-03-27T01:42:16.351Z] Platform:      win32
+[debug] [2026-03-27T01:42:16.352Z] Node Version:  v24.11.1
+[debug] [2026-03-27T01:42:16.352Z] Time:          Thu Mar 26 2026 22:42:16 GMT-0300 (Horário Padrão de Brasília)
+[debug] [2026-03-27T01:42:16.353Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-03-27T01:42:21.043Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-03-27T01:42:21.045Z] > authorizing via signed-in user (thgdsztls@gmail.com)
+[debug] [2026-03-27T01:42:21.046Z] [iam] checking project qualcoco-96f38 for permissions ["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]
+[debug] [2026-03-27T01:42:21.050Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:42:21.050Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:42:21.053Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/qualcoco-96f38:testIamPermissions [none]
+[debug] [2026-03-27T01:42:21.054Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/qualcoco-96f38:testIamPermissions  x-goog-user-project=qualcoco-96f38
+[debug] [2026-03-27T01:42:21.054Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/qualcoco-96f38:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[debug] [2026-03-27T01:42:16.338Z] ----------------------------------------------------------------------
+[debug] [2026-03-27T01:42:16.343Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\thgds\Desktop\qualcoco\node_modules\firebase-tools\lib\bin\firebase.js deploy --only firestore:rules --project qualcoco-96f38 --non-interactive
+[debug] [2026-03-27T01:42:16.343Z] CLI Version:   15.11.0
+[debug] [2026-03-27T01:42:16.344Z] Platform:      win32
+[debug] [2026-03-27T01:42:16.344Z] Node Version:  v24.11.1
+[debug] [2026-03-27T01:42:16.344Z] Time:          Thu Mar 26 2026 22:42:16 GMT-0300 (Horário Padrão de Brasília)
+[debug] [2026-03-27T01:42:16.345Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-03-27T01:42:21.088Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-03-27T01:42:21.090Z] > authorizing via signed-in user (thgdsztls@gmail.com)
+[debug] [2026-03-27T01:42:21.091Z] [iam] checking project qualcoco-96f38 for permissions ["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]
+[debug] [2026-03-27T01:42:21.095Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:42:21.095Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:42:21.099Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/qualcoco-96f38:testIamPermissions [none]
+[debug] [2026-03-27T01:42:21.100Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/qualcoco-96f38:testIamPermissions  x-goog-user-project=qualcoco-96f38
+[debug] [2026-03-27T01:42:21.100Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/qualcoco-96f38:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[debug] [2026-03-27T01:42:22.115Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/qualcoco-96f38:testIamPermissions 200
+[debug] [2026-03-27T01:42:22.115Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/qualcoco-96f38:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[info] 
+[info] === Deploying to 'qualcoco-96f38'...
+[info] 
+[info] i  deploying firestore 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[debug] [2026-03-27T01:42:22.124Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:42:22.124Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:42:22.125Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default) [none]
+[debug] [2026-03-27T01:42:22.157Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/qualcoco-96f38:testIamPermissions 200
+[debug] [2026-03-27T01:42:22.158Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/qualcoco-96f38:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[info] 
+[info] === Deploying to 'qualcoco-96f38'...
+[info] 
+[info] i  deploying firestore 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[debug] [2026-03-27T01:42:22.167Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:42:22.168Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:42:22.168Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default) [none]
+[debug] [2026-03-27T01:42:22.485Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default) 200
+[debug] [2026-03-27T01:42:22.485Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default) {"name":"projects/qualcoco-96f38/databases/(default)","uid":"6e9b762a-4c72-443e-9575-12b7980fae51","createTime":"2026-03-27T01:06:30.936114Z","updateTime":"2026-03-27T01:06:30.936114Z","locationId":"southamerica-east1","type":"FIRESTORE_NATIVE","concurrencyMode":"PESSIMISTIC","versionRetentionPeriod":"3600s","earliestVersionTime":"2026-03-27T01:06:30.936114Z","appEngineIntegrationMode":"DISABLED","keyPrefix":"i","pointInTimeRecoveryEnablement":"POINT_IN_TIME_RECOVERY_DISABLED","deleteProtectionState":"DELETE_PROTECTION_DISABLED","databaseEdition":"STANDARD","freeTier":true,"realtimeUpdatesMode":"REALTIME_UPDATES_MODE_ENABLED","etag":"ILrPi+b5vpMDMPKWxLb5vpMD"}
+[info] i  firestore: reading indexes from firestore.indexes.json... 
+[info] i  cloud.firestore: checking firestore.rules for compilation errors... 
+[debug] [2026-03-27T01:42:22.490Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:42:22.490Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:42:22.490Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38:test [none]
+[debug] [2026-03-27T01:42:22.490Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38:test [omitted]
+[debug] [2026-03-27T01:42:22.572Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default) 200
+[debug] [2026-03-27T01:42:22.572Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default) {"name":"projects/qualcoco-96f38/databases/(default)","uid":"6e9b762a-4c72-443e-9575-12b7980fae51","createTime":"2026-03-27T01:06:30.936114Z","updateTime":"2026-03-27T01:06:30.936114Z","locationId":"southamerica-east1","type":"FIRESTORE_NATIVE","concurrencyMode":"PESSIMISTIC","versionRetentionPeriod":"3600s","earliestVersionTime":"2026-03-27T01:06:30.936114Z","appEngineIntegrationMode":"DISABLED","keyPrefix":"i","pointInTimeRecoveryEnablement":"POINT_IN_TIME_RECOVERY_DISABLED","deleteProtectionState":"DELETE_PROTECTION_DISABLED","databaseEdition":"STANDARD","freeTier":true,"realtimeUpdatesMode":"REALTIME_UPDATES_MODE_ENABLED","etag":"IN79kOb5vpMDMPKWxLb5vpMD"}
+[info] i  firestore: reading indexes from firestore.indexes.json... 
+[info] i  cloud.firestore: checking firestore.rules for compilation errors... 
+[debug] [2026-03-27T01:42:22.576Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:42:22.576Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:42:22.577Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38:test [none]
+[debug] [2026-03-27T01:42:22.577Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38:test [omitted]
+[debug] [2026-03-27T01:42:23.201Z] <<< [apiv2][status] POST https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38:test 200
+[debug] [2026-03-27T01:42:23.201Z] <<< [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38:test {}
+[info] +  cloud.firestore: rules file firestore.rules compiled successfully 
+[debug] [2026-03-27T01:42:23.204Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:42:23.204Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:42:23.205Z] >>> [apiv2][query] GET https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/releases pageSize=10&pageToken=
+[debug] [2026-03-27T01:42:23.813Z] <<< [apiv2][status] POST https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38:test 200
+[debug] [2026-03-27T01:42:23.813Z] <<< [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38:test {}
+[info] +  cloud.firestore: rules file firestore.rules compiled successfully 
+[info] i  firestore: deploying indexes... 
+[debug] [2026-03-27T01:42:23.819Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:42:23.820Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:42:23.820Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/-/indexes [none]
+[debug] [2026-03-27T01:42:23.987Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/-/indexes 200
+[debug] [2026-03-27T01:42:23.987Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/-/indexes {"indexes":[{"name":"projects/qualcoco-96f38/databases/(default)/collectionGroups/colaboradores/indexes/CICAgOjXh4EK","queryScope":"COLLECTION","fields":[{"fieldPath":"ativo","order":"ASCENDING"},{"fieldPath":"deletado_em","order":"ASCENDING"},{"fieldPath":"atualizado_em","order":"ASCENDING"},{"fieldPath":"__name__","order":"ASCENDING"}],"state":"CREATING","density":"SPARSE_ALL"}]}
+[debug] [2026-03-27T01:42:23.988Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:42:23.988Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:42:23.989Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/-/fields?filter=indexConfig.usesAncestorConfig=false OR ttlConfig:* [none]
+[debug] [2026-03-27T01:42:24.079Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/-/fields?filter=indexConfig.usesAncestorConfig=false OR ttlConfig:* 200
+[debug] [2026-03-27T01:42:24.079Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/-/fields?filter=indexConfig.usesAncestorConfig=false OR ttlConfig:* {"fields":[{"name":"projects/qualcoco-96f38/databases/(default)/collectionGroups/__default__/fields/*","indexConfig":{"indexes":[{"queryScope":"COLLECTION","fields":[{"fieldPath":"*","order":"ASCENDING"}],"state":"READY"},{"queryScope":"COLLECTION","fields":[{"fieldPath":"*","order":"DESCENDING"}],"state":"READY"},{"queryScope":"COLLECTION","fields":[{"fieldPath":"*","arrayConfig":"CONTAINS"}],"state":"READY"}]}}]}
+[debug] [2026-03-27T01:42:24.080Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:42:24.080Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:42:24.080Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default) [none]
+[debug] [2026-03-27T01:42:24.181Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default) 200
+[debug] [2026-03-27T01:42:24.181Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default) {"name":"projects/qualcoco-96f38/databases/(default)","uid":"6e9b762a-4c72-443e-9575-12b7980fae51","createTime":"2026-03-27T01:06:30.936114Z","updateTime":"2026-03-27T01:06:30.936114Z","locationId":"southamerica-east1","type":"FIRESTORE_NATIVE","concurrencyMode":"PESSIMISTIC","versionRetentionPeriod":"3600s","earliestVersionTime":"2026-03-27T01:06:30.936114Z","appEngineIntegrationMode":"DISABLED","keyPrefix":"i","pointInTimeRecoveryEnablement":"POINT_IN_TIME_RECOVERY_DISABLED","deleteProtectionState":"DELETE_PROTECTION_DISABLED","databaseEdition":"STANDARD","freeTier":true,"realtimeUpdatesMode":"REALTIME_UPDATES_MODE_ENABLED","etag":"IJKY8+b5vpMDMPKWxLb5vpMD"}
+[debug] [2026-03-27T01:42:24.183Z] Skipping existing index: {"collectionGroup":"colaboradores","queryScope":"COLLECTION","fields":[{"fieldPath":"ativo","order":"ASCENDING"},{"fieldPath":"deletado_em","order":"ASCENDING"},{"fieldPath":"atualizado_em","order":"ASCENDING"},{"fieldPath":"__name__","order":"ASCENDING"}]}
+[debug] [2026-03-27T01:42:24.183Z] Creating new index: {"collectionGroup":"avaliacao_colaboradores","queryScope":"COLLECTION","fields":[{"fieldPath":"avaliacao_id","order":"ASCENDING"},{"fieldPath":"colaborador_id","order":"ASCENDING"}]}
+[debug] [2026-03-27T01:42:24.184Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:42:24.184Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:42:24.185Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/avaliacao_colaboradores/indexes [none]
+[debug] [2026-03-27T01:42:24.185Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/avaliacao_colaboradores/indexes {"fields":[{"fieldPath":"avaliacao_id","order":"ASCENDING"},{"fieldPath":"colaborador_id","order":"ASCENDING"}],"queryScope":"COLLECTION"}
+[debug] [2026-03-27T01:42:24.411Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/avaliacao_colaboradores/indexes 200
+[debug] [2026-03-27T01:42:24.412Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/avaliacao_colaboradores/indexes {"name":"projects/qualcoco-96f38/databases/(default)/operations/S01vcFVpSmdBQ0lDDCoDIGZjNzMwODFmOTUxZi0wM2NhLTZiMTQtNTg0NS1hNjJlZjQwOCQac2VuaWxlcGlwCQpBEg","metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.IndexOperationMetadata","startTime":"2026-03-27T01:42:24.436962Z","index":"projects/qualcoco-96f38/databases/(default)/collectionGroups/avaliacao_colaboradores/indexes/CICAgJiUpoMK","state":"INITIALIZING"}}
+[debug] [2026-03-27T01:42:24.412Z] Creating new index: {"collectionGroup":"avaliacao_parcelas","queryScope":"COLLECTION","fields":[{"fieldPath":"avaliacao_id","order":"ASCENDING"},{"fieldPath":"parcela_id","order":"ASCENDING"}]}
+[debug] [2026-03-27T01:42:24.413Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:42:24.413Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:42:24.413Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/avaliacao_parcelas/indexes [none]
+[debug] [2026-03-27T01:42:24.413Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/avaliacao_parcelas/indexes {"fields":[{"fieldPath":"avaliacao_id","order":"ASCENDING"},{"fieldPath":"parcela_id","order":"ASCENDING"}],"queryScope":"COLLECTION"}
+[debug] [2026-03-27T01:42:24.444Z] <<< [apiv2][status] GET https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/releases 200
+[debug] [2026-03-27T01:42:24.444Z] <<< [apiv2][body] GET https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/releases {"releases":[{"name":"projects/qualcoco-96f38/releases/cloud.firestore","rulesetName":"projects/qualcoco-96f38/rulesets/456d18b4-33f0-4e93-9a98-917fb38f5479","createTime":"2026-03-27T01:06:35.852778Z","updateTime":"2026-03-27T01:06:35.852778Z"}]}
+[debug] [2026-03-27T01:42:24.445Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:42:24.445Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:42:24.446Z] >>> [apiv2][query] GET https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/rulesets/456d18b4-33f0-4e93-9a98-917fb38f5479 [none]
+[debug] [2026-03-27T01:42:24.580Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/avaliacao_parcelas/indexes 200
+[debug] [2026-03-27T01:42:24.580Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/avaliacao_parcelas/indexes {"name":"projects/qualcoco-96f38/databases/(default)/operations/S0FKazNpT2dBQ0lDDCoDIDk4YWZkZDMzMGYyNy1iZTRiLTk1OTQtOGU2MC0wOWQ1Yjk5NSQac2VuaWxlcGlwCQpBEg","metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.IndexOperationMetadata","startTime":"2026-03-27T01:42:24.629304Z","index":"projects/qualcoco-96f38/databases/(default)/collectionGroups/avaliacao_parcelas/indexes/CICAgOi3kJAK","state":"INITIALIZING"}}
+[debug] [2026-03-27T01:42:24.581Z] Creating new index: {"collectionGroup":"avaliacao_ruas","queryScope":"COLLECTION","fields":[{"fieldPath":"avaliacao_parcela_id","order":"ASCENDING"},{"fieldPath":"rua_numero","order":"ASCENDING"}]}
+[debug] [2026-03-27T01:42:24.581Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:42:24.581Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:42:24.582Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/avaliacao_ruas/indexes [none]
+[debug] [2026-03-27T01:42:24.582Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/avaliacao_ruas/indexes {"fields":[{"fieldPath":"avaliacao_parcela_id","order":"ASCENDING"},{"fieldPath":"rua_numero","order":"ASCENDING"}],"queryScope":"COLLECTION"}
+[debug] [2026-03-27T01:42:24.724Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/avaliacao_ruas/indexes 200
+[debug] [2026-03-27T01:42:24.724Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/avaliacao_ruas/indexes {"name":"projects/qualcoco-96f38/databases/(default)/operations/S0E0MW1pSmdBQ0lDDCoDIDJmODdkYzY2ZDg0OC0zNTBhLTgyZTQtNDMzZi0zNTY2ZWUwZiQac2VuaWxlcGlwCQpBEg","metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.IndexOperationMetadata","startTime":"2026-03-27T01:42:24.770461Z","index":"projects/qualcoco-96f38/databases/(default)/collectionGroups/avaliacao_ruas/indexes/CICAgJim14AK","state":"INITIALIZING"}}
+[info] +  firestore: deployed indexes in firestore.indexes.json successfully for (default) database 
+[info] 
+[info] +  Deploy complete! 
+[info] 
+[info] Project Console: https://console.firebase.google.com/project/qualcoco-96f38/overview
+[debug] [2026-03-27T01:42:25.595Z] <<< [apiv2][status] GET https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/rulesets/456d18b4-33f0-4e93-9a98-917fb38f5479 200
+[debug] [2026-03-27T01:42:25.596Z] <<< [apiv2][body] GET https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/rulesets/456d18b4-33f0-4e93-9a98-917fb38f5479 [omitted]
+[info] i  firestore: uploading rules firestore.rules... 
+[debug] [2026-03-27T01:42:25.600Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:42:25.600Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:42:25.600Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/rulesets [none]
+[debug] [2026-03-27T01:42:25.600Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/rulesets [omitted]
+[debug] [2026-03-27T01:42:26.907Z] <<< [apiv2][status] POST https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/rulesets 200
+[debug] [2026-03-27T01:42:26.907Z] <<< [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/rulesets {"name":"projects/qualcoco-96f38/rulesets/3e783426-d8a5-4a0a-bc1c-7b0c14557b67","source":{"files":[{"content":"rules_version = '2';\n\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    match /{document=**} {\n      allow read, write: if request.auth != null;\n    }\n  }\n}\n","name":"firestore.rules"}]},"createTime":"2026-03-27T01:42:26.836703Z","metadata":{"services":["cloud.firestore"]}}
+[debug] [2026-03-27T01:42:26.907Z] [rules] created ruleset projects/qualcoco-96f38/rulesets/3e783426-d8a5-4a0a-bc1c-7b0c14557b67
+[debug] [2026-03-27T01:42:26.908Z] [rules] releasing cloud.firestore/(default) with ruleset projects/qualcoco-96f38/rulesets/3e783426-d8a5-4a0a-bc1c-7b0c14557b67
+[debug] [2026-03-27T01:42:26.909Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:42:26.909Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:42:26.910Z] >>> [apiv2][query] PATCH https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/releases/cloud.firestore/(default) [none]
+[debug] [2026-03-27T01:42:26.910Z] >>> [apiv2][body] PATCH https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/releases/cloud.firestore/(default) {"release":{"name":"projects/qualcoco-96f38/releases/cloud.firestore/(default)","rulesetName":"projects/qualcoco-96f38/rulesets/3e783426-d8a5-4a0a-bc1c-7b0c14557b67"}}
+[debug] [2026-03-27T01:42:28.272Z] <<< [apiv2][status] PATCH https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/releases/cloud.firestore/(default) 200
+[debug] [2026-03-27T01:42:28.272Z] <<< [apiv2][body] PATCH https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/releases/cloud.firestore/(default) {"name":"projects/qualcoco-96f38/releases/cloud.firestore","rulesetName":"projects/qualcoco-96f38/rulesets/3e783426-d8a5-4a0a-bc1c-7b0c14557b67","createTime":"2026-03-27T01:06:35.852778Z","updateTime":"2026-03-27T01:42:28.182727Z"}
+[debug] [2026-03-27T01:42:28.272Z] [rules] updated release projects/qualcoco-96f38/releases/cloud.firestore
+[info] +  firestore: released rules firestore.rules to cloud.firestore 
+[info] 
+[info] +  Deploy complete! 
+[info] 
+[info] Project Console: https://console.firebase.google.com/project/qualcoco-96f38/overview
+[debug] [2026-03-27T01:43:02.405Z] ----------------------------------------------------------------------
+[debug] [2026-03-27T01:43:02.410Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\thgds\Desktop\qualcoco\node_modules\firebase-tools\lib\bin\firebase.js deploy --only firestore:rules,firestore:indexes --project qualcoco-96f38 --non-interactive
+[debug] [2026-03-27T01:43:02.411Z] CLI Version:   15.11.0
+[debug] [2026-03-27T01:43:02.411Z] Platform:      win32
+[debug] [2026-03-27T01:43:02.411Z] Node Version:  v24.11.1
+[debug] [2026-03-27T01:43:02.412Z] Time:          Thu Mar 26 2026 22:43:02 GMT-0300 (Horário Padrão de Brasília)
+[debug] [2026-03-27T01:43:02.412Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-03-27T01:43:06.447Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-03-27T01:43:06.449Z] > authorizing via signed-in user (thgdsztls@gmail.com)
+[debug] [2026-03-27T01:43:06.449Z] [iam] checking project qualcoco-96f38 for permissions ["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]
+[debug] [2026-03-27T01:43:06.453Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:43:06.453Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:43:06.456Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/qualcoco-96f38:testIamPermissions [none]
+[debug] [2026-03-27T01:43:06.456Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/qualcoco-96f38:testIamPermissions  x-goog-user-project=qualcoco-96f38
+[debug] [2026-03-27T01:43:06.457Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/qualcoco-96f38:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[debug] [2026-03-27T01:43:07.510Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/qualcoco-96f38:testIamPermissions 200
+[debug] [2026-03-27T01:43:07.510Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/qualcoco-96f38:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[info] 
+[info] === Deploying to 'qualcoco-96f38'...
+[info] 
+[info] i  deploying firestore 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[debug] [2026-03-27T01:43:07.519Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:43:07.519Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:43:07.519Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default) [none]
+[debug] [2026-03-27T01:43:07.811Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default) 200
+[debug] [2026-03-27T01:43:07.811Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default) {"name":"projects/qualcoco-96f38/databases/(default)","uid":"6e9b762a-4c72-443e-9575-12b7980fae51","createTime":"2026-03-27T01:06:30.936114Z","updateTime":"2026-03-27T01:06:30.936114Z","locationId":"southamerica-east1","type":"FIRESTORE_NATIVE","concurrencyMode":"PESSIMISTIC","versionRetentionPeriod":"3600s","earliestVersionTime":"2026-03-27T01:06:30.936114Z","appEngineIntegrationMode":"DISABLED","keyPrefix":"i","pointInTimeRecoveryEnablement":"POINT_IN_TIME_RECOVERY_DISABLED","deleteProtectionState":"DELETE_PROTECTION_DISABLED","databaseEdition":"STANDARD","freeTier":true,"realtimeUpdatesMode":"REALTIME_UPDATES_MODE_ENABLED","etag":"IO2Q2vv5vpMDMPKWxLb5vpMD"}
+[info] i  firestore: reading indexes from firestore.indexes.json... 
+[info] i  cloud.firestore: checking firestore.rules for compilation errors... 
+[debug] [2026-03-27T01:43:07.815Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:43:07.815Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:43:07.816Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38:test [none]
+[debug] [2026-03-27T01:43:07.816Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38:test [omitted]
+[debug] [2026-03-27T01:43:09.152Z] <<< [apiv2][status] POST https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38:test 200
+[debug] [2026-03-27T01:43:09.152Z] <<< [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38:test {}
+[info] +  cloud.firestore: rules file firestore.rules compiled successfully 
+[debug] [2026-03-27T01:43:09.156Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:43:09.156Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:43:09.157Z] >>> [apiv2][query] GET https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/releases pageSize=10&pageToken=
+[debug] [2026-03-27T01:43:10.307Z] <<< [apiv2][status] GET https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/releases 200
+[debug] [2026-03-27T01:43:10.307Z] <<< [apiv2][body] GET https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/releases {"releases":[{"name":"projects/qualcoco-96f38/releases/cloud.firestore","rulesetName":"projects/qualcoco-96f38/rulesets/3e783426-d8a5-4a0a-bc1c-7b0c14557b67","createTime":"2026-03-27T01:06:35.852778Z","updateTime":"2026-03-27T01:42:28.182727Z"}]}
+[debug] [2026-03-27T01:43:10.308Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:43:10.308Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:43:10.309Z] >>> [apiv2][query] GET https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/rulesets/3e783426-d8a5-4a0a-bc1c-7b0c14557b67 [none]
+[debug] [2026-03-27T01:43:10.658Z] <<< [apiv2][status] GET https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/rulesets/3e783426-d8a5-4a0a-bc1c-7b0c14557b67 200
+[debug] [2026-03-27T01:43:10.659Z] <<< [apiv2][body] GET https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/rulesets/3e783426-d8a5-4a0a-bc1c-7b0c14557b67 [omitted]
+[info] i  firestore: latest version of firestore.rules already up to date, skipping upload... 
+[info] i  firestore: deploying indexes... 
+[debug] [2026-03-27T01:43:10.663Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:43:10.664Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:43:10.664Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/-/indexes [none]
+[debug] [2026-03-27T01:43:10.755Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/-/indexes 200
+[debug] [2026-03-27T01:43:10.755Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/-/indexes {"indexes":[{"name":"projects/qualcoco-96f38/databases/(default)/collectionGroups/avaliacao_ruas/indexes/CICAgJim14AK","queryScope":"COLLECTION","fields":[{"fieldPath":"avaliacao_parcela_id","order":"ASCENDING"},{"fieldPath":"rua_numero","order":"ASCENDING"},{"fieldPath":"__name__","order":"ASCENDING"}],"state":"CREATING","density":"SPARSE_ALL"},{"name":"projects/qualcoco-96f38/databases/(default)/collectionGroups/colaboradores/indexes/CICAgOjXh4EK","queryScope":"COLLECTION","fields":[{"fieldPath":"ativo","order":"ASCENDING"},{"fieldPath":"deletado_em","order":"ASCENDING"},{"fieldPath":"atualizado_em","order":"ASCENDING"},{"fieldPath":"__name__","order":"ASCENDING"}],"state":"READY","density":"SPARSE_ALL"},{"name":"projects/qualcoco-96f38/databases/(default)/collectionGroups/avaliacao_colaboradores/indexes/CICAgJiUpoMK","queryScope":"COLLECTION","fields":[{"fieldPath":"avaliacao_id","order":"ASCENDING"},{"fieldPath":"colaborador_id","order":"ASCENDING"},{"fieldPath":"__name__","order":"ASCENDING"}],"state":"CREATING","density":"SPARSE_ALL"},{"name":"projects/qualcoco-96f38/databases/(default)/collectionGroups/avaliacao_parcelas/indexes/CICAgOi3kJAK","queryScope":"COLLECTION","fields":[{"fieldPath":"avaliacao_id","order":"ASCENDING"},{"fieldPath":"parcela_id","order":"ASCENDING"},{"fieldPath":"__name__","order":"ASCENDING"}],"state":"CREATING","density":"SPARSE_ALL"}]}
+[debug] [2026-03-27T01:43:10.756Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:43:10.756Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:43:10.757Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/-/fields?filter=indexConfig.usesAncestorConfig=false OR ttlConfig:* [none]
+[debug] [2026-03-27T01:43:10.831Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/-/fields?filter=indexConfig.usesAncestorConfig=false OR ttlConfig:* 200
+[debug] [2026-03-27T01:43:10.831Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/-/fields?filter=indexConfig.usesAncestorConfig=false OR ttlConfig:* {"fields":[{"name":"projects/qualcoco-96f38/databases/(default)/collectionGroups/__default__/fields/*","indexConfig":{"indexes":[{"queryScope":"COLLECTION","fields":[{"fieldPath":"*","order":"ASCENDING"}],"state":"READY"},{"queryScope":"COLLECTION","fields":[{"fieldPath":"*","order":"DESCENDING"}],"state":"READY"},{"queryScope":"COLLECTION","fields":[{"fieldPath":"*","arrayConfig":"CONTAINS"}],"state":"READY"}]}}]}
+[debug] [2026-03-27T01:43:10.832Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:43:10.832Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:43:10.833Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default) [none]
+[debug] [2026-03-27T01:43:10.911Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default) 200
+[debug] [2026-03-27T01:43:10.911Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default) {"name":"projects/qualcoco-96f38/databases/(default)","uid":"6e9b762a-4c72-443e-9575-12b7980fae51","createTime":"2026-03-27T01:06:30.936114Z","updateTime":"2026-03-27T01:06:30.936114Z","locationId":"southamerica-east1","type":"FIRESTORE_NATIVE","concurrencyMode":"PESSIMISTIC","versionRetentionPeriod":"3600s","earliestVersionTime":"2026-03-27T01:06:30.936114Z","appEngineIntegrationMode":"DISABLED","keyPrefix":"i","pointInTimeRecoveryEnablement":"POINT_IN_TIME_RECOVERY_DISABLED","deleteProtectionState":"DELETE_PROTECTION_DISABLED","databaseEdition":"STANDARD","freeTier":true,"realtimeUpdatesMode":"REALTIME_UPDATES_MODE_ENABLED","etag":"IIDFl/35vpMDMPKWxLb5vpMD"}
+[debug] [2026-03-27T01:43:10.913Z] Skipping existing index: {"collectionGroup":"colaboradores","queryScope":"COLLECTION","fields":[{"fieldPath":"ativo","order":"ASCENDING"},{"fieldPath":"deletado_em","order":"ASCENDING"},{"fieldPath":"atualizado_em","order":"ASCENDING"},{"fieldPath":"__name__","order":"ASCENDING"}]}
+[debug] [2026-03-27T01:43:10.914Z] Skipping existing index: {"collectionGroup":"avaliacao_colaboradores","queryScope":"COLLECTION","fields":[{"fieldPath":"avaliacao_id","order":"ASCENDING"},{"fieldPath":"colaborador_id","order":"ASCENDING"},{"fieldPath":"__name__","order":"ASCENDING"}]}
+[debug] [2026-03-27T01:43:10.914Z] Skipping existing index: {"collectionGroup":"avaliacao_parcelas","queryScope":"COLLECTION","fields":[{"fieldPath":"avaliacao_id","order":"ASCENDING"},{"fieldPath":"parcela_id","order":"ASCENDING"},{"fieldPath":"__name__","order":"ASCENDING"}]}
+[debug] [2026-03-27T01:43:10.914Z] Skipping existing index: {"collectionGroup":"avaliacao_ruas","queryScope":"COLLECTION","fields":[{"fieldPath":"avaliacao_parcela_id","order":"ASCENDING"},{"fieldPath":"rua_numero","order":"ASCENDING"},{"fieldPath":"__name__","order":"ASCENDING"}]}
+[info] +  firestore: deployed indexes in firestore.indexes.json successfully for (default) database 
+[debug] [2026-03-27T01:43:10.915Z] [rules] releasing cloud.firestore/(default) with ruleset projects/qualcoco-96f38/rulesets/3e783426-d8a5-4a0a-bc1c-7b0c14557b67
+[debug] [2026-03-27T01:43:10.916Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:43:10.916Z] Checked if tokens are valid: true, expires at: 1774579158838
+[debug] [2026-03-27T01:43:10.917Z] >>> [apiv2][query] PATCH https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/releases/cloud.firestore/(default) [none]
+[debug] [2026-03-27T01:43:10.917Z] >>> [apiv2][body] PATCH https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/releases/cloud.firestore/(default) {"release":{"name":"projects/qualcoco-96f38/releases/cloud.firestore/(default)","rulesetName":"projects/qualcoco-96f38/rulesets/3e783426-d8a5-4a0a-bc1c-7b0c14557b67"}}
+[debug] [2026-03-27T01:43:12.178Z] <<< [apiv2][status] PATCH https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/releases/cloud.firestore/(default) 200
+[debug] [2026-03-27T01:43:12.179Z] <<< [apiv2][body] PATCH https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/releases/cloud.firestore/(default) {"name":"projects/qualcoco-96f38/releases/cloud.firestore","rulesetName":"projects/qualcoco-96f38/rulesets/3e783426-d8a5-4a0a-bc1c-7b0c14557b67","createTime":"2026-03-27T01:06:35.852778Z","updateTime":"2026-03-27T01:43:12.111686Z"}
+[debug] [2026-03-27T01:43:12.179Z] [rules] updated release projects/qualcoco-96f38/releases/cloud.firestore
+[info] +  firestore: released rules firestore.rules to cloud.firestore 
+[info] 
+[info] +  Deploy complete! 
+[info] 
+[info] Project Console: https://console.firebase.google.com/project/qualcoco-96f38/overview
+[debug] [2026-03-30T18:54:12.272Z] ----------------------------------------------------------------------
+[debug] [2026-03-30T18:54:12.279Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\thgds\Desktop\qualcoco\node_modules\firebase-tools\lib\bin\firebase.js deploy --only firestore:rules,firestore:indexes --project qualcoco-96f38 --non-interactive
+[debug] [2026-03-30T18:54:12.280Z] CLI Version:   15.11.0
+[debug] [2026-03-30T18:54:12.280Z] Platform:      win32
+[debug] [2026-03-30T18:54:12.281Z] Node Version:  v24.11.1
+[debug] [2026-03-30T18:54:12.281Z] Time:          Mon Mar 30 2026 15:54:12 GMT-0300 (Horário Padrão de Brasília)
+[debug] [2026-03-30T18:54:12.281Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-03-30T18:54:12.287Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[debug] [2026-03-30T18:54:18.806Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-03-30T18:54:18.808Z] > authorizing via signed-in user (thgdsztls@gmail.com)
+[debug] [2026-03-30T18:54:18.808Z] [iam] checking project qualcoco-96f38 for permissions ["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]
+[debug] [2026-03-30T18:54:18.811Z] Checked if tokens are valid: false, expires at: 1774579158838
+[debug] [2026-03-30T18:54:18.812Z] Checked if tokens are valid: false, expires at: 1774579158838
+[debug] [2026-03-30T18:54:18.813Z] > refreshing access token with scopes: []
+[debug] [2026-03-30T18:54:18.817Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-03-30T18:54:18.817Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-03-30T18:54:19.256Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-03-30T18:54:19.257Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-03-30T18:54:19.274Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/qualcoco-96f38:testIamPermissions [none]
+[debug] [2026-03-30T18:54:19.274Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/qualcoco-96f38:testIamPermissions  x-goog-user-project=qualcoco-96f38
+[debug] [2026-03-30T18:54:19.275Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/qualcoco-96f38:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[debug] [2026-03-30T18:54:19.311Z] <<< [apiv2][status] GET https://firebase-public.firebaseio.com/cli.json 200
+[debug] [2026-03-30T18:54:19.312Z] <<< [apiv2][body] GET https://firebase-public.firebaseio.com/cli.json {"cloudBuildErrorAfter":1594252800000,"cloudBuildWarnAfter":1590019200000,"defaultNode10After":1594252800000,"minVersion":"3.0.5","node8DeploysDisabledAfter":1613390400000,"node8RuntimeDisabledAfter":1615809600000,"node8WarnAfter":1600128000000}
+[debug] [2026-03-30T18:54:20.382Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/qualcoco-96f38:testIamPermissions 200
+[debug] [2026-03-30T18:54:20.383Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/qualcoco-96f38:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[info] 
+[info] === Deploying to 'qualcoco-96f38'...
+[info] 
+[info] i  deploying firestore 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[info] i  firestore: ensuring required API firestore.googleapis.com is enabled... 
+[debug] [2026-03-30T18:54:20.397Z] Checked if tokens are valid: true, expires at: 1774900458257
+[debug] [2026-03-30T18:54:20.397Z] Checked if tokens are valid: true, expires at: 1774900458257
+[debug] [2026-03-30T18:54:20.398Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default) [none]
+[debug] [2026-03-30T18:54:20.912Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default) 200
+[debug] [2026-03-30T18:54:20.912Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default) {"name":"projects/qualcoco-96f38/databases/(default)","uid":"6e9b762a-4c72-443e-9575-12b7980fae51","createTime":"2026-03-27T01:06:30.936114Z","updateTime":"2026-03-27T01:06:30.936114Z","locationId":"southamerica-east1","type":"FIRESTORE_NATIVE","concurrencyMode":"PESSIMISTIC","versionRetentionPeriod":"3600s","earliestVersionTime":"2026-03-30T17:54:21.963508Z","appEngineIntegrationMode":"DISABLED","keyPrefix":"i","pointInTimeRecoveryEnablement":"POINT_IN_TIME_RECOVERY_DISABLED","deleteProtectionState":"DELETE_PROTECTION_DISABLED","databaseEdition":"STANDARD","freeTier":true,"realtimeUpdatesMode":"REALTIME_UPDATES_MODE_ENABLED","etag":"ILzF4YemyJMDMPKWxLb5vpMD"}
+[info] i  firestore: reading indexes from firestore.indexes.json... 
+[info] i  cloud.firestore: checking firestore.rules for compilation errors... 
+[debug] [2026-03-30T18:54:20.919Z] Checked if tokens are valid: true, expires at: 1774900458257
+[debug] [2026-03-30T18:54:20.920Z] Checked if tokens are valid: true, expires at: 1774900458257
+[debug] [2026-03-30T18:54:20.920Z] >>> [apiv2][query] POST https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38:test [none]
+[debug] [2026-03-30T18:54:20.921Z] >>> [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38:test [omitted]
+[debug] [2026-03-30T18:54:22.388Z] <<< [apiv2][status] POST https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38:test 200
+[debug] [2026-03-30T18:54:22.389Z] <<< [apiv2][body] POST https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38:test {}
+[info] +  cloud.firestore: rules file firestore.rules compiled successfully 
+[debug] [2026-03-30T18:54:22.394Z] Checked if tokens are valid: true, expires at: 1774900458257
+[debug] [2026-03-30T18:54:22.395Z] Checked if tokens are valid: true, expires at: 1774900458257
+[debug] [2026-03-30T18:54:22.396Z] >>> [apiv2][query] GET https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/releases pageSize=10&pageToken=
+[debug] [2026-03-30T18:54:23.568Z] <<< [apiv2][status] GET https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/releases 200
+[debug] [2026-03-30T18:54:23.568Z] <<< [apiv2][body] GET https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/releases {"releases":[{"name":"projects/qualcoco-96f38/releases/cloud.firestore","rulesetName":"projects/qualcoco-96f38/rulesets/3e783426-d8a5-4a0a-bc1c-7b0c14557b67","createTime":"2026-03-27T01:06:35.852778Z","updateTime":"2026-03-27T01:43:12.111686Z"}]}
+[debug] [2026-03-30T18:54:23.568Z] Checked if tokens are valid: true, expires at: 1774900458257
+[debug] [2026-03-30T18:54:23.569Z] Checked if tokens are valid: true, expires at: 1774900458257
+[debug] [2026-03-30T18:54:23.569Z] >>> [apiv2][query] GET https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/rulesets/3e783426-d8a5-4a0a-bc1c-7b0c14557b67 [none]
+[debug] [2026-03-30T18:54:24.775Z] <<< [apiv2][status] GET https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/rulesets/3e783426-d8a5-4a0a-bc1c-7b0c14557b67 200
+[debug] [2026-03-30T18:54:24.776Z] <<< [apiv2][body] GET https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/rulesets/3e783426-d8a5-4a0a-bc1c-7b0c14557b67 [omitted]
+[info] i  firestore: latest version of firestore.rules already up to date, skipping upload... 
+[info] i  firestore: deploying indexes... 
+[debug] [2026-03-30T18:54:24.783Z] Checked if tokens are valid: true, expires at: 1774900458257
+[debug] [2026-03-30T18:54:24.783Z] Checked if tokens are valid: true, expires at: 1774900458257
+[debug] [2026-03-30T18:54:24.783Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/-/indexes [none]
+[debug] [2026-03-30T18:54:24.971Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/-/indexes 200
+[debug] [2026-03-30T18:54:24.971Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/-/indexes {"indexes":[{"name":"projects/qualcoco-96f38/databases/(default)/collectionGroups/avaliacao_ruas/indexes/CICAgJim14AK","queryScope":"COLLECTION","fields":[{"fieldPath":"avaliacao_parcela_id","order":"ASCENDING"},{"fieldPath":"rua_numero","order":"ASCENDING"},{"fieldPath":"__name__","order":"ASCENDING"}],"state":"READY","density":"SPARSE_ALL"},{"name":"projects/qualcoco-96f38/databases/(default)/collectionGroups/colaboradores/indexes/CICAgOjXh4EK","queryScope":"COLLECTION","fields":[{"fieldPath":"ativo","order":"ASCENDING"},{"fieldPath":"deletado_em","order":"ASCENDING"},{"fieldPath":"atualizado_em","order":"ASCENDING"},{"fieldPath":"__name__","order":"ASCENDING"}],"state":"READY","density":"SPARSE_ALL"},{"name":"projects/qualcoco-96f38/databases/(default)/collectionGroups/avaliacao_colaboradores/indexes/CICAgJiUpoMK","queryScope":"COLLECTION","fields":[{"fieldPath":"avaliacao_id","order":"ASCENDING"},{"fieldPath":"colaborador_id","order":"ASCENDING"},{"fieldPath":"__name__","order":"ASCENDING"}],"state":"READY","density":"SPARSE_ALL"},{"name":"projects/qualcoco-96f38/databases/(default)/collectionGroups/avaliacao_parcelas/indexes/CICAgOi3kJAK","queryScope":"COLLECTION","fields":[{"fieldPath":"avaliacao_id","order":"ASCENDING"},{"fieldPath":"parcela_id","order":"ASCENDING"},{"fieldPath":"__name__","order":"ASCENDING"}],"state":"READY","density":"SPARSE_ALL"}]}
+[debug] [2026-03-30T18:54:24.972Z] Checked if tokens are valid: true, expires at: 1774900458257
+[debug] [2026-03-30T18:54:24.973Z] Checked if tokens are valid: true, expires at: 1774900458257
+[debug] [2026-03-30T18:54:24.974Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/-/fields?filter=indexConfig.usesAncestorConfig=false OR ttlConfig:* [none]
+[debug] [2026-03-30T18:54:25.072Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/-/fields?filter=indexConfig.usesAncestorConfig=false OR ttlConfig:* 200
+[debug] [2026-03-30T18:54:25.073Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/-/fields?filter=indexConfig.usesAncestorConfig=false OR ttlConfig:* {"fields":[{"name":"projects/qualcoco-96f38/databases/(default)/collectionGroups/__default__/fields/*","indexConfig":{"indexes":[{"queryScope":"COLLECTION","fields":[{"fieldPath":"*","order":"ASCENDING"}],"state":"READY"},{"queryScope":"COLLECTION","fields":[{"fieldPath":"*","order":"DESCENDING"}],"state":"READY"},{"queryScope":"COLLECTION","fields":[{"fieldPath":"*","arrayConfig":"CONTAINS"}],"state":"READY"}]}}]}
+[debug] [2026-03-30T18:54:25.073Z] Checked if tokens are valid: true, expires at: 1774900458257
+[debug] [2026-03-30T18:54:25.074Z] Checked if tokens are valid: true, expires at: 1774900458257
+[debug] [2026-03-30T18:54:25.074Z] >>> [apiv2][query] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default) [none]
+[debug] [2026-03-30T18:54:25.186Z] <<< [apiv2][status] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default) 200
+[debug] [2026-03-30T18:54:25.187Z] <<< [apiv2][body] GET https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default) {"name":"projects/qualcoco-96f38/databases/(default)","uid":"6e9b762a-4c72-443e-9575-12b7980fae51","createTime":"2026-03-27T01:06:30.936114Z","updateTime":"2026-03-27T01:06:30.936114Z","locationId":"southamerica-east1","type":"FIRESTORE_NATIVE","concurrencyMode":"PESSIMISTIC","versionRetentionPeriod":"3600s","earliestVersionTime":"2026-03-30T17:54:26.238315Z","appEngineIntegrationMode":"DISABLED","keyPrefix":"i","pointInTimeRecoveryEnablement":"POINT_IN_TIME_RECOVERY_DISABLED","deleteProtectionState":"DELETE_PROTECTION_DISABLED","databaseEdition":"STANDARD","freeTier":true,"realtimeUpdatesMode":"REALTIME_UPDATES_MODE_ENABLED","etag":"IKWu5ommyJMDMPKWxLb5vpMD"}
+[info] i  firestore: there are 1 indexes defined in your project that are not present in your firestore indexes file. To delete them, run this command with the --force flag. 
+[debug] [2026-03-30T18:54:25.190Z] Creating new index: {"collectionGroup":"equipes","queryScope":"COLLECTION","fields":[{"fieldPath":"atualizado_em","order":"ASCENDING"},{"fieldPath":"id","order":"ASCENDING"}]}
+[debug] [2026-03-30T18:54:25.191Z] Checked if tokens are valid: true, expires at: 1774900458257
+[debug] [2026-03-30T18:54:25.191Z] Checked if tokens are valid: true, expires at: 1774900458257
+[debug] [2026-03-30T18:54:25.192Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/equipes/indexes [none]
+[debug] [2026-03-30T18:54:25.193Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/equipes/indexes {"fields":[{"fieldPath":"atualizado_em","order":"ASCENDING"},{"fieldPath":"id","order":"ASCENDING"}],"queryScope":"COLLECTION"}
+[debug] [2026-03-30T18:54:25.401Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/equipes/indexes 200
+[debug] [2026-03-30T18:54:25.402Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/equipes/indexes {"name":"projects/qualcoco-96f38/databases/(default)/operations/S0lvOUZqSmdBQ0lDDCoDIDAxYjZhNzlkY2U3Ni05YmQ4LTI2NTQtYjA5MS0xZGQ3YzE4YSQac2VuaWxlcGlwCQpBEg","metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.IndexOperationMetadata","startTime":"2026-03-30T18:54:26.438743Z","index":"projects/qualcoco-96f38/databases/(default)/collectionGroups/equipes/indexes/CICAgJjF9oIK","state":"INITIALIZING"}}
+[debug] [2026-03-30T18:54:25.402Z] Creating new index: {"collectionGroup":"colaboradores","queryScope":"COLLECTION","fields":[{"fieldPath":"ativo","order":"ASCENDING"},{"fieldPath":"deletado_em","order":"ASCENDING"},{"fieldPath":"atualizado_em","order":"ASCENDING"},{"fieldPath":"id","order":"ASCENDING"},{"fieldPath":"__name__","order":"ASCENDING"}]}
+[debug] [2026-03-30T18:54:25.402Z] Checked if tokens are valid: true, expires at: 1774900458257
+[debug] [2026-03-30T18:54:25.403Z] Checked if tokens are valid: true, expires at: 1774900458257
+[debug] [2026-03-30T18:54:25.403Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/colaboradores/indexes [none]
+[debug] [2026-03-30T18:54:25.404Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/colaboradores/indexes {"fields":[{"fieldPath":"ativo","order":"ASCENDING"},{"fieldPath":"deletado_em","order":"ASCENDING"},{"fieldPath":"atualizado_em","order":"ASCENDING"},{"fieldPath":"id","order":"ASCENDING"},{"fieldPath":"__name__","order":"ASCENDING"}],"queryScope":"COLLECTION"}
+[debug] [2026-03-30T18:54:25.588Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/colaboradores/indexes 200
+[debug] [2026-03-30T18:54:25.588Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/colaboradores/indexes {"name":"projects/qualcoco-96f38/databases/(default)/operations/S0U0ejdqSmdBQ0lDDCoDIGEyY2FkMjIxNGExNS1jYWZiLTVjODQtMjNmMy1jYjUwM2U0MCQac2VuaWxlcGlwCQpBEg","metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.IndexOperationMetadata","startTime":"2026-03-30T18:54:26.625832Z","index":"projects/qualcoco-96f38/databases/(default)/collectionGroups/colaboradores/indexes/CICAgJj7z4EK","state":"INITIALIZING"}}
+[debug] [2026-03-30T18:54:25.589Z] Creating new index: {"collectionGroup":"parcelas","queryScope":"COLLECTION","fields":[{"fieldPath":"atualizado_em","order":"ASCENDING"},{"fieldPath":"id","order":"ASCENDING"}]}
+[debug] [2026-03-30T18:54:25.589Z] Checked if tokens are valid: true, expires at: 1774900458257
+[debug] [2026-03-30T18:54:25.589Z] Checked if tokens are valid: true, expires at: 1774900458257
+[debug] [2026-03-30T18:54:25.590Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/parcelas/indexes [none]
+[debug] [2026-03-30T18:54:25.590Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/parcelas/indexes {"fields":[{"fieldPath":"atualizado_em","order":"ASCENDING"},{"fieldPath":"id","order":"ASCENDING"}],"queryScope":"COLLECTION"}
+[debug] [2026-03-30T18:54:25.734Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/parcelas/indexes 200
+[debug] [2026-03-30T18:54:25.735Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/parcelas/indexes {"name":"projects/qualcoco-96f38/databases/(default)/operations/S01vNzRpTmdBQ0lDDCoDIDk5ZTJmOWZmZmRjMS05NGFhLWQ2NjQtNjZlZS0wZWQ2MWY2YyQac2VuaWxlcGlwCQpBEg","metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.IndexOperationMetadata","startTime":"2026-03-30T18:54:26.773038Z","index":"projects/qualcoco-96f38/databases/(default)/collectionGroups/parcelas/indexes/CICAgNi47oMK","state":"INITIALIZING"}}
+[debug] [2026-03-30T18:54:25.735Z] Creating new index: {"collectionGroup":"dispositivos","queryScope":"COLLECTION","fields":[{"fieldPath":"atualizado_em","order":"ASCENDING"},{"fieldPath":"id","order":"ASCENDING"}]}
+[debug] [2026-03-30T18:54:25.735Z] Checked if tokens are valid: true, expires at: 1774900458257
+[debug] [2026-03-30T18:54:25.736Z] Checked if tokens are valid: true, expires at: 1774900458257
+[debug] [2026-03-30T18:54:25.736Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/dispositivos/indexes [none]
+[debug] [2026-03-30T18:54:25.736Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/dispositivos/indexes {"fields":[{"fieldPath":"atualizado_em","order":"ASCENDING"},{"fieldPath":"id","order":"ASCENDING"}],"queryScope":"COLLECTION"}
+[debug] [2026-03-30T18:54:25.858Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/dispositivos/indexes 200
+[debug] [2026-03-30T18:54:25.858Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/dispositivos/indexes {"name":"projects/qualcoco-96f38/databases/(default)/operations/S0FKMkhpSmdBQ0lDDCoDIGQ4NWUxNWIwYzQ3OS0xODA4LTM3YzQtZWQ1Zi0xMGE5MDhhYSQac2VuaWxlcGlwCQpBEg","metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.IndexOperationMetadata","startTime":"2026-03-30T18:54:26.898572Z","index":"projects/qualcoco-96f38/databases/(default)/collectionGroups/dispositivos/indexes/CICAgJiH2JAK","state":"INITIALIZING"}}
+[debug] [2026-03-30T18:54:25.858Z] Creating new index: {"collectionGroup":"avaliacoes","queryScope":"COLLECTION","fields":[{"fieldPath":"atualizado_em","order":"ASCENDING"},{"fieldPath":"id","order":"ASCENDING"}]}
+[debug] [2026-03-30T18:54:25.859Z] Checked if tokens are valid: true, expires at: 1774900458257
+[debug] [2026-03-30T18:54:25.859Z] Checked if tokens are valid: true, expires at: 1774900458257
+[debug] [2026-03-30T18:54:25.860Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/avaliacoes/indexes [none]
+[debug] [2026-03-30T18:54:25.860Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/avaliacoes/indexes {"fields":[{"fieldPath":"atualizado_em","order":"ASCENDING"},{"fieldPath":"id","order":"ASCENDING"}],"queryScope":"COLLECTION"}
+[debug] [2026-03-30T18:54:25.974Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/avaliacoes/indexes 200
+[debug] [2026-03-30T18:54:25.975Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/avaliacoes/indexes {"name":"projects/qualcoco-96f38/databases/(default)/operations/S01acUZqSmdBQ0lDDCoDIDU5NDQxOGQzOGMyNi01N2E4LTU4MzQtMmE2ZC1iNjgxNDVkZSQac2VuaWxlcGlwCQpBEg","metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.IndexOperationMetadata","startTime":"2026-03-30T18:54:27.017926Z","index":"projects/qualcoco-96f38/databases/(default)/collectionGroups/avaliacoes/indexes/CICAgJjFqZMK","state":"INITIALIZING"}}
+[debug] [2026-03-30T18:54:25.975Z] Skipping existing index: {"collectionGroup":"avaliacao_colaboradores","queryScope":"COLLECTION","fields":[{"fieldPath":"avaliacao_id","order":"ASCENDING"},{"fieldPath":"colaborador_id","order":"ASCENDING"},{"fieldPath":"__name__","order":"ASCENDING"}]}
+[debug] [2026-03-30T18:54:25.975Z] Creating new index: {"collectionGroup":"avaliacao_colaboradores","queryScope":"COLLECTION","fields":[{"fieldPath":"atualizado_em","order":"ASCENDING"},{"fieldPath":"id","order":"ASCENDING"},{"fieldPath":"__name__","order":"ASCENDING"}]}
+[debug] [2026-03-30T18:54:25.976Z] Checked if tokens are valid: true, expires at: 1774900458257
+[debug] [2026-03-30T18:54:25.976Z] Checked if tokens are valid: true, expires at: 1774900458257
+[debug] [2026-03-30T18:54:25.976Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/avaliacao_colaboradores/indexes [none]
+[debug] [2026-03-30T18:54:25.976Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/avaliacao_colaboradores/indexes {"fields":[{"fieldPath":"atualizado_em","order":"ASCENDING"},{"fieldPath":"id","order":"ASCENDING"},{"fieldPath":"__name__","order":"ASCENDING"}],"queryScope":"COLLECTION"}
+[debug] [2026-03-30T18:54:26.095Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/avaliacao_colaboradores/indexes 200
+[debug] [2026-03-30T18:54:26.095Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/avaliacao_colaboradores/indexes {"name":"projects/qualcoco-96f38/databases/(default)/operations/S0E0dmFpTmdBQ0lDDCoDIDFiMzY1ZTE1ODBiMS0yOTE4LWZkYjQtODMwNC1iNGY2ZjFlZiQac2VuaWxlcGlwCQpBEg","metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.IndexOperationMetadata","startTime":"2026-03-30T18:54:27.138909Z","index":"projects/qualcoco-96f38/databases/(default)/collectionGroups/avaliacao_colaboradores/indexes/CICAgNiav4AK","state":"INITIALIZING"}}
+[debug] [2026-03-30T18:54:26.096Z] Skipping existing index: {"collectionGroup":"avaliacao_parcelas","queryScope":"COLLECTION","fields":[{"fieldPath":"avaliacao_id","order":"ASCENDING"},{"fieldPath":"parcela_id","order":"ASCENDING"},{"fieldPath":"__name__","order":"ASCENDING"}]}
+[debug] [2026-03-30T18:54:26.096Z] Creating new index: {"collectionGroup":"avaliacao_parcelas","queryScope":"COLLECTION","fields":[{"fieldPath":"atualizado_em","order":"ASCENDING"},{"fieldPath":"id","order":"ASCENDING"},{"fieldPath":"__name__","order":"ASCENDING"}]}
+[debug] [2026-03-30T18:54:26.097Z] Checked if tokens are valid: true, expires at: 1774900458257
+[debug] [2026-03-30T18:54:26.097Z] Checked if tokens are valid: true, expires at: 1774900458257
+[debug] [2026-03-30T18:54:26.098Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/avaliacao_parcelas/indexes [none]
+[debug] [2026-03-30T18:54:26.098Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/avaliacao_parcelas/indexes {"fields":[{"fieldPath":"atualizado_em","order":"ASCENDING"},{"fieldPath":"id","order":"ASCENDING"},{"fieldPath":"__name__","order":"ASCENDING"}],"queryScope":"COLLECTION"}
+[debug] [2026-03-30T18:54:26.235Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/avaliacao_parcelas/indexes 200
+[debug] [2026-03-30T18:54:26.235Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/avaliacao_parcelas/indexes {"name":"projects/qualcoco-96f38/databases/(default)/operations/S0lZZ3BqTmdBQ0lDDCoDIDA3MDU1NjM1ZThmYi0xMjlhLWQ3NjQtZGQ5My1mODU2MTNkZCQac2VuaWxlcGlwCQpBEg","metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.IndexOperationMetadata","startTime":"2026-03-30T18:54:27.273931Z","index":"projects/qualcoco-96f38/databases/(default)/collectionGroups/avaliacao_parcelas/indexes/CICAgNjpgYIK","state":"INITIALIZING"}}
+[debug] [2026-03-30T18:54:26.236Z] Skipping existing index: {"collectionGroup":"avaliacao_ruas","queryScope":"COLLECTION","fields":[{"fieldPath":"avaliacao_parcela_id","order":"ASCENDING"},{"fieldPath":"rua_numero","order":"ASCENDING"},{"fieldPath":"__name__","order":"ASCENDING"}]}
+[debug] [2026-03-30T18:54:26.236Z] Creating new index: {"collectionGroup":"avaliacao_ruas","queryScope":"COLLECTION","fields":[{"fieldPath":"atualizado_em","order":"ASCENDING"},{"fieldPath":"id","order":"ASCENDING"},{"fieldPath":"__name__","order":"ASCENDING"}]}
+[debug] [2026-03-30T18:54:26.237Z] Checked if tokens are valid: true, expires at: 1774900458257
+[debug] [2026-03-30T18:54:26.237Z] Checked if tokens are valid: true, expires at: 1774900458257
+[debug] [2026-03-30T18:54:26.237Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/avaliacao_ruas/indexes [none]
+[debug] [2026-03-30T18:54:26.238Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/avaliacao_ruas/indexes {"fields":[{"fieldPath":"atualizado_em","order":"ASCENDING"},{"fieldPath":"id","order":"ASCENDING"},{"fieldPath":"__name__","order":"ASCENDING"}],"queryScope":"COLLECTION"}
+[debug] [2026-03-30T18:54:26.364Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/avaliacao_ruas/indexes 200
+[debug] [2026-03-30T18:54:26.364Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/avaliacao_ruas/indexes {"name":"projects/qualcoco-96f38/databases/(default)/operations/S0VJb3JpTmdBQ0lDDCoDIDMxYTVlNDRiZjI2ZC0wN2JhLWI0ZjQtN2M0Zi1jZWJiNjllMiQac2VuaWxlcGlwCQpBEg","metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.IndexOperationMetadata","startTime":"2026-03-30T18:54:27.405895Z","index":"projects/qualcoco-96f38/databases/(default)/collectionGroups/avaliacao_ruas/indexes/CICAgNiroIEK","state":"INITIALIZING"}}
+[debug] [2026-03-30T18:54:26.364Z] Creating new index: {"collectionGroup":"registros_coleta","queryScope":"COLLECTION","fields":[{"fieldPath":"atualizado_em","order":"ASCENDING"},{"fieldPath":"id","order":"ASCENDING"}]}
+[debug] [2026-03-30T18:54:26.365Z] Checked if tokens are valid: true, expires at: 1774900458257
+[debug] [2026-03-30T18:54:26.365Z] Checked if tokens are valid: true, expires at: 1774900458257
+[debug] [2026-03-30T18:54:26.366Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/registros_coleta/indexes [none]
+[debug] [2026-03-30T18:54:26.367Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/registros_coleta/indexes {"fields":[{"fieldPath":"atualizado_em","order":"ASCENDING"},{"fieldPath":"id","order":"ASCENDING"}],"queryScope":"COLLECTION"}
+[debug] [2026-03-30T18:54:26.489Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/registros_coleta/indexes 200
+[debug] [2026-03-30T18:54:26.490Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/registros_coleta/indexes {"name":"projects/qualcoco-96f38/databases/(default)/operations/S0lac1VpSmdBQ0lDDCoDIDk5YjE4ZDYwNTY0OC04MjhhLWEzYzQtYTJlOC03ODNjYTBiNiQac2VuaWxlcGlwCQpBEg","metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.IndexOperationMetadata","startTime":"2026-03-30T18:54:27.526456Z","index":"projects/qualcoco-96f38/databases/(default)/collectionGroups/registros_coleta/indexes/CICAgJiUsZIK","state":"INITIALIZING"}}
+[debug] [2026-03-30T18:54:26.490Z] Creating new index: {"collectionGroup":"tentativas_login","queryScope":"COLLECTION","fields":[{"fieldPath":"atualizado_em","order":"ASCENDING"},{"fieldPath":"id","order":"ASCENDING"}]}
+[debug] [2026-03-30T18:54:26.490Z] Checked if tokens are valid: true, expires at: 1774900458257
+[debug] [2026-03-30T18:54:26.490Z] Checked if tokens are valid: true, expires at: 1774900458257
+[debug] [2026-03-30T18:54:26.490Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/tentativas_login/indexes [none]
+[debug] [2026-03-30T18:54:26.491Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/tentativas_login/indexes {"fields":[{"fieldPath":"atualizado_em","order":"ASCENDING"},{"fieldPath":"id","order":"ASCENDING"}],"queryScope":"COLLECTION"}
+[debug] [2026-03-30T18:54:26.596Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/tentativas_login/indexes 200
+[debug] [2026-03-30T18:54:26.597Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/tentativas_login/indexes {"name":"projects/qualcoco-96f38/databases/(default)/operations/Sk1vNzRpTmdBQ0lDDCoDIGEzNzQyMmVmNzQyYy1lYThiLTcwZjQtOTIzNC1lZDFjYmE5MyQac2VuaWxlcGlwCQpBEg","metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.IndexOperationMetadata","startTime":"2026-03-30T18:54:27.637415Z","index":"projects/qualcoco-96f38/databases/(default)/collectionGroups/tentativas_login/indexes/CICAgNi47oMJ","state":"INITIALIZING"}}
+[debug] [2026-03-30T18:54:26.597Z] Creating new index: {"collectionGroup":"configuracoes","queryScope":"COLLECTION","fields":[{"fieldPath":"atualizado_em","order":"ASCENDING"},{"fieldPath":"id","order":"ASCENDING"}]}
+[debug] [2026-03-30T18:54:26.597Z] Checked if tokens are valid: true, expires at: 1774900458257
+[debug] [2026-03-30T18:54:26.597Z] Checked if tokens are valid: true, expires at: 1774900458257
+[debug] [2026-03-30T18:54:26.597Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/configuracoes/indexes [none]
+[debug] [2026-03-30T18:54:26.598Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/configuracoes/indexes {"fields":[{"fieldPath":"atualizado_em","order":"ASCENDING"},{"fieldPath":"id","order":"ASCENDING"}],"queryScope":"COLLECTION"}
+[debug] [2026-03-30T18:54:26.734Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/configuracoes/indexes 200
+[debug] [2026-03-30T18:54:26.735Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/configuracoes/indexes {"name":"projects/qualcoco-96f38/databases/(default)/operations/S01Za0lpTGdBQ0lDDCoDIDFhZTk0NmVhODdkMi03Yjc4LTEwZTQtZDQxYi1iOWJjYWRmNCQac2VuaWxlcGlwCQpBEg","metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.IndexOperationMetadata","startTime":"2026-03-30T18:54:27.771781Z","index":"projects/qualcoco-96f38/databases/(default)/collectionGroups/configuracoes/indexes/CICAgLiIkYMK","state":"INITIALIZING"}}
+[debug] [2026-03-30T18:54:26.735Z] Creating new index: {"collectionGroup":"sync_logs","queryScope":"COLLECTION","fields":[{"fieldPath":"atualizado_em","order":"ASCENDING"},{"fieldPath":"id","order":"ASCENDING"}]}
+[debug] [2026-03-30T18:54:26.735Z] Checked if tokens are valid: true, expires at: 1774900458257
+[debug] [2026-03-30T18:54:26.735Z] Checked if tokens are valid: true, expires at: 1774900458257
+[debug] [2026-03-30T18:54:26.736Z] >>> [apiv2][query] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/sync_logs/indexes [none]
+[debug] [2026-03-30T18:54:26.736Z] >>> [apiv2][body] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/sync_logs/indexes {"fields":[{"fieldPath":"atualizado_em","order":"ASCENDING"},{"fieldPath":"id","order":"ASCENDING"}],"queryScope":"COLLECTION"}
+[debug] [2026-03-30T18:54:26.864Z] <<< [apiv2][status] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/sync_logs/indexes 200
+[debug] [2026-03-30T18:54:26.864Z] <<< [apiv2][body] POST https://firestore.googleapis.com/v1/projects/qualcoco-96f38/databases/(default)/collectionGroups/sync_logs/indexes {"name":"projects/qualcoco-96f38/databases/(default)/operations/S29ZdkZqSmdBQ0lDDCoDIDk4MThiNGUyYjczMy1mNGNhLWNiMzQtMDczYS1kODkyODJiYiQac2VuaWxlcGlwCQpBEg","metadata":{"@type":"type.googleapis.com/google.firestore.admin.v1.IndexOperationMetadata","startTime":"2026-03-30T18:54:27.902801Z","index":"projects/qualcoco-96f38/databases/(default)/collectionGroups/sync_logs/indexes/CICAgJjFvYoK","state":"INITIALIZING"}}
+[info] +  firestore: deployed indexes in firestore.indexes.json successfully for (default) database 
+[debug] [2026-03-30T18:54:26.866Z] [rules] releasing cloud.firestore/(default) with ruleset projects/qualcoco-96f38/rulesets/3e783426-d8a5-4a0a-bc1c-7b0c14557b67
+[debug] [2026-03-30T18:54:26.867Z] Checked if tokens are valid: true, expires at: 1774900458257
+[debug] [2026-03-30T18:54:26.867Z] Checked if tokens are valid: true, expires at: 1774900458257
+[debug] [2026-03-30T18:54:26.868Z] >>> [apiv2][query] PATCH https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/releases/cloud.firestore/(default) [none]
+[debug] [2026-03-30T18:54:26.868Z] >>> [apiv2][body] PATCH https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/releases/cloud.firestore/(default) {"release":{"name":"projects/qualcoco-96f38/releases/cloud.firestore/(default)","rulesetName":"projects/qualcoco-96f38/rulesets/3e783426-d8a5-4a0a-bc1c-7b0c14557b67"}}
+[debug] [2026-03-30T18:54:27.382Z] <<< [apiv2][status] PATCH https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/releases/cloud.firestore/(default) 200
+[debug] [2026-03-30T18:54:27.383Z] <<< [apiv2][body] PATCH https://firebaserules.googleapis.com/v1/projects/qualcoco-96f38/releases/cloud.firestore/(default) {"name":"projects/qualcoco-96f38/releases/cloud.firestore","rulesetName":"projects/qualcoco-96f38/rulesets/3e783426-d8a5-4a0a-bc1c-7b0c14557b67","createTime":"2026-03-27T01:06:35.852778Z","updateTime":"2026-03-30T18:54:28.297393Z"}
+[debug] [2026-03-30T18:54:27.383Z] [rules] updated release projects/qualcoco-96f38/releases/cloud.firestore
+[info] +  firestore: released rules firestore.rules to cloud.firestore 
+[info] 
+[info] +  Deploy complete! 
+[info] 
+[info] Project Console: https://console.firebase.google.com/project/qualcoco-96f38/overview

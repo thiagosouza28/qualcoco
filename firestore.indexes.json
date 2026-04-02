@@ -1,0 +1,127 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "equipes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "atualizado_em", "order": "ASCENDING" },
+        { "fieldPath": "id", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "colaboradores",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ativo", "order": "ASCENDING" },
+        { "fieldPath": "deletado_em", "order": "ASCENDING" },
+        { "fieldPath": "atualizado_em", "order": "ASCENDING" },
+        { "fieldPath": "id", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "parcelas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "atualizado_em", "order": "ASCENDING" },
+        { "fieldPath": "id", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "dispositivos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "atualizado_em", "order": "ASCENDING" },
+        { "fieldPath": "id", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "avaliacoes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "atualizado_em", "order": "ASCENDING" },
+        { "fieldPath": "id", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "avaliacao_colaboradores",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "avaliacao_id", "order": "ASCENDING" },
+        { "fieldPath": "colaborador_id", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "avaliacao_colaboradores",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "atualizado_em", "order": "ASCENDING" },
+        { "fieldPath": "id", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "avaliacao_parcelas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "avaliacao_id", "order": "ASCENDING" },
+        { "fieldPath": "parcela_id", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "avaliacao_parcelas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "atualizado_em", "order": "ASCENDING" },
+        { "fieldPath": "id", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "avaliacao_ruas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "avaliacao_parcela_id", "order": "ASCENDING" },
+        { "fieldPath": "rua_numero", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "avaliacao_ruas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "atualizado_em", "order": "ASCENDING" },
+        { "fieldPath": "id", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "registros_coleta",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "atualizado_em", "order": "ASCENDING" },
+        { "fieldPath": "id", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "tentativas_login",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "atualizado_em", "order": "ASCENDING" },
+        { "fieldPath": "id", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "configuracoes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "atualizado_em", "order": "ASCENDING" },
+        { "fieldPath": "id", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "sync_logs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "atualizado_em", "order": "ASCENDING" },
+        { "fieldPath": "id", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
