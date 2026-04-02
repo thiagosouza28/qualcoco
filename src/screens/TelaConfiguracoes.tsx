@@ -110,7 +110,7 @@ export function TelaConfiguracoes() {
 
     const result = await checkForUpdate();
     if (result.status === 'up-to-date') {
-      alert(`O app ja esta na versao mais recente (${result.currentVersion}).`);
+      alert(`O app já está na versão mais recente (${result.currentVersion}).`);
     }
   };
 
@@ -153,20 +153,20 @@ export function TelaConfiguracoes() {
             <CardContent className="space-y-4 p-4">
               <div className="space-y-1.5">
                 <p className="text-sm font-semibold text-[var(--qc-text)]">
-                  Atualizacao do aplicativo
+                  Atualização do aplicativo
                 </p>
                 <p className="text-sm leading-relaxed text-[var(--qc-text-muted)]">
-                  Versao instalada:{' '}
+                  Versão instalada:{' '}
                   <span className="font-semibold text-[var(--qc-text)]">
                     {currentVersion || 'Carregando...'}
                   </span>
                 </p>
                 <p className="text-sm leading-relaxed text-[var(--qc-text-muted)]">
                   {availableUpdate
-                    ? `Nova versao ${availableUpdate.latestVersion} disponivel para instalacao.`
+                    ? `Nova versão ${availableUpdate.latestVersion} disponível para instalação.`
                     : manifestConfigured
                       ? 'Verifique manualmente se existe um novo APK publicado no GitHub Releases.'
-                      : 'Canal de atualizacao externa ainda nao configurado.'}
+                      : 'Canal de atualização externa ainda não configurado.'}
                 </p>
               </div>
 
@@ -182,7 +182,7 @@ export function TelaConfiguracoes() {
                   ? 'Verificando...'
                   : availableUpdate
                     ? `Atualizar para ${availableUpdate.latestVersion}`
-                    : 'Verificar atualizacao'}
+                    : 'Verificar atualização'}
               </Button>
             </CardContent>
           </Card>

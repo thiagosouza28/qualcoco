@@ -36,23 +36,23 @@ export function AppUpdateDialog() {
 
           <div className="min-w-0 flex-1">
             <span className="inline-flex rounded-full border border-[var(--qc-border)] bg-[var(--qc-surface-muted)] px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.18em] text-[var(--qc-secondary)]">
-              {required ? 'Obrigatoria' : 'Nova versao'}
+              {required ? 'Obrigatória' : 'Nova versão'}
             </span>
 
             <h3 className="mt-3 text-[1.65rem] font-black leading-[0.95] tracking-[-0.05em] text-[var(--qc-text)]">
-              {required ? 'Atualizacao obrigatoria' : 'Atualizacao disponivel'}
+              {required ? 'Atualização obrigatória' : 'Atualização disponível'}
             </h3>
 
             <p className="mt-3 text-sm leading-relaxed text-[var(--qc-text-muted)]">
-              Versao instalada: {availableUpdate.currentVersion}
+              Versão instalada: {availableUpdate.currentVersion}
               <br />
-              Nova versao: {availableUpdate.latestVersion}
+              Nova versão: {availableUpdate.latestVersion}
             </p>
 
             <p className="mt-3 text-sm leading-relaxed text-[var(--qc-text-muted)]">
               {required
                 ? 'Instale o APK mais recente para continuar usando o aplicativo.'
-                : 'Um APK mais recente foi encontrado. Voce pode atualizar agora pelo link publicado no GitHub Releases.'}
+                : 'Um APK mais recente foi encontrado. Você pode atualizar agora pelo link publicado no GitHub Releases.'}
             </p>
 
             <div className="mt-5 flex flex-col gap-2">
