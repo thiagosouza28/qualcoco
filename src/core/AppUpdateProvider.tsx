@@ -9,10 +9,10 @@ import {
 } from 'react';
 import {
   checkForAppUpdate,
+  downloadAndInstallAppUpdate,
   getCurrentAppVersion,
   isAppUpdateConfigured,
   isNativeAndroidApp,
-  openAppUpdateUrl,
   type AppUpdateCheckResult,
   type AvailableAppUpdate,
 } from '@/core/appUpdate';
@@ -22,6 +22,8 @@ type AppUpdateContextShape = {
   manifestConfigured: boolean;
   currentVersion: string | null;
   checkingUpdate: boolean;
+  updatingApp: boolean;
+  updateProgressPercent: number | null;
   availableUpdate: AvailableAppUpdate | null;
   updateDialogOpen: boolean;
   blockingRequiredUpdate: boolean;
@@ -39,10 +41,15 @@ export function AppUpdateProvider({
 }) {
   const [currentVersion, setCurrentVersion] = useState<string | null>(null);
   const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [updatingApp, setUpdatingApp] = useState(false);
+  const [updateProgressPercent, setUpdateProgressPercent] = useState<number | null>(
+    null,
+  );
   const [availableUpdate, setAvailableUpdate] =
     useState<AvailableAppUpdate | null>(null);
   const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
   const startupCheckDoneRef = useRef(false);
+  const autoStartUpdateKeyRef = useRef<string | null>(null);
 
   const hydrateCurrentVersion = useCallback(async () => {
     if (!isNativeAndroidApp) {
@@ -106,16 +113,30 @@ export function AppUpdateProvider({
   }, [availableUpdate]);
 
   const openUpdate = useCallback(async () => {
-    if (!availableUpdate) {
+    if (!availableUpdate || updatingApp) {
       return;
     }
 
-    await openAppUpdateUrl(availableUpdate.url);
+    setUpdatingApp(true);
+    setUpdateProgressPercent(0);
 
-    if (!availableUpdate.required) {
-      setUpdateDialogOpen(false);
+    try {
+      const opened = await downloadAndInstallAppUpdate({
+        url: availableUpdate.url,
+        version: availableUpdate.latestVersion,
+        onProgress: (percent) => {
+          setUpdateProgressPercent(percent);
+        },
+      });
+
+      if (opened && !availableUpdate.required) {
+        setUpdateDialogOpen(false);
+      }
+    } finally {
+      setUpdatingApp(false);
+      setUpdateProgressPercent(null);
     }
-  }, [availableUpdate]);
+  }, [availableUpdate, updatingApp]);
 
   useEffect(() => {
     void hydrateCurrentVersion();
@@ -130,12 +151,33 @@ export function AppUpdateProvider({
     void checkForUpdate();
   }, [checkForUpdate]);
 
+  useEffect(() => {
+    if (!availableUpdate) {
+      autoStartUpdateKeyRef.current = null;
+      return;
+    }
+
+    if (!updateDialogOpen || updatingApp) {
+      return;
+    }
+
+    const autoStartKey = `${availableUpdate.latestVersion}:${availableUpdate.url}`;
+    if (autoStartUpdateKeyRef.current === autoStartKey) {
+      return;
+    }
+
+    autoStartUpdateKeyRef.current = autoStartKey;
+    void openUpdate();
+  }, [availableUpdate, openUpdate, updateDialogOpen, updatingApp]);
+
   const value = useMemo(
     () => ({
       nativeAndroid: isNativeAndroidApp,
       manifestConfigured: isAppUpdateConfigured,
       currentVersion,
       checkingUpdate,
+      updatingApp,
+      updateProgressPercent,
       availableUpdate,
       updateDialogOpen,
       blockingRequiredUpdate: Boolean(
@@ -152,7 +194,9 @@ export function AppUpdateProvider({
       currentVersion,
       dismissUpdate,
       openUpdate,
+      updateProgressPercent,
       updateDialogOpen,
+      updatingApp,
     ],
   );
 

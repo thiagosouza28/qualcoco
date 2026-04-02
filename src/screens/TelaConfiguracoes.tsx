@@ -21,6 +21,8 @@ export function TelaConfiguracoes() {
     manifestConfigured,
     currentVersion,
     checkingUpdate,
+    updatingApp,
+    updateProgressPercent,
     availableUpdate,
     checkForUpdate,
     openUpdate,
@@ -162,10 +164,12 @@ export function TelaConfiguracoes() {
                   </span>
                 </p>
                 <p className="text-sm leading-relaxed text-[var(--qc-text-muted)]">
-                  {availableUpdate
+                  {updatingApp
+                    ? `Baixando atualização internamente${updateProgressPercent != null ? ` (${updateProgressPercent}%)` : '...'}`
+                    : availableUpdate
                     ? `Nova versão ${availableUpdate.latestVersion} disponível para instalação.`
                     : manifestConfigured
-                      ? 'Verifique manualmente se existe um novo APK publicado no GitHub Releases.'
+                      ? 'Quando houver nova versão, o app fará o download interno do APK e abrirá o instalador do Android.'
                       : 'Canal de atualização externa ainda não configurado.'}
                 </p>
               </div>
@@ -176,10 +180,14 @@ export function TelaConfiguracoes() {
                 onClick={() => {
                   void handleUpdateAction();
                 }}
-                disabled={checkingUpdate || !manifestConfigured}
+                disabled={checkingUpdate || updatingApp || !manifestConfigured}
               >
                 {checkingUpdate
                   ? 'Verificando...'
+                  : updatingApp
+                    ? updateProgressPercent != null
+                      ? `Baixando... ${updateProgressPercent}%`
+                      : 'Preparando atualização...'
                   : availableUpdate
                     ? `Atualizar para ${availableUpdate.latestVersion}`
                     : 'Verificar atualização'}
@@ -210,4 +218,3 @@ export function TelaConfiguracoes() {
     </LayoutMobile>
   );
 }
-

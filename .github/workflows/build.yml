@@ -86,11 +86,21 @@ jobs:
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
 
+      - name: Validate decoded keystore
+        run: |
+          keytool -list \
+            -keystore android/app/release.keystore \
+            -storepass "$ANDROID_KEYSTORE_PASSWORD" \
+            -alias "$ANDROID_KEY_ALIAS" > /dev/null
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+
       - name: Build signed release APK
         working-directory: android
         run: |
           chmod +x ./gradlew
-          ./gradlew assembleRelease
+          ./gradlew assembleRelease --stacktrace
         env:
           APP_VERSION_CODE: ${{ env.APP_VERSION_CODE }}
           APP_VERSION_NAME: ${{ env.APP_VERSION_NAME }}

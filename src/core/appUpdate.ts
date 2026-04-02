@@ -1,5 +1,11 @@
 import { App as CapacitorApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
+import {
+  Directory,
+  Filesystem,
+  type ProgressStatus,
+} from '@capacitor/filesystem';
+import { FileOpener } from '@capacitor-community/file-opener';
 
 const APP_UPDATE_MANIFEST_URL = String(
   import.meta.env.VITE_APP_UPDATE_MANIFEST_URL || '',
@@ -16,6 +22,12 @@ export type AvailableAppUpdate = {
   latestVersion: string;
   required: boolean;
   url: string;
+};
+
+type DownloadAndInstallAppUpdateOptions = {
+  url: string;
+  version: string;
+  onProgress?: (percent: number) => void;
 };
 
 export type AppUpdateCheckResult =
@@ -240,36 +252,109 @@ export const checkForAppUpdate = async (
   };
 };
 
-export const openAppUpdateUrl = async (url: string): Promise<boolean> => {
+const APP_UPDATE_MIME_TYPE = 'application/vnd.android.package-archive';
+const APP_UPDATE_DOWNLOAD_DIR = 'updates';
+
+const sanitizeVersionForFileName = (value: string) => {
+  const sanitized = value.trim().replace(/[^a-zA-Z0-9._-]+/g, '-');
+  return sanitized || 'latest';
+};
+
+const getUpdateApkPath = (version: string) =>
+  `${APP_UPDATE_DOWNLOAD_DIR}/qualcoco-${sanitizeVersionForFileName(version)}.apk`;
+
+export const downloadAndInstallAppUpdate = async ({
+  url,
+  version,
+  onProgress,
+}: DownloadAndInstallAppUpdateOptions): Promise<boolean> => {
+  if (!isNativeAndroidApp) {
+    return false;
+  }
+
   const targetUrl = normalizeGoogleDriveDownloadUrl(url);
   if (!targetUrl) {
     return false;
   }
 
+  const targetPath = getUpdateApkPath(version);
+  let progressListener: { remove: () => Promise<void> } | null = null;
+
   try {
-    const popup = window.open(targetUrl, '_blank', 'noopener,noreferrer');
-    if (popup) {
-      return true;
+    onProgress?.(0);
+
+    try {
+      progressListener = await Filesystem.addListener(
+        'progress',
+        (progress: ProgressStatus) => {
+          if (!onProgress || progress.url !== targetUrl || progress.contentLength <= 0) {
+            return;
+          }
+
+          const percent = Math.max(
+            0,
+            Math.min(
+              100,
+              Math.round((progress.bytes / progress.contentLength) * 100),
+            ),
+          );
+
+          onProgress(percent);
+        },
+      );
+    } catch {
+      progressListener = null;
     }
-  } catch {
-    // Keep fallback silent.
-  }
 
-  try {
-    const anchor = document.createElement('a');
-    anchor.href = targetUrl;
-    anchor.target = '_blank';
-    anchor.rel = 'noopener noreferrer';
-    anchor.click();
+    try {
+      await Filesystem.deleteFile({
+        path: targetPath,
+        directory: Directory.Cache,
+      });
+    } catch {
+      // Ignore stale cache cleanup failures.
+    }
+
+    await Filesystem.downloadFile({
+      url: targetUrl,
+      path: targetPath,
+      directory: Directory.Cache,
+      recursive: true,
+      progress: Boolean(onProgress),
+    });
+
+    const { uri } = await Filesystem.getUri({
+      path: targetPath,
+      directory: Directory.Cache,
+    });
+
+    onProgress?.(100);
+
+    await FileOpener.open({
+      filePath: uri,
+      contentType: APP_UPDATE_MIME_TYPE,
+      openWithDefault: true,
+    });
+
     return true;
   } catch {
-    // Keep fallback silent.
-  }
+    try {
+      await Filesystem.deleteFile({
+        path: targetPath,
+        directory: Directory.Cache,
+      });
+    } catch {
+      // Keep failures silent.
+    }
 
-  try {
-    window.location.assign(targetUrl);
-    return true;
-  } catch {
     return false;
+  } finally {
+    if (progressListener) {
+      try {
+        await progressListener.remove();
+      } catch {
+        // Keep cleanup silent.
+      }
+    }
   }
 };

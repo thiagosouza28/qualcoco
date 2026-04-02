@@ -6,6 +6,8 @@ export function AppUpdateDialog() {
   const {
     availableUpdate,
     updateDialogOpen,
+    updatingApp,
+    updateProgressPercent,
     dismissUpdate,
     openUpdate,
   } = useAppUpdate();
@@ -50,9 +52,11 @@ export function AppUpdateDialog() {
             </p>
 
             <p className="mt-3 text-sm leading-relaxed text-[var(--qc-text-muted)]">
-              {required
-                ? 'Instale o APK mais recente para continuar usando o aplicativo.'
-                : 'Um APK mais recente foi encontrado. Você pode atualizar agora pelo link publicado no GitHub Releases.'}
+              {updatingApp
+                ? `Baixando o APK internamente${updateProgressPercent != null ? ` (${updateProgressPercent}%)` : '...'}`
+                : required
+                  ? 'O app vai baixar o APK internamente e abrir o instalador do Android automaticamente.'
+                  : 'Um APK mais recente foi encontrado. O download será feito dentro do aplicativo, sem abrir link externo.'}
             </p>
 
             <div className="mt-5 flex flex-col gap-2">
@@ -62,11 +66,18 @@ export function AppUpdateDialog() {
                 onClick={() => {
                   void openUpdate();
                 }}
+                disabled={updatingApp}
               >
-                {required ? 'Atualizar para continuar' : 'Atualizar agora'}
+                {updatingApp
+                  ? updateProgressPercent != null
+                    ? `Baixando... ${updateProgressPercent}%`
+                    : 'Preparando atualização...'
+                  : required
+                    ? 'Atualizar para continuar'
+                    : 'Atualizar agora'}
               </Button>
 
-              {!required ? (
+              {!required && !updatingApp ? (
                 <Button
                   variant="outline"
                   className="h-11 w-full rounded-[18px] font-bold"
