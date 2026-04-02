@@ -77,6 +77,9 @@ jobs:
       - name: Build web app
         run: npm run build
 
+      - name: Make Gradle wrapper executable
+        run: chmod +x android/gradlew
+
       - name: Sync Capacitor Android project
         run: npx cap sync android
 
@@ -99,7 +102,6 @@ jobs:
       - name: Build signed release APK
         working-directory: android
         run: |
-          chmod +x ./gradlew
           ./gradlew assembleRelease --stacktrace
         env:
           APP_VERSION_CODE: ${{ env.APP_VERSION_CODE }}
