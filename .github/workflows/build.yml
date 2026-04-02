@@ -80,6 +80,17 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x android/gradlew
 
+      - name: Configure Android local.properties
+        run: |
+          if [ -n "${ANDROID_SDK_ROOT:-}" ]; then
+            echo "sdk.dir=${ANDROID_SDK_ROOT}" > android/local.properties
+          elif [ -n "${ANDROID_HOME:-}" ]; then
+            echo "sdk.dir=${ANDROID_HOME}" > android/local.properties
+          else
+            echo "::error::ANDROID_SDK_ROOT/ANDROID_HOME not configured on runner"
+            exit 1
+          fi
+
       - name: Sync Capacitor Android project
         run: npx cap sync android
 
