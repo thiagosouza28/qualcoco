@@ -52,7 +52,7 @@ export function AppUpdateDialog() {
             <p className="mt-3 text-sm leading-relaxed text-[var(--qc-text-muted)]">
               {required
                 ? 'Instale o APK mais recente para continuar usando o aplicativo.'
-                : 'Um APK mais recente foi encontrado. Voce pode atualizar agora pelo link hospedado no Google Drive.'}
+                : 'Um APK mais recente foi encontrado. Voce pode atualizar agora pelo link publicado no GitHub Releases.'}
             </p>
 
             <div className="mt-5 flex flex-col gap-2">

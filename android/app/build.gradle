@@ -1,5 +1,26 @@
 apply plugin: 'com.android.application'
 
+def envOrDefault = { String key, String fallback ->
+    def value = System.getenv(key)
+    return value != null && value.toString().trim() ? value.toString().trim() : fallback
+}
+
+def appVersionCode = envOrDefault('APP_VERSION_CODE', '1').toInteger()
+def appVersionName = envOrDefault('APP_VERSION_NAME', '1.0.0')
+def androidKeystorePath = System.getenv('ANDROID_KEYSTORE_PATH')
+def androidKeystorePassword = System.getenv('ANDROID_KEYSTORE_PASSWORD')
+def androidKeyAlias = System.getenv('ANDROID_KEY_ALIAS')
+def androidKeyPassword = System.getenv('ANDROID_KEY_PASSWORD')
+def hasReleaseSigning =
+        androidKeystorePath != null &&
+        androidKeystorePassword != null &&
+        androidKeyAlias != null &&
+        androidKeyPassword != null &&
+        androidKeystorePath.toString().trim() &&
+        androidKeystorePassword.toString().trim() &&
+        androidKeyAlias.toString().trim() &&
+        androidKeyPassword.toString().trim()
+
 android {
     namespace = "br.qualcoco.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,8 +28,8 @@ android {
         applicationId "br.qualcoco.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode appVersionCode
+        versionName appVersionName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,9 +37,22 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (hasReleaseSigning) {
+                storeFile file(androidKeystorePath)
+                storePassword androidKeystorePassword
+                keyAlias androidKeyAlias
+                keyPassword androidKeyPassword
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }

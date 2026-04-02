@@ -165,7 +165,7 @@ export function TelaConfiguracoes() {
                   {availableUpdate
                     ? `Nova versao ${availableUpdate.latestVersion} disponivel para instalacao.`
                     : manifestConfigured
-                      ? 'Verifique manualmente se existe um novo APK publicado no Google Drive.'
+                      ? 'Verifique manualmente se existe um novo APK publicado no GitHub Releases.'
                       : 'Canal de atualizacao externa ainda nao configurado.'}
                 </p>
               </div>

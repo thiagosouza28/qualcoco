@@ -3,5 +3,14 @@ dist
 .env
 .DS_Store
 supabase/.temp
+android/.gradle
+android/local.properties
+android/app/build
+android/capacitor-cordova-android-plugins/build
+*.apk
+*.aab
+*.jks
+*.keystore
 .expo
 build
+.env.example

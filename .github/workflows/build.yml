@@ -1,4 +1,4 @@
-name: Build Expo APK
+name: Build Android APK
 
 on:
   push:
@@ -12,13 +12,16 @@ permissions:
   contents: write
 
 concurrency:
-  group: expo-android-main
+  group: android-release-main
   cancel-in-progress: false
 
 env:
-  NODE_VERSION: "18"
+  NODE_VERSION: "20"
+  JAVA_VERSION: "21"
+  APP_VERSION_NAME: 1.0.${{ github.run_number }}
+  APP_VERSION_CODE: ${{ github.run_number }}
   RELEASE_TAG: v1.${{ github.run_number }}
-  APP_VERSION: 1.0.${{ github.run_number }}
+  RELEASE_APK_NAME: app.apk
   RELEASE_APK_URL: https://github.com/${{ github.repository }}/releases/download/v1.${{ github.run_number }}/app.apk
   REQUIRED_UPDATE: ${{ vars.APP_UPDATE_REQUIRED || 'false' }}
 
@@ -39,73 +42,83 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - name: Install dependencies
-        run: npm install
-
-      - name: Setup Expo and EAS
-        uses: expo/expo-github-action@v8
+      - name: Setup Java
+        uses: actions/setup-java@v4
         with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: gradle
 
-      - name: Validate Expo prerequisites
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Validate Android signing secrets
         run: |
-          if [ ! -f app.json ] && [ ! -f app.config.js ] && [ ! -f app.config.ts ]; then
-            echo "::error::Expo app config not found. Add app.json, app.config.js, or app.config.ts before using this workflow."
+          missing=0
+          for secret_name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [ -z "${!secret_name}" ]; then
+              echo "::error::Missing required GitHub secret: ${secret_name}"
+              missing=1
+            fi
+          done
+
+          if [ "$missing" -ne 0 ]; then
             exit 1
           fi
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
-          node - <<'NODE'
-          const fs = require('node:fs');
-          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-          const deps = {
-            ...(pkg.dependencies || {}),
-            ...(pkg.devDependencies || {}),
-          };
+      - name: Install dependencies
+        run: npm ci
 
-          if (!deps.expo) {
-            console.error('::error::The expo package is missing from package.json. This workflow is intended for Expo/EAS projects.');
-            process.exit(1);
-          }
-          NODE
+      - name: Build web app
+        run: npm run build
 
-      - name: Build APK with EAS
-        id: eas_build
+      - name: Sync Capacitor Android project
+        run: npx cap sync android
+
+      - name: Prepare Android keystore
         run: |
-          eas build \
-            --platform android \
-            --profile preview \
-            --non-interactive \
-            --wait \
-            --json > eas-build.json
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/release.keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
 
-          node - <<'NODE'
-          const fs = require('node:fs');
+      - name: Build signed release APK
+        working-directory: android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleRelease
+        env:
+          APP_VERSION_CODE: ${{ env.APP_VERSION_CODE }}
+          APP_VERSION_NAME: ${{ env.APP_VERSION_NAME }}
+          ANDROID_KEYSTORE_PATH: ${{ github.workspace }}/android/app/release.keystore
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
-          const raw = fs.readFileSync('eas-build.json', 'utf8').trim();
-          const parsed = JSON.parse(raw);
-          const build = Array.isArray(parsed) ? parsed[0] : parsed;
+      - name: Copy release APK
+        run: cp android/app/build/outputs/apk/release/app-release.apk ${{ env.RELEASE_APK_NAME }}
 
-          const artifactUrl =
-            build?.artifacts?.applicationArchiveUrl ||
-            build?.artifacts?.buildUrl ||
-            build?.artifactUrl ||
-            build?.applicationArchiveUrl ||
-            build?.buildUrl;
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-release-apk
+          path: ${{ env.RELEASE_APK_NAME }}
+          if-no-files-found: error
 
-          if (!artifactUrl) {
-            console.error('::error::Unable to find the APK artifact URL in eas-build.json');
-            console.error(raw);
-            process.exit(1);
-          }
-
-          const output = process.env.GITHUB_OUTPUT;
-          fs.appendFileSync(output, `artifact_url=${artifactUrl}\n`);
-          fs.appendFileSync(output, `build_id=${build?.id || ''}\n`);
-          NODE
-
-      - name: Download APK artifact
-        run: curl -L "${{ steps.eas_build.outputs.artifact_url }}" -o app.apk
+      - name: Create GitHub release and upload APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: ${{ env.RELEASE_TAG }}
+          files: ${{ env.RELEASE_APK_NAME }}
+          generate_release_notes: true
+          overwrite_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate version.json
         run: |
@@ -117,23 +130,13 @@ jobs:
             .toLowerCase() === 'true';
 
           const payload = {
-            version: process.env.APP_VERSION,
+            version: process.env.APP_VERSION_NAME,
             required,
             url: process.env.RELEASE_APK_URL,
           };
 
           fs.writeFileSync('version.json', `${JSON.stringify(payload, null, 2)}\n`);
           NODE
-
-      - name: Create GitHub release and upload APK
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ env.RELEASE_TAG }}
-          name: ${{ env.RELEASE_TAG }}
-          files: app.apk
-          generate_release_notes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Commit updated version.json
         run: |
@@ -146,5 +149,5 @@ jobs:
             exit 0
           fi
 
-          git commit -m "chore: update version manifest to ${APP_VERSION} [skip ci]"
+          git commit -m "chore: update version manifest to ${APP_VERSION_NAME} [skip ci]"
           git push origin HEAD:${GITHUB_REF_NAME}
