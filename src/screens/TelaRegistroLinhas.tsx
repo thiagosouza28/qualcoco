@@ -2531,7 +2531,7 @@ export function TelaRegistroLinhas() {
                       className="h-12 rounded-2xl font-bold"
                       onClick={() => setInvertParcelaSentido('inicio')}
                     >
-                      Do inicio
+                      Do início
                     </Button>
                     <Button
                       type="button"
@@ -2627,4 +2627,3 @@ export function TelaRegistroLinhas() {
     </LayoutMobile>
   );
 }
-
