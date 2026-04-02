@@ -91,8 +91,8 @@ jobs:
             exit 1
           fi
 
-      - name: Sync Capacitor Android project
-        run: npx cap sync android
+      - name: Copy Capacitor web assets
+        run: npx cap copy android
 
       - name: Prepare Android keystore
         run: |
