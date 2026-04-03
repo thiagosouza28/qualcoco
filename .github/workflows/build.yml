@@ -115,6 +115,22 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
 
+      - name: Validate private key password
+        run: |
+          mkdir -p /tmp/keystore-check
+          echo "qualcoco" > /tmp/keystore-check/check.txt
+          jar --create --file /tmp/keystore-check/check.jar -C /tmp/keystore-check check.txt
+          jarsigner \
+            -keystore android/app/release.keystore \
+            -storepass "$ANDROID_KEYSTORE_PASSWORD" \
+            -keypass "$ANDROID_KEY_PASSWORD" \
+            /tmp/keystore-check/check.jar \
+            "$ANDROID_KEY_ALIAS" > /dev/null
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
       - name: Build signed release APK
         working-directory: android
         run: |
