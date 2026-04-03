@@ -24,6 +24,7 @@ export function TelaConfiguracoes() {
     updatingApp,
     updateProgressPercent,
     availableUpdate,
+    installReadyForAvailableUpdate,
     checkForUpdate,
     openUpdate,
   } = useAppUpdate();
@@ -166,8 +167,10 @@ export function TelaConfiguracoes() {
                 <p className="text-sm leading-relaxed text-[var(--qc-text-muted)]">
                   {updatingApp
                     ? `Baixando atualização internamente${updateProgressPercent != null ? ` (${updateProgressPercent}%)` : '...'}`
+                    : installReadyForAvailableUpdate
+                      ? `A atualização ${availableUpdate?.latestVersion || ''} já foi preparada. Toque abaixo para reabrir o instalador do Android.`
                     : availableUpdate
-                    ? `Nova versão ${availableUpdate.latestVersion} disponível para instalação.`
+                      ? `Nova versão ${availableUpdate.latestVersion} disponível para instalação.`
                     : manifestConfigured
                       ? 'Quando houver nova versão, o app fará o download interno do APK e abrirá o instalador do Android.'
                       : 'Canal de atualização externa ainda não configurado.'}
@@ -188,9 +191,11 @@ export function TelaConfiguracoes() {
                     ? updateProgressPercent != null
                       ? `Baixando... ${updateProgressPercent}%`
                       : 'Preparando atualização...'
-                  : availableUpdate
-                    ? `Atualizar para ${availableUpdate.latestVersion}`
-                    : 'Verificar atualização'}
+                    : installReadyForAvailableUpdate
+                      ? 'Abrir instalador novamente'
+                      : availableUpdate
+                        ? `Atualizar para ${availableUpdate.latestVersion}`
+                        : 'Verificar atualização'}
               </Button>
             </CardContent>
           </Card>

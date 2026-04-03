@@ -24,6 +24,8 @@ export type AvailableAppUpdate = {
   url: string;
 };
 
+const APP_UPDATE_INSTALLER_VERSION_KEY = 'appUpdate:installerVersion';
+
 type DownloadAndInstallAppUpdateOptions = {
   url: string;
   version: string;
@@ -78,6 +80,30 @@ const isTruthyFlag = (value: unknown) =>
     .toLowerCase() === 'true';
 
 const resolveUrl = (value: string) => new URL(value, window.location.origin);
+
+const getStoredValue = (key: string) => {
+  try {
+    return window.localStorage.getItem(key) || '';
+  } catch {
+    return '';
+  }
+};
+
+const setStoredValue = (key: string, value: string) => {
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // Keep storage failures silent.
+  }
+};
+
+const removeStoredValue = (key: string) => {
+  try {
+    window.localStorage.removeItem(key);
+  } catch {
+    // Keep storage failures silent.
+  }
+};
 
 const appendNoCacheParam = (value: string) => {
   try {
@@ -263,6 +289,56 @@ const sanitizeVersionForFileName = (value: string) => {
 const getUpdateApkPath = (version: string) =>
   `${APP_UPDATE_DOWNLOAD_DIR}/qualcoco-${sanitizeVersionForFileName(version)}.apk`;
 
+const doesCachedUpdateExist = async (version: string) => {
+  try {
+    await Filesystem.stat({
+      path: getUpdateApkPath(version),
+      directory: Directory.Cache,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const openDownloadedUpdateInstaller = async (version: string) => {
+  const { uri } = await Filesystem.getUri({
+    path: getUpdateApkPath(version),
+    directory: Directory.Cache,
+  });
+
+  await FileOpener.open({
+    filePath: uri,
+    contentType: APP_UPDATE_MIME_TYPE,
+    openWithDefault: true,
+  });
+};
+
+export const getStartedAppUpdateVersion = () =>
+  getStoredValue(APP_UPDATE_INSTALLER_VERSION_KEY);
+
+export const hasStartedAppUpdateForVersion = (version: string) =>
+  getStartedAppUpdateVersion() === version;
+
+export const markStartedAppUpdateVersion = (version: string) => {
+  if (!version.trim()) {
+    return;
+  }
+
+  setStoredValue(APP_UPDATE_INSTALLER_VERSION_KEY, version.trim());
+};
+
+export const clearStartedAppUpdateVersion = (currentVersion?: string | null) => {
+  const startedVersion = getStartedAppUpdateVersion();
+  if (!startedVersion) {
+    return;
+  }
+
+  if (!currentVersion || compareVersions(currentVersion, startedVersion) >= 0) {
+    removeStoredValue(APP_UPDATE_INSTALLER_VERSION_KEY);
+  }
+};
+
 export const downloadAndInstallAppUpdate = async ({
   url,
   version,
@@ -279,15 +355,34 @@ export const downloadAndInstallAppUpdate = async ({
 
   const targetPath = getUpdateApkPath(version);
   let progressListener: { remove: () => Promise<void> } | null = null;
+  let downloadedInCurrentRun = false;
 
   try {
     onProgress?.(0);
+
+    if (await doesCachedUpdateExist(version)) {
+      try {
+        onProgress?.(100);
+        await openDownloadedUpdateInstaller(version);
+        markStartedAppUpdateVersion(version);
+        return true;
+      } catch {
+        try {
+          await Filesystem.deleteFile({
+            path: targetPath,
+            directory: Directory.Cache,
+          });
+        } catch {
+          // Ignore stale cache cleanup failures.
+        }
+      }
+    }
 
     try {
       progressListener = await Filesystem.addListener(
         'progress',
         (progress: ProgressStatus) => {
-          if (!onProgress || progress.url !== targetUrl || progress.contentLength <= 0) {
+          if (!onProgress || progress.contentLength <= 0) {
             return;
           }
 
@@ -322,22 +417,20 @@ export const downloadAndInstallAppUpdate = async ({
       recursive: true,
       progress: Boolean(onProgress),
     });
-
-    const { uri } = await Filesystem.getUri({
-      path: targetPath,
-      directory: Directory.Cache,
-    });
+    downloadedInCurrentRun = true;
 
     onProgress?.(100);
 
-    await FileOpener.open({
-      filePath: uri,
-      contentType: APP_UPDATE_MIME_TYPE,
-      openWithDefault: true,
-    });
+    await openDownloadedUpdateInstaller(version);
+    markStartedAppUpdateVersion(version);
 
     return true;
   } catch {
+    if (downloadedInCurrentRun) {
+      // Keep the APK available for another installation attempt.
+      return false;
+    }
+
     try {
       await Filesystem.deleteFile({
         path: targetPath,

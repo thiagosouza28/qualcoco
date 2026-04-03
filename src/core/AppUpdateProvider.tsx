@@ -9,10 +9,14 @@ import {
 } from 'react';
 import {
   checkForAppUpdate,
+  clearStartedAppUpdateVersion,
   downloadAndInstallAppUpdate,
   getCurrentAppVersion,
+  getStartedAppUpdateVersion,
+  hasStartedAppUpdateForVersion,
   isAppUpdateConfigured,
   isNativeAndroidApp,
+  markStartedAppUpdateVersion,
   type AppUpdateCheckResult,
   type AvailableAppUpdate,
 } from '@/core/appUpdate';
@@ -27,6 +31,7 @@ type AppUpdateContextShape = {
   availableUpdate: AvailableAppUpdate | null;
   updateDialogOpen: boolean;
   blockingRequiredUpdate: boolean;
+  installReadyForAvailableUpdate: boolean;
   checkForUpdate: () => Promise<AppUpdateCheckResult>;
   dismissUpdate: () => void;
   openUpdate: () => Promise<void>;
@@ -48,6 +53,9 @@ export function AppUpdateProvider({
   const [availableUpdate, setAvailableUpdate] =
     useState<AvailableAppUpdate | null>(null);
   const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
+  const [startedInstallerVersion, setStartedInstallerVersion] = useState<
+    string | null
+  >(() => getStartedAppUpdateVersion() || null);
   const startupCheckDoneRef = useRef(false);
   const autoStartUpdateKeyRef = useRef<string | null>(null);
 
@@ -59,6 +67,8 @@ export function AppUpdateProvider({
 
     const version = await getCurrentAppVersion();
     if (version) {
+      clearStartedAppUpdateVersion(version);
+      setStartedInstallerVersion(getStartedAppUpdateVersion() || null);
       setCurrentVersion(version);
     }
 
@@ -83,12 +93,17 @@ export function AppUpdateProvider({
       const result = await checkForAppUpdate(version);
 
       if (result.currentVersion && result.currentVersion !== currentVersion) {
+        clearStartedAppUpdateVersion(result.currentVersion);
+        setStartedInstallerVersion(getStartedAppUpdateVersion() || null);
         setCurrentVersion(result.currentVersion);
       }
 
       if (result.status === 'available') {
         setAvailableUpdate(result.update);
-        setUpdateDialogOpen(true);
+        setUpdateDialogOpen(
+          result.update.required ||
+            !hasStartedAppUpdateForVersion(result.update.latestVersion),
+        );
       } else if (
         result.status === 'up-to-date' ||
         result.status === 'not-configured' ||
@@ -129,14 +144,24 @@ export function AppUpdateProvider({
         },
       });
 
-      if (opened && !availableUpdate.required) {
-        setUpdateDialogOpen(false);
+      if (opened) {
+        markStartedAppUpdateVersion(availableUpdate.latestVersion);
+        setStartedInstallerVersion(availableUpdate.latestVersion);
+        if (!availableUpdate.required) {
+          setUpdateDialogOpen(false);
+        }
       }
     } finally {
       setUpdatingApp(false);
       setUpdateProgressPercent(null);
     }
   }, [availableUpdate, updatingApp]);
+
+  const installReadyForAvailableUpdate = Boolean(
+    availableUpdate &&
+      hasStartedAppUpdateForVersion(availableUpdate.latestVersion) &&
+      startedInstallerVersion === availableUpdate.latestVersion,
+  );
 
   useEffect(() => {
     void hydrateCurrentVersion();
@@ -157,7 +182,7 @@ export function AppUpdateProvider({
       return;
     }
 
-    if (!updateDialogOpen || updatingApp) {
+    if (!updateDialogOpen || updatingApp || installReadyForAvailableUpdate) {
       return;
     }
 
@@ -168,7 +193,13 @@ export function AppUpdateProvider({
 
     autoStartUpdateKeyRef.current = autoStartKey;
     void openUpdate();
-  }, [availableUpdate, openUpdate, updateDialogOpen, updatingApp]);
+  }, [
+    availableUpdate,
+    installReadyForAvailableUpdate,
+    openUpdate,
+    updateDialogOpen,
+    updatingApp,
+  ]);
 
   const value = useMemo(
     () => ({
@@ -183,6 +214,7 @@ export function AppUpdateProvider({
       blockingRequiredUpdate: Boolean(
         availableUpdate?.required && updateDialogOpen,
       ),
+      installReadyForAvailableUpdate,
       checkForUpdate,
       dismissUpdate,
       openUpdate,
@@ -193,6 +225,7 @@ export function AppUpdateProvider({
       checkingUpdate,
       currentVersion,
       dismissUpdate,
+      installReadyForAvailableUpdate,
       openUpdate,
       updateProgressPercent,
       updateDialogOpen,
