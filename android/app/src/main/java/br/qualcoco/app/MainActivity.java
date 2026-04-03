@@ -1,7 +1,10 @@
 package br.qualcoco.app;
 
+import android.graphics.Color;
 import android.os.Bundle;
 import android.view.KeyEvent;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
@@ -12,6 +15,18 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(AppInstallerPlugin.class);
         super.onCreate(savedInstanceState);
+
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), true);
+        getWindow().setStatusBarColor(Color.WHITE);
+        getWindow().setNavigationBarColor(Color.WHITE);
+
+        WindowInsetsControllerCompat windowInsetsController =
+            WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+
+        if (windowInsetsController != null) {
+            windowInsetsController.setAppearanceLightStatusBars(true);
+            windowInsetsController.setAppearanceLightNavigationBars(true);
+        }
     }
 
     private boolean shouldHandleVolumeButtons() {
