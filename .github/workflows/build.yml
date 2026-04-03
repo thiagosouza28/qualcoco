@@ -111,12 +111,6 @@ jobs:
       - name: Build web app
         run: npm run build
 
-      - name: Make Gradle wrapper executable
-        run: chmod +x android/gradlew
-
-      - name: Sync Capacitor Android project
-        run: npx cap sync android
-
       - name: Configure Android local.properties
         run: |
           if [ -n "${ANDROID_SDK_ROOT:-}" ]; then
@@ -127,6 +121,12 @@ jobs:
             echo "::error::ANDROID_SDK_ROOT/ANDROID_HOME not configured on runner"
             exit 1
           fi
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x android/gradlew
+
+      - name: Sync Capacitor Android project
+        run: npx cap sync android
 
       - name: Prepare Android keystore
         run: |
