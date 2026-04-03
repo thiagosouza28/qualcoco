@@ -6,11 +6,20 @@ import { useCampoApp } from '@/core/AppProvider';
 import { LayoutMobile } from '@/components/LayoutMobile';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { WebUsersSyncDialog } from '@/components/WebUsersSyncDialog';
 
 export function TelaSelecaoUsuario() {
   const navigate = useNavigate();
-  const { bootstrapped, online, sincronizarAcessosWeb, sincronizando } = useCampoApp();
+  const {
+    bootstrapped,
+    online,
+    sincronizarAcessosWeb,
+    sincronizando,
+    syncProgress,
+  } = useCampoApp();
   const [syncingWebAccess, setSyncingWebAccess] = useState(false);
+  const [webUsersSyncDialogOpen, setWebUsersSyncDialogOpen] = useState(false);
+  const [webUsersSyncError, setWebUsersSyncError] = useState('');
   const attemptedWebAccessSyncRef = useRef(false);
 
   const { data: colaboradores = [] } = useQuery({
@@ -20,10 +29,18 @@ export function TelaSelecaoUsuario() {
   });
 
   const triggerWebUsersSync = useCallback(async () => {
+    setWebUsersSyncError('');
+    setWebUsersSyncDialogOpen(true);
     setSyncingWebAccess(true);
 
     try {
-      await sincronizarAcessosWeb();
+      const result = await sincronizarAcessosWeb();
+      if (result?.erro) {
+        setWebUsersSyncError(result.erro);
+        return;
+      }
+
+      setWebUsersSyncDialogOpen(false);
     } finally {
       setSyncingWebAccess(false);
     }
@@ -106,6 +123,21 @@ export function TelaSelecaoUsuario() {
           <Link to="/colaboradores/cadastro">Cadastrar novo colaborador</Link>
         </Button>
       </div>
+
+      <WebUsersSyncDialog
+        open={webUsersSyncDialogOpen}
+        syncing={syncingWebAccess || sincronizando}
+        progress={syncProgress}
+        errorMessage={webUsersSyncError}
+        onRetry={() => {
+          void triggerWebUsersSync();
+        }}
+        onClose={
+          syncingWebAccess || sincronizando
+            ? undefined
+            : () => setWebUsersSyncDialogOpen(false)
+        }
+      />
     </LayoutMobile>
   );
 }

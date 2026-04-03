@@ -732,15 +732,14 @@ export const fetchCloudPublicColaboradores = async ({
     afterId,
     limit: requestedLimit,
     fields,
+    extraFilters: [
+      { field: 'ativo', op: '==', value: true },
+      { field: 'deletado_em', op: '==', value: null },
+    ],
     maxLimit: PUBLIC_COLABORADORES_PAGE_SIZE,
   });
 
-  return {
-    ...response,
-    rows: response.rows.filter(
-      (row) => row.ativo === true && (row.deletado_em === null || typeof row.deletado_em === 'undefined'),
-    ),
-  };
+  return response;
 };
 
 export const fetchCloudCollectionRows = async ({

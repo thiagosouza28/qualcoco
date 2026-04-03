@@ -1,29 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useSearchParams } from 'react-router-dom';
-import { Cloud, KeyRound, LoaderCircle, UserRound } from 'lucide-react';
+import { KeyRound, UserRound } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useCampoApp } from '@/core/AppProvider';
 import { getUltimoUsuario, listarColaboradoresAtivos } from '@/core/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { WebUsersSyncDialog } from '@/components/WebUsersSyncDialog';
 
 const sanitizeMatriculaInput = (value: string) => value.replace(/\D/g, '');
-const formatDurationLabel = (durationMs?: number | null) => {
-  if (!durationMs || durationMs <= 0) {
-    return '0s';
-  }
-
-  const totalSeconds = Math.max(Math.round(durationMs / 1000), 0);
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-
-  if (minutes <= 0) {
-    return `${seconds}s`;
-  }
-
-  return `${minutes}m ${seconds}s`;
-};
 
 export function TelaLogin() {
   const {
@@ -43,6 +29,8 @@ export function TelaLogin() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [syncingWebAccess, setSyncingWebAccess] = useState(false);
+  const [webUsersSyncDialogOpen, setWebUsersSyncDialogOpen] = useState(false);
+  const [webUsersSyncError, setWebUsersSyncError] = useState('');
   const attemptedWebAccessSyncRef = useRef(false);
 
   const { data: colaboradores = [] } = useQuery({
@@ -52,7 +40,24 @@ export function TelaLogin() {
   });
 
   const hasUsers = useMemo(() => colaboradores.length > 0, [colaboradores]);
-  const showLoginProgress = sincronizando && Boolean(syncProgress) && (syncingWebAccess || loading);
+
+  const triggerWebUsersSync = useCallback(async () => {
+    setWebUsersSyncError('');
+    setWebUsersSyncDialogOpen(true);
+    setSyncingWebAccess(true);
+
+    try {
+      const result = await sincronizarAcessosWeb();
+      if (result?.erro) {
+        setWebUsersSyncError(result.erro);
+        return;
+      }
+
+      setWebUsersSyncDialogOpen(false);
+    } finally {
+      setSyncingWebAccess(false);
+    }
+  }, [sincronizarAcessosWeb]);
 
   useEffect(() => {
     if (!bootstrapped) return;
@@ -73,12 +78,8 @@ export function TelaLogin() {
     }
 
     attemptedWebAccessSyncRef.current = true;
-    setSyncingWebAccess(true);
-
-    void sincronizarAcessosWeb().finally(() => {
-      setSyncingWebAccess(false);
-    });
-  }, [bootstrapped, hasUsers, online, sincronizarAcessosWeb]);
+    void triggerWebUsersSync();
+  }, [bootstrapped, hasUsers, online, triggerWebUsersSync]);
 
   if (session) {
     return <Navigate to="/dashboard" replace />;
@@ -100,16 +101,14 @@ export function TelaLogin() {
         fallbackMessage === 'Usuário não encontrado no banco local.'
       ) {
         try {
-          setSyncingWebAccess(true);
-          await sincronizarAcessosWeb();
+          attemptedWebAccessSyncRef.current = true;
+          await triggerWebUsersSync();
           await login(identifier, pin);
           return;
         } catch (retryError) {
           setError(
             retryError instanceof Error ? retryError.message : fallbackMessage,
           );
-        } finally {
-          setSyncingWebAccess(false);
         }
       } else {
         setError(fallbackMessage);
@@ -123,10 +122,12 @@ export function TelaLogin() {
     <main className="login-shell">
       <section className="login-hero">
         <span className="hero-badge">QualCoco Campo</span>
-        <h1 className="hero-title">Coleta agrícola offline, segura e rápida.</h1>
+        <h1 className="hero-title">
+          Coleta agrícola offline, segura e rápida.
+        </h1>
         <p className="hero-text">
-          Login por matrícula e PIN numérico, com operação pronta
-          para funcionar sem internet.
+          Login por matrícula e PIN numérico, com operação pronta para
+          funcionar sem internet.
         </p>
       </section>
 
@@ -139,9 +140,26 @@ export function TelaLogin() {
               </p>
               <p className="text-sm text-slate-500">
                 {online
-                  ? 'Buscando acessos cadastrados na web para liberar o login offline neste aparelho.'
-                  : 'Conecte o aparelho uma vez para baixar os acessos da web e manter o login disponível offline.'}
+                  ? 'Buscando logins cadastrados na web para liberar o acesso neste aparelho.'
+                  : 'Conecte o aparelho uma vez para baixar os logins cadastrados na web.'}
               </p>
+
+              {online ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="mt-3 w-full"
+                  onClick={() => {
+                    attemptedWebAccessSyncRef.current = true;
+                    void triggerWebUsersSync();
+                  }}
+                  disabled={syncingWebAccess || sincronizando}
+                >
+                  {syncingWebAccess || sincronizando
+                    ? 'Buscando logins...'
+                    : 'Buscar logins da web'}
+                </Button>
+              ) : null}
             </div>
           ) : null}
 
@@ -157,7 +175,7 @@ export function TelaLogin() {
                   pattern="[0-9]*"
                   autoComplete="username"
                   placeholder="Ex.: 10392"
-                  onChange={(event: any) =>
+                  onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                     setIdentifier(sanitizeMatriculaInput(event.target.value))
                   }
                 />
@@ -176,18 +194,12 @@ export function TelaLogin() {
                   pattern="[0-9]*"
                   autoComplete="current-password"
                   maxLength={6}
-                  onChange={(event: any) =>
+                  onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                     setPin(event.target.value.replace(/\D/g, ''))
                   }
                 />
               </div>
             </div>
-
-            {syncingWebAccess ? (
-              <p className="text-sm text-slate-500">
-                Sincronizando acessos da web...
-              </p>
-            ) : null}
 
             {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
@@ -203,85 +215,24 @@ export function TelaLogin() {
             <Button type="button" variant="outline" size="lg" asChild className="w-full">
               <Link to="/usuarios">Trocar colaborador</Link>
             </Button>
-
           </form>
         </CardContent>
       </Card>
 
-      {showLoginProgress && syncProgress ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(12,24,17,0.2)] px-5 backdrop-blur-[2px]">
-          <div className="w-full max-w-[360px] rounded-[30px] border border-[rgba(0,107,68,0.12)] bg-white p-6 shadow-[0_30px_60px_-28px_rgba(17,33,23,0.38)]">
-            <div className="flex items-start gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[20px] bg-[rgba(210,231,211,0.62)] text-[var(--qc-primary)]">
-                <LoaderCircle className="h-7 w-7 animate-spin" />
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <span className="inline-flex rounded-full border border-[rgba(0,107,68,0.12)] bg-[rgba(210,231,211,0.28)] px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.18em] text-[var(--qc-secondary)]">
-                  {syncingWebAccess ? 'Primeiro acesso' : 'Restaurando conta'}
-                </span>
-                <h3 className="mt-3 text-[1.65rem] font-black leading-[0.95] tracking-[-0.05em] text-[var(--qc-text)]">
-                  {syncingWebAccess
-                    ? 'Carregando usuários da web'
-                    : 'Restaurando dados do usuário'}
-                </h3>
-                <p className="mt-3 text-sm leading-relaxed text-[var(--qc-text-muted)]">
-                  {syncProgress.label}
-                </p>
-              </div>
-
-              <div className="shrink-0 text-right">
-                <Cloud className="ml-auto h-5 w-5 text-[var(--qc-primary)]" />
-                <p className="mt-2 text-[1.7rem] font-black tracking-[-0.05em] text-[var(--qc-primary)]">
-                  {syncProgress.percent}%
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-5 h-3 overflow-hidden rounded-full bg-[var(--qc-surface-muted)]">
-              <div
-                className="h-full rounded-full bg-[var(--qc-primary)] transition-[width] duration-300"
-                style={{ width: `${syncProgress.percent}%` }}
-              />
-            </div>
-
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <div className="rounded-[20px] bg-[rgba(210,231,211,0.18)] p-3">
-                <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[var(--qc-secondary)]">
-                  Etapa
-                </p>
-                <p className="mt-2 text-sm font-bold text-[var(--qc-text)]">
-                  {syncProgress.currentStoreLabel || 'preparando'}
-                </p>
-              </div>
-
-              <div className="rounded-[20px] bg-[rgba(210,231,211,0.18)] p-3">
-                <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[var(--qc-secondary)]">
-                  Tempo
-                </p>
-                <p className="mt-2 text-sm font-bold text-[var(--qc-text)]">
-                  {formatDurationLabel(syncProgress.elapsedMs)}
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs font-medium text-[var(--qc-text-muted)]">
-              <span>
-                {syncingWebAccess ? 'Usuários lidos' : 'Registros da etapa'}:{' '}
-                {syncProgress.storeRowsTotal > 0
-                  ? `${syncProgress.storeRowsCompleted}/${syncProgress.storeRowsTotal}`
-                  : 'aguardando'}
-              </span>
-              <span>
-                Restante:{' '}
-                {syncProgress.estimatedRemainingMs
-                  ? formatDurationLabel(syncProgress.estimatedRemainingMs)
-                  : 'calculando'}
-              </span>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <WebUsersSyncDialog
+        open={webUsersSyncDialogOpen}
+        syncing={syncingWebAccess || sincronizando}
+        progress={syncProgress}
+        errorMessage={webUsersSyncError}
+        onRetry={() => {
+          void triggerWebUsersSync();
+        }}
+        onClose={
+          syncingWebAccess || sincronizando
+            ? undefined
+            : () => setWebUsersSyncDialogOpen(false)
+        }
+      />
     </main>
   );
 }

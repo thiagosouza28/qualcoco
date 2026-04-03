@@ -39,7 +39,7 @@ import type {
 const syncableStores = STORE_NAMES.filter((storeName) => REMOTE_COLLECTION_MAP[storeName]);
 const webAccessSyncStores: StoreName[] = ['colaboradores'];
 const SYNC_PAGE_SIZE = 50;
-const WEB_ACCESS_SYNC_PAGE_SIZE = 50;
+const WEB_ACCESS_SYNC_PAGE_SIZE = 200;
 const REMOTE_TABLE_MAP = REMOTE_COLLECTION_MAP;
 
 const syncPriority: Record<StoreName, number> = {
@@ -2596,4 +2596,3 @@ export const importarPacoteSyncLocal = async (fileContent: string) => {
 
   return { pacote, recebido, conflitos };
 };
-
