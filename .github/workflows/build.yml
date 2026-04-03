@@ -93,6 +93,7 @@ jobs:
 
       - name: Copy web assets into Android project
         run: |
+          # CI copies the already built web bundle directly into the versioned Android shell.
           rm -rf android/app/src/main/assets/public
           mkdir -p android/app/src/main/assets/public
           cp -R dist/. android/app/src/main/assets/public/
