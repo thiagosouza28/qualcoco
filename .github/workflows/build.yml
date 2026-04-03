@@ -208,25 +208,28 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Detect Google Drive credentials
-        id: google-drive-config
+      - name: Assert Google Drive credentials
         shell: bash
         env:
           GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON }}
+          GOOGLE_DRIVE_FOLDER_ID: ${{ env.GOOGLE_DRIVE_FOLDER_ID }}
         run: |
-          if [ -n "${GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON:-}" ]; then
-            echo "configured=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "configured=false" >> "$GITHUB_OUTPUT"
+          if [ -z "${GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON:-}" ]; then
+            echo "::error::Missing required GitHub secret: GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON"
+            exit 1
+          fi
+          if [ -z "${GOOGLE_DRIVE_FOLDER_ID:-}" ]; then
+            echo "::error::Missing required Google Drive folder id (GOOGLE_DRIVE_FOLDER_ID)."
+            exit 1
           fi
 
       - name: Authenticate Google Drive upload
         id: google-auth
-        if: ${{ steps.google-drive-config.outputs.configured == 'true' }}
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON }}
           token_format: access_token
+          access_token_scopes: https://www.googleapis.com/auth/drive
 
       - name: Upload APK to Google Drive
         id: google-drive-upload
