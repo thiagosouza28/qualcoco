@@ -891,21 +891,23 @@ export function TelaRelatorio() {
         </Card>
 
         <div className="stack-md">
-          <div className="section-head px-1">
-            <h2 className="text-xl font-black tracking-tight text-[var(--qc-text)]">
-              Registros Consolidados
-            </h2>
-            <span className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--qc-secondary)]">
-              {formatResumoContagem(stats.equipes, 'equipe', 'equipes')} •{' '}
-              {formatResumoContagem(stats.parcelas, 'parcela', 'parcelas')}
-            </span>
+          <div className="px-1">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <h2 className="text-xl font-black tracking-tight text-[var(--qc-text)] sm:text-[1.35rem]">
+                Registros Consolidados
+              </h2>
+              <span className="inline-flex w-fit whitespace-nowrap rounded-full border border-[var(--qc-border)] bg-[var(--qc-surface-muted)] px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
+                {formatResumoContagem(stats.equipes, 'equipe', 'equipes')} •{' '}
+                {formatResumoContagem(stats.parcelas, 'parcela', 'parcelas')}
+              </span>
+            </div>
           </div>
 
           {gruposConsolidados.length === 0 ? (
             <Card className="surface-card border-none shadow-sm">
               <CardContent className="p-6 text-center">
                 <p className="text-sm font-medium text-[var(--qc-text-muted)]">
-                  Nenhuma avaliação encontrada nesta data.
+                  Nenhuma avaliação encontrada para a data selecionada.
                 </p>
               </CardContent>
             </Card>
