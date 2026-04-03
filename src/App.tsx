@@ -42,6 +42,9 @@ const TelaRelatorio = lazy(async () => ({
 const TelaConfiguracoes = lazy(async () => ({
   default: (await import('@/screens/TelaConfiguracoes')).TelaConfiguracoes,
 }));
+const TelaPerfil = lazy(async () => ({
+  default: (await import('@/screens/TelaPerfil')).TelaPerfil,
+}));
 const CadastroColaborador = lazy(async () => ({
   default: (await import('@/screens/CadastroColaborador')).CadastroColaborador,
 }));
@@ -256,6 +259,7 @@ function ShellRoutes() {
           <Route path="/relatorios" element={<TelaRelatorio />} />
           <Route path="/sincronizacao" element={<TelaSincronizacao />} />
           <Route path="/configuracoes" element={<TelaConfiguracoes />} />
+          <Route path="/perfil" element={<TelaPerfil />} />
           <Route path="/colaboradores" element={<TelaColaboradores />} />
           <Route path="/equipes" element={<TelaEquipes />} />
           <Route path="/colaboradores/cadastro" element={<CadastroColaborador />} />

@@ -15,7 +15,7 @@ import { Card, CardContent } from '@/components/ui/card';
 export function TelaConfiguracoes() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { logout, dispositivo, online, sincronizarAgora } = useCampoApp();
+  const { logout, usuarioAtual, dispositivo, online, sincronizarAgora } = useCampoApp();
   const {
     nativeAndroid,
     manifestConfigured,
@@ -219,6 +219,41 @@ export function TelaConfiguracoes() {
             </CardContent>
           </Card>
         ) : null}
+
+        <Card className="surface-card border-none shadow-sm">
+          <CardContent className="space-y-4 p-4">
+            <div className="space-y-1.5">
+              <p className="text-sm font-semibold text-[var(--qc-text)]">Meu perfil</p>
+              <p className="text-sm leading-relaxed text-[var(--qc-text-muted)]">
+                <span className="font-semibold text-[var(--qc-text)]">
+                  {usuarioAtual?.nome || 'Usuário atual'}
+                </span>
+              </p>
+              <p className="text-sm leading-relaxed text-[var(--qc-text-muted)]">
+                Primeiro nome: {usuarioAtual?.primeiroNome || 'Não informado'}
+              </p>
+              <p className="text-sm leading-relaxed text-[var(--qc-text-muted)]">
+                Matrícula:{' '}
+                <span className="font-semibold text-[var(--qc-text)]">
+                  {usuarioAtual?.matricula || 'Não informada'}
+                </span>
+              </p>
+              <p className="text-sm leading-relaxed text-[var(--qc-text-muted)]">
+                Atualize aqui seu nome exibido e seu PIN de acesso. A matrícula
+                permanece fixa.
+              </p>
+            </div>
+
+            <Button
+              variant="outline"
+              className="h-11 w-full rounded-[18px] font-bold"
+              onClick={() => navigate('/perfil')}
+              disabled={!usuarioAtual}
+            >
+              Editar meu perfil
+            </Button>
+          </CardContent>
+        </Card>
 
         <div className="stack-md pt-2">
           <Button

@@ -189,6 +189,22 @@ export const atualizarColaborador = async (
   return next;
 };
 
+export const atualizarPerfilColaborador = async (
+  colaborador: Colaborador,
+  input: {
+    nome: string;
+    primeiroNome: string;
+    pin?: string;
+  },
+) =>
+  atualizarColaborador(colaborador, {
+    nome: input.nome,
+    primeiroNome: input.primeiroNome,
+    matricula: colaborador.matricula,
+    ativo: colaborador.ativo,
+    pin: input.pin,
+  });
+
 export const garantirSessaoCloudColaborador = async (
   colaborador: Colaborador,
   pin: string,
