@@ -100,7 +100,7 @@ export function SyncStatusBar() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(12,24,17,0.18)] px-5 backdrop-blur-[2px]">
-      <div className="w-full max-w-[360px] rounded-[30px] border border-[var(--qc-border-strong)] bg-white p-6 shadow-[0_30px_60px_-28px_rgba(17,33,23,0.38)]">
+      <div className="w-full max-w-[360px] rounded-[30px] border border-[var(--qc-border-strong)] bg-[var(--qc-surface)] p-6 shadow-[0_30px_60px_-28px_rgba(17,33,23,0.38)]">
         <div className="flex items-start gap-4">
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-[20px] bg-[rgba(210,231,211,0.62)] text-[var(--qc-primary)]">
             <Icon className={cn('h-7 w-7', state.iconClassName)} />

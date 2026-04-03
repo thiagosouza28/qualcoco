@@ -211,7 +211,7 @@ function ShellRoutes() {
       <div className="boot-screen">
         <div className="boot-screen__card">
           <span className="hero-badge">QualCoco Campo</span>
-          <p>Preparando operação offline...</p>
+          <p>Preparando operação offline</p>
         </div>
       </div>
     );
@@ -235,7 +235,7 @@ function ShellRoutes() {
           <div className="route-loader">
             <div className="route-loader__card">
               <span className="hero-badge">Carregando</span>
-              <p>Abrindo módulo de campo...</p>
+              <p>Abrindo módulo de campo</p>
             </div>
           </div>
         }

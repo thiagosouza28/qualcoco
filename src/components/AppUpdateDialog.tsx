@@ -22,7 +22,7 @@ export function AppUpdateDialog() {
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[rgba(12,24,17,0.34)] px-5 backdrop-blur-sm">
-      <div className="w-full max-w-[380px] rounded-[30px] border border-[var(--qc-border-strong)] bg-white p-6 shadow-[0_30px_60px_-28px_rgba(17,33,23,0.42)]">
+      <div className="w-full max-w-[380px] rounded-[30px] border border-[var(--qc-border-strong)] bg-[var(--qc-surface)] p-6 shadow-[0_30px_60px_-28px_rgba(17,33,23,0.42)]">
         <div className="flex items-start gap-4">
           <div
             className={
@@ -57,7 +57,9 @@ export function AppUpdateDialog() {
 
             <p className="mt-3 text-sm leading-relaxed text-[var(--qc-text-muted)]">
               {updatingApp
-                ? `Baixando o APK internamente${updateProgressPercent != null ? ` (${updateProgressPercent}%)` : '...'}`
+                ? updateProgressPercent != null
+                  ? `Baixando o APK internamente (${updateProgressPercent}%)`
+                  : 'Baixando o APK internamente'
                 : installReadyForAvailableUpdate
                   ? 'O APK j\u00e1 foi preparado. Toque abaixo para reabrir o instalador e concluir a atualiza\u00e7\u00e3o.'
                   : required
@@ -82,8 +84,8 @@ export function AppUpdateDialog() {
               >
                 {updatingApp
                   ? updateProgressPercent != null
-                    ? `Baixando... ${updateProgressPercent}%`
-                    : 'Preparando atualiza\u00e7\u00e3o...'
+                    ? `Baixando ${updateProgressPercent}%`
+                    : 'Preparando atualização'
                   : installReadyForAvailableUpdate
                     ? required
                       ? 'Continuar atualiza\u00e7\u00e3o'

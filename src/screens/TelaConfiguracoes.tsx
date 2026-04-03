@@ -172,12 +172,14 @@ export function TelaConfiguracoes() {
                 <p className="text-sm leading-relaxed text-[var(--qc-text-muted)]">
                   Versão instalada:{' '}
                   <span className="font-semibold text-[var(--qc-text)]">
-                    {currentVersion || 'Carregando...'}
+                    {currentVersion || 'Carregando versão'}
                   </span>
                 </p>
                 <p className="text-sm leading-relaxed text-[var(--qc-text-muted)]">
                   {updatingApp
-                    ? `Baixando atualização internamente${updateProgressPercent != null ? ` (${updateProgressPercent}%)` : '...'}`
+                    ? updateProgressPercent != null
+                      ? `Baixando atualização internamente (${updateProgressPercent}%)`
+                      : 'Baixando atualização internamente'
                     : installReadyForAvailableUpdate
                       ? `A atualização ${availableUpdate?.latestVersion || ''} já foi preparada. Toque abaixo para reabrir o instalador do Android.`
                     : availableUpdate
@@ -203,11 +205,11 @@ export function TelaConfiguracoes() {
                 disabled={checkingUpdate || updatingApp || !manifestConfigured}
               >
                 {checkingUpdate
-                  ? 'Verificando...'
+                  ? 'Verificando atualização'
                   : updatingApp
                     ? updateProgressPercent != null
-                      ? `Baixando... ${updateProgressPercent}%`
-                      : 'Preparando atualização...'
+                      ? `Baixando ${updateProgressPercent}%`
+                      : 'Preparando atualização'
                     : installReadyForAvailableUpdate
                       ? 'Abrir instalador novamente'
                       : availableUpdate
@@ -225,7 +227,7 @@ export function TelaConfiguracoes() {
             onClick={() => saveMutation.mutate()}
             disabled={saveMutation.isPending}
           >
-            {saveMutation.isPending ? 'Salvando...' : 'Salvar'}
+            {saveMutation.isPending ? 'Salvando alterações' : 'Salvar'}
           </Button>
 
           <Button

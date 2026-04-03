@@ -2126,7 +2126,7 @@ export function TelaRegistroLinhas() {
                 Observação Livre
               </p>
               <Textarea
-                placeholder="Outra observação..."
+                placeholder="Outra observação"
                 className="min-h-[120px] rounded-2xl p-4"
                 value={observacaoLivre}
                 onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -2265,7 +2265,7 @@ export function TelaRegistroLinhas() {
               onClick={() => saveResumoParcelaMutation.mutate()}
             >
               {saveResumoParcelaMutation.isPending
-                ? 'Salvando sigla da parcela...'
+                ? 'Salvando sigla da parcela'
                 : 'Salvar sigla da parcela'}
             </Button>
           </DialogFooter>
@@ -2460,7 +2460,7 @@ export function TelaRegistroLinhas() {
                     onClick={() => applyRuaAtualMutation.mutate()}
                   >
                     {applyRuaAtualMutation.isPending
-                      ? 'Salvando ajuste...'
+                      ? 'Salvando ajuste'
                       : 'Salvar ajuste da rua atual'}
                   </Button>
                 </div>
@@ -2569,7 +2569,7 @@ export function TelaRegistroLinhas() {
               onClick={() => inverterParcelaMutation.mutate()}
             >
               {inverterParcelaMutation.isPending
-                ? 'Salvando inversão...'
+                ? 'Salvando inversão'
                 : 'Salvar ordem da parcela'}
             </Button>
             <Button
@@ -2608,7 +2608,7 @@ export function TelaRegistroLinhas() {
               disabled={finalizandoDestino !== null}
               onClick={() => concluirColeta('dashboard')}
             >
-              {finalizandoDestino === 'dashboard' ? 'Salvando...' : 'Salvar e sair'}
+              {finalizandoDestino === 'dashboard' ? 'Salvando saída' : 'Salvar e sair'}
             </Button>
             <Button
               type="button"
@@ -2618,7 +2618,7 @@ export function TelaRegistroLinhas() {
               onClick={() => concluirColeta('relatorio')}
             >
               {finalizandoDestino === 'relatorio'
-                ? 'Abrindo relatório...'
+                ? 'Abrindo relatório'
                 : 'Salvar e ver relatório'}
             </Button>
           </DialogFooter>

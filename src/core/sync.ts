@@ -1860,7 +1860,7 @@ export const sincronizarAcessosWeb = async ({
   const startedAt = Date.now();
   let progressState: SyncProgressSnapshot = {
     phase: 'preparing',
-    label: 'Preparando carga dos acessos...',
+    label: 'Preparando carga dos acessos',
     percent: 0,
     currentStore: null,
     currentStoreLabel: '',
@@ -1909,7 +1909,7 @@ export const sincronizarAcessosWeb = async ({
 
   emitProgress({
     phase: 'preparing',
-    label: 'Conectando para buscar acessos da web...',
+    label: 'Conectando para buscar acessos da web',
     percent: 5,
   });
 
@@ -1945,7 +1945,7 @@ export const sincronizarAcessosWeb = async ({
     pullTotal: 1,
     storeRowsCompleted: 0,
     storeRowsTotal: 0,
-    label: 'Baixando usu\u00e1rios cadastrados na web...',
+    label: 'Baixando usuários cadastrados na web',
     percent: 18,
   });
 
@@ -1965,7 +1965,7 @@ export const sincronizarAcessosWeb = async ({
         pullTotal: 1,
         storeRowsCompleted: rowsLoaded,
         storeRowsTotal: Math.max(rowsLoaded, 0),
-        label: `Baixando usu\u00e1rios da web, p\u00e1gina ${pageNumber}...`,
+        label: `Baixando usuários da web, página ${pageNumber}`,
         percent: 34,
       });
     });
@@ -1981,7 +1981,7 @@ export const sincronizarAcessosWeb = async ({
       storeRowsTotal: rows.length,
       label:
         rows.length > 0
-          ? `Atualizando ${rows.length} usu\u00e1rio(s) neste aparelho...`
+          ? `Atualizando ${rows.length} usuário(s) neste aparelho`
           : 'Nenhum usu\u00e1rio novo encontrado na web.',
       percent: rows.length > 0 ? 62 : 90,
     });
@@ -2024,7 +2024,7 @@ export const sincronizarAcessosWeb = async ({
     currentPage: 0,
     storeRowsCompleted: 0,
     storeRowsTotal: 0,
-    label: 'Finalizando a atualiza\u00e7\u00e3o dos acessos...',
+    label: 'Finalizando a atualização dos acessos',
     percent: 97,
   });
 
@@ -2100,7 +2100,7 @@ export const sincronizarNuvem = async ({
   );
   let progressState: SyncProgressSnapshot = {
     phase: 'preparing',
-    label: 'Preparando sincroniza\u00e7\u00e3o...',
+    label: 'Preparando sincronização',
     percent: 0,
     currentStore: null,
     currentStoreLabel: '',
@@ -2150,8 +2150,8 @@ export const sincronizarNuvem = async ({
     phase: 'preparing',
     label:
       syncMode === 'pull_only'
-        ? 'Preparando atualiza\u00e7\u00e3o remota...'
-        : 'Conectando ao Firebase...',
+        ? 'Preparando atualização remota'
+        : 'Conectando ao Firebase',
     percent: 2,
   });
 
@@ -2204,26 +2204,26 @@ export const sincronizarNuvem = async ({
   if (syncMode === 'full') {
     emitProgress({
       phase: 'preparing',
-      label: 'Validando estrutura da nuvem...',
+      label: 'Validando estrutura da nuvem',
       percent: 6,
     });
     schemaCapabilities = await getCloudSyncCapabilities();
     emitProgress({
       phase: 'preparing',
-      label: 'Organizando fila local...',
+      label: 'Organizando fila local',
       percent: 10,
     });
     await normalizarFilaSync(schemaCapabilities);
     emitProgress({
       phase: 'preparing',
-      label: 'Corrigindo pend\u00eancias locais...',
+      label: 'Corrigindo pendências locais',
       percent: 14,
     });
     await repairOrphanRegistroColetaQueueItems();
   } else {
     emitProgress({
       phase: 'preparing',
-      label: 'Sincronizando apenas altera\u00e7\u00f5es remotas...',
+      label: 'Sincronizando apenas alterações remotas',
       percent: 14,
     });
     schemaCapabilities = await getCloudSyncCapabilities();
@@ -2245,8 +2245,8 @@ export const sincronizarNuvem = async ({
     phase: queue.length > 0 ? 'push' : 'pull',
     label:
       queue.length > 0
-        ? `Enviando dados locais (0/${queue.length})...`
-        : 'Sem pend\u00eancias locais. Iniciando download da nuvem...',
+        ? `Enviando dados locais (0/${queue.length})`
+        : 'Sem pendências locais. Iniciando download da nuvem',
     percent: queue.length > 0 ? 18 : 55,
     pushCompleted: 0,
     pushTotal: queue.length,
@@ -2266,7 +2266,7 @@ export const sincronizarNuvem = async ({
       storeRowsTotal: 0,
       pushCompleted: index,
       pushTotal: queue.length,
-      label: `Enviando ${getSyncStoreLabel(item.entidade)} (${index + 1}/${queue.length})...`,
+      label: `Enviando ${getSyncStoreLabel(item.entidade)} (${index + 1}/${queue.length})`,
       percent: getPushPercent(index, queue.length),
     });
 
@@ -2293,7 +2293,7 @@ export const sincronizarNuvem = async ({
       storeRowsTotal: 0,
       pushCompleted: index + 1,
       pushTotal: queue.length,
-      label: `Envio local ${index + 1}/${queue.length} conclu?do.`,
+      label: `Envio local ${index + 1}/${queue.length} concluído.`,
       percent: getPushPercent(index + 1, queue.length),
     });
   }
@@ -2309,7 +2309,7 @@ export const sincronizarNuvem = async ({
       pullTotal: activePullStores.length,
       storeRowsCompleted: 0,
       storeRowsTotal: 0,
-      label: 'Baixando dados da nuvem...',
+      label: 'Baixando dados da nuvem',
       percent: 55,
     });
 
@@ -2329,7 +2329,7 @@ export const sincronizarNuvem = async ({
           pullTotal: activePullStores.length,
           storeRowsCompleted: 0,
           storeRowsTotal: 0,
-          label: `Baixando ${storeLabel} (${storeIndex + 1}/${activePullStores.length})...`,
+          label: `Baixando ${storeLabel} (${storeIndex + 1}/${activePullStores.length})`,
           percent: getPullPercent(storeIndex, activePullStores.length),
         });
 
@@ -2343,7 +2343,7 @@ export const sincronizarNuvem = async ({
             pullTotal: activePullStores.length,
             storeRowsCompleted: rowsLoaded,
             storeRowsTotal: Math.max(rowsLoaded, 0),
-            label: `Baixando ${storeLabel} - p\u00e1gina ${pageNumber}...`,
+            label: `Baixando ${storeLabel} - página ${pageNumber}`,
             percent: getPullPercent(storeIndex, activePullStores.length),
           });
         });
@@ -2364,7 +2364,7 @@ export const sincronizarNuvem = async ({
               pullTotal: activePullStores.length,
               storeRowsCompleted: rowIndex + 1,
               storeRowsTotal: rows.length,
-              label: `Aplicando ${storeLabel} (${rowIndex + 1}/${rows.length})...`,
+              label: `Aplicando ${storeLabel} (${rowIndex + 1}/${rows.length})`,
               percent: getPullPercent(
                 storeIndex + (rowIndex + 1) / Math.max(rows.length, 1),
                 activePullStores.length,
@@ -2405,7 +2405,7 @@ export const sincronizarNuvem = async ({
           pullTotal: activePullStores.length,
           storeRowsCompleted: 0,
           storeRowsTotal: 0,
-          label: `Falha ao baixar ${storeLabel}. Continuando...`,
+          label: `Falha ao baixar ${storeLabel}. Continuando`,
           percent: getPullPercent(storeIndex + 1, activePullStores.length),
         });
       }
@@ -2419,7 +2419,7 @@ export const sincronizarNuvem = async ({
     currentPage: 0,
     storeRowsCompleted: 0,
     storeRowsTotal: 0,
-    label: 'Finalizando sincroniza\u00e7\u00e3o...',
+    label: 'Finalizando sincronização',
     percent: 97,
   });
 

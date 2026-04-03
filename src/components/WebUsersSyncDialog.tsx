@@ -25,12 +25,12 @@ export function WebUsersSyncDialog({
 
   const percent = syncing ? progress?.percent ?? 0 : 100;
   const label = syncing
-    ? progress?.label || 'Buscando logins cadastrados na web...'
+    ? progress?.label || 'Buscando logins cadastrados na web'
     : errorMessage || 'N\u00e3o foi poss\u00edvel carregar os logins da web.';
 
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-[rgba(12,24,17,0.28)] px-5 backdrop-blur-[3px]">
-      <div className="w-full max-w-[360px] rounded-[30px] border border-[rgba(0,107,68,0.12)] bg-white p-6 shadow-[0_30px_60px_-28px_rgba(17,33,23,0.38)]">
+      <div className="w-full max-w-[360px] rounded-[30px] border border-[rgba(0,107,68,0.12)] bg-[var(--qc-surface)] p-6 shadow-[0_30px_60px_-28px_rgba(17,33,23,0.38)]">
         <div className="flex items-start gap-4">
           <div
             className={

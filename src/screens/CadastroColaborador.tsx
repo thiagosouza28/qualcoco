@@ -116,7 +116,7 @@ export function CadastroColaborador() {
             disabled={!nome || !primeiroNome || !matricula || (!colaborador && !pin)}
             onClick={() => mutation.mutate()}
           >
-            {mutation.isPending ? 'Salvando...' : 'Salvar colaborador'}
+            {mutation.isPending ? 'Salvando colaborador' : 'Salvar colaborador'}
           </Button>
         </CardContent>
       </Card>

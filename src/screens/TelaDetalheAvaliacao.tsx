@@ -212,7 +212,7 @@ export function TelaDetalheAvaliacao() {
           disabled={finalizeMutation.isPending}
           onClick={() => finalizeMutation.mutate()}
         >
-          {finalizeMutation.isPending ? 'Finalizando...' : 'Finalizar avaliação'}
+          {finalizeMutation.isPending ? 'Finalizando avaliação' : 'Finalizar avaliação'}
         </Button>
       </div>
     </LayoutMobile>

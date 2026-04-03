@@ -14,7 +14,7 @@ function SelectTrigger({ className, children, ...props }) {
   return (
     <SelectPrimitive.Trigger
       className={cn(
-        'flex h-12 w-full items-center justify-between rounded-2xl border border-[var(--qc-border)] bg-[var(--qc-surface-muted)] px-4 text-sm text-[var(--qc-text)] shadow-sm outline-none transition focus:border-[var(--qc-primary)] focus:bg-white focus:ring-4 focus:ring-[rgba(210,231,211,0.85)]',
+        'flex h-12 w-full items-center justify-between rounded-2xl border border-[var(--qc-border)] bg-[var(--qc-surface-muted)] px-4 text-sm text-[var(--qc-text)] shadow-sm outline-none transition focus:border-[var(--qc-primary)] focus:bg-[var(--qc-surface)] focus:ring-4 focus:ring-[rgba(210,231,211,0.85)]',
         className,
       )}
       {...props}
@@ -30,9 +30,9 @@ function SelectTrigger({ className, children, ...props }) {
 function SelectContent({ className, children, ...props }) {
   return (
     <SelectPrimitive.Portal>
-      <SelectPrimitive.Content
+        <SelectPrimitive.Content
         className={cn(
-          'z-50 max-h-80 w-[var(--radix-select-trigger-width)] overflow-hidden rounded-[24px] border border-[var(--qc-border)] bg-white shadow-soft',
+          'z-50 max-h-80 w-[var(--radix-select-trigger-width)] overflow-hidden rounded-[24px] border border-[var(--qc-border)] bg-[var(--qc-surface)] shadow-soft',
           className,
         )}
         position="popper"

@@ -12,7 +12,7 @@ const buttonVariants = cva(
         secondary:
           'bg-[var(--qc-secondary)] text-white shadow-[0_14px_24px_-18px_rgba(93,98,78,0.42)] rounded-[18px]',
         outline:
-          'border border-[var(--qc-border-strong)] bg-white text-[var(--qc-primary)] rounded-[18px]',
+          'border border-[var(--qc-border-strong)] bg-[var(--qc-surface)] text-[var(--qc-primary)] rounded-[18px]',
         ghost: 'bg-transparent text-[var(--qc-secondary)] rounded-[14px]',
         destructive:
           'bg-red-600 text-white shadow-[0_14px_24px_-18px_rgba(220,38,38,0.42)] rounded-[18px]',

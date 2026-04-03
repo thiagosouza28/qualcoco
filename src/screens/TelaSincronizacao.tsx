@@ -340,7 +340,7 @@ export function TelaSincronizacao() {
                   {testandoConexao ? (
                     <>
                       <Loader2 className="h-5 w-5 animate-spin" />
-                      Testando...
+                      Testando conexão
                     </>
                   ) : (
                     <>
@@ -476,7 +476,7 @@ export function TelaSincronizacao() {
               {limpandoHistorico ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Limpando...
+                  Limpando histórico
                 </>
               ) : (
                 <>

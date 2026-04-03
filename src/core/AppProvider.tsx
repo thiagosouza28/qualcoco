@@ -182,7 +182,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setSincronizando(true);
         setSyncProgress({
           phase: 'preparing',
-          label: 'Preparando sincroniza\u00e7\u00e3o...',
+          label: 'Preparando sincronização',
           percent: 0,
           currentStore: null,
           currentStoreLabel: '',

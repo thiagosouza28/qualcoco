@@ -884,7 +884,7 @@ export function TelaRelatorio() {
                 ) : (
                   <FileText className="h-5 w-5" />
                 )}
-                {gerando ? 'Gerando PDF...' : 'Gerar PDF'}
+                {gerando ? 'Gerando PDF' : 'Gerar PDF'}
               </Button>
             </div>
           </CardContent>

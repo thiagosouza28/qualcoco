@@ -156,7 +156,7 @@ export function TelaLogin() {
                   disabled={syncingWebAccess || sincronizando}
                 >
                   {syncingWebAccess || sincronizando
-                    ? 'Buscando logins da web...'
+                    ? 'Buscando logins da web'
                     : 'Buscar logins da web'}
                 </Button>
               ) : null}
@@ -209,7 +209,7 @@ export function TelaLogin() {
               className="w-full"
               disabled={loading || !hasUsers}
             >
-              {loading ? 'Entrando...' : 'Entrar'}
+              {loading ? 'Entrando no app' : 'Entrar'}
             </Button>
 
             <Button type="button" variant="outline" size="lg" asChild className="w-full">

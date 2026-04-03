@@ -31,9 +31,9 @@ function DialogContent({ className, children, showClose = true, ...props }) {
   return (
     <DialogPortal>
       <DialogOverlay />
-      <DialogPrimitive.Content
+        <DialogPrimitive.Content
         className={cn(
-          'fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-1.5rem-var(--safe-top)-var(--safe-bottom))] w-[min(calc(100vw-1.5rem),30rem)] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[32px] border border-[var(--qc-border)] bg-white p-6 shadow-soft',
+          'fixed left-1/2 top-1/2 z-50 max-h-[calc(100dvh-1.5rem-var(--safe-top)-var(--safe-bottom))] w-[min(calc(100vw-1.5rem),30rem)] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[32px] border border-[var(--qc-border)] bg-[var(--qc-surface)] p-6 shadow-soft',
           className,
         )}
         {...props}

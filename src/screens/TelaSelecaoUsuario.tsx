@@ -93,7 +93,7 @@ export function TelaSelecaoUsuario() {
                   disabled={syncingWebAccess || sincronizando}
                 >
                   {syncingWebAccess || sincronizando
-                    ? 'Buscando usuários...'
+                    ? 'Buscando usuários'
                     : 'Buscar usuários da web'}
                 </Button>
               ) : null}

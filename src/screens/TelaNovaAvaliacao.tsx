@@ -2054,7 +2054,7 @@ export function TelaNovaAvaliacao() {
                      <Textarea
                         rows={2}
                         className="rounded-xl italic text-sm"
-                        placeholder="Ex: Área com relevo íngreme..."
+                        placeholder="Ex.: Área com relevo íngreme"
                         value={observacoes}
                         onChange={(event: any) => setObservacoes(event.target.value)}
                       />
@@ -2084,8 +2084,8 @@ export function TelaNovaAvaliacao() {
               >
                 {mutation.isPending
                   ? isEditMode
-                    ? 'Salvando...'
-                    : 'Iniciando...'
+                    ? 'Salvando avaliação'
+                    : 'Iniciando avaliação'
                   : isEditMode
                     ? 'Salvar alterações'
                     : 'Iniciar Coleta'}
@@ -2107,4 +2107,3 @@ export function TelaNovaAvaliacao() {
     </LayoutMobile>
   );
 }
-
