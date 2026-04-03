@@ -143,6 +143,13 @@ jobs:
             tail -n 200 ../build-release.log || true
             echo "---- filtered failure lines ----"
             grep -n -E "FAILURE:|What went wrong:|Execution failed for task|Caused by:|ERROR:" ../build-release.log | tail -n 80 || true
+            while IFS= read -r line; do
+              [ -z "$line" ] && continue
+              line="${line//'%'/'%25'}"
+              line="${line//$'\r'/'%0D'}"
+              line="${line//$'\n'/'%0A'}"
+              echo "::error::$line"
+            done < <(grep -n -E "FAILURE:|What went wrong:|Execution failed for task|Caused by:|ERROR:" ../build-release.log | tail -n 20)
             exit "$status"
           fi
         env:
