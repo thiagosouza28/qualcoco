@@ -86,6 +86,26 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Prepare web environment
+        run: |
+          cat > .env.production <<EOF
+          VITE_FIREBASE_API_KEY=${VITE_FIREBASE_API_KEY}
+          VITE_FIREBASE_AUTH_DOMAIN=${VITE_FIREBASE_AUTH_DOMAIN}
+          VITE_FIREBASE_PROJECT_ID=${VITE_FIREBASE_PROJECT_ID}
+          VITE_FIREBASE_STORAGE_BUCKET=${VITE_FIREBASE_STORAGE_BUCKET}
+          VITE_FIREBASE_MESSAGING_SENDER_ID=${VITE_FIREBASE_MESSAGING_SENDER_ID}
+          VITE_FIREBASE_APP_ID=${VITE_FIREBASE_APP_ID}
+          VITE_APP_UPDATE_MANIFEST_URL=${VITE_APP_UPDATE_MANIFEST_URL}
+          EOF
+        env:
+          VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY || 'AIzaSyCLthfmV4QPCRQv0nBF0-7uzah7fI4G8f0' }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN || 'qualcoco-96f38.firebaseapp.com' }}
+          VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID || 'qualcoco-96f38' }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ vars.VITE_FIREBASE_STORAGE_BUCKET || 'qualcoco-96f38.firebasestorage.app' }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.VITE_FIREBASE_MESSAGING_SENDER_ID || '497251186279' }}
+          VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID || '1:497251186279:web:cf6684740f3fe9305c86c2' }}
+          VITE_APP_UPDATE_MANIFEST_URL: https://raw.githubusercontent.com/${{ github.repository }}/main/version.json
+
       - name: Build web app
         run: npm run build
 

@@ -98,7 +98,7 @@ export function TelaLogin() {
 
       if (
         online &&
-        fallbackMessage === 'Usuário não encontrado no banco local.'
+        fallbackMessage === 'Usu\u00e1rio n\u00e3o encontrado no banco local.'
       ) {
         try {
           attemptedWebAccessSyncRef.current = true;
@@ -123,10 +123,10 @@ export function TelaLogin() {
       <section className="login-hero">
         <span className="hero-badge">QualCoco Campo</span>
         <h1 className="hero-title">
-          Coleta agrícola offline, segura e rápida.
+          Coleta agr\u00edcola offline, segura e r\u00e1pida.
         </h1>
         <p className="hero-text">
-          Login por matrícula e PIN numérico, com operação pronta para
+          Login por matr\u00edcula e PIN num\u00e9rico, com opera\u00e7\u00e3o pronta para
           funcionar sem internet.
         </p>
       </section>
@@ -165,7 +165,7 @@ export function TelaLogin() {
 
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="input-block">
-              <label>Matrícula</label>
+              <label>Matr\u00edcula</label>
               <div className="input-shell">
                 <UserRound className="h-4 w-4 text-emerald-700" />
                 <Input
@@ -189,7 +189,7 @@ export function TelaLogin() {
                 <Input
                   value={pin}
                   type="tel"
-                  placeholder="4 ou 6 dígitos"
+                  placeholder="4 ou 6 d\u00edgitos"
                   inputMode="numeric"
                   pattern="[0-9]*"
                   autoComplete="current-password"

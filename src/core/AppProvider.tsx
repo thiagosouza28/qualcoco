@@ -152,7 +152,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       try {
         return await ensureCloudDeviceSession(deviceSnapshot || dispositivo || undefined);
       } catch (error) {
-        console.warn('[Cloud] Falha ao preparar sessão anônima do dispositivo.', error);
+        console.warn('[Cloud] Falha ao preparar sess\u00e3o an\u00f4nima do dispositivo.', error);
         return null;
       }
     },
@@ -182,7 +182,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setSincronizando(true);
         setSyncProgress({
           phase: 'preparing',
-          label: 'Preparando sincronização...',
+          label: 'Preparando sincroniza\u00e7\u00e3o...',
           percent: 0,
           currentStore: null,
           currentStoreLabel: '',
@@ -356,7 +356,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             await atualizarPendencias();
           } catch (error) {
             console.warn(
-              '[Login] A autenticação cloud falhou, mas o login local foi mantido.',
+              '[Login] A autentica\u00e7\u00e3o cloud falhou, mas o login local foi mantido.',
               error,
             );
             const fallbackSession = await garantirSessaoCloudDispositivo(

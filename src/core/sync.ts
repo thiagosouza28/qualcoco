@@ -1945,7 +1945,7 @@ export const sincronizarAcessosWeb = async ({
     pullTotal: 1,
     storeRowsCompleted: 0,
     storeRowsTotal: 0,
-    label: 'Baixando usuários cadastrados na web...',
+    label: 'Baixando usu\u00e1rios cadastrados na web...',
     percent: 18,
   });
 
@@ -1965,7 +1965,7 @@ export const sincronizarAcessosWeb = async ({
         pullTotal: 1,
         storeRowsCompleted: rowsLoaded,
         storeRowsTotal: Math.max(rowsLoaded, 0),
-        label: `Baixando usuários da web - página ${pageNumber}...`,
+        label: `Baixando usu\u00e1rios da web - p\u00e1gina ${pageNumber}...`,
         percent: 34,
       });
     });
@@ -2005,8 +2005,8 @@ export const sincronizarAcessosWeb = async ({
       storeRowsTotal: rows.length,
       label:
         rows.length > 0
-          ? 'Usuários da web carregados neste aparelho.'
-          : 'Nenhum usuário novo encontrado na web.',
+          ? 'Usu\u00e1rios da web carregados neste aparelho.'
+          : 'Nenhum usu\u00e1rio novo encontrado na web.',
       percent: 92,
     });
   } catch (error) {
@@ -2071,7 +2071,9 @@ export const sincronizarAcessosWeb = async ({
     pullTotal: 1,
     storeRowsCompleted: 0,
     storeRowsTotal: 0,
-    label: result.erro ? 'Carga de acessos concluída com aviso.' : 'Acessos da web prontos.',
+    label: result.erro
+      ? 'Carga de acessos conclu\u00edda com aviso.'
+      : 'Acessos da web prontos.',
     percent: 100,
   });
 
