@@ -23,6 +23,7 @@ export function TelaConfiguracoes() {
     checkingUpdate,
     updatingApp,
     updateProgressPercent,
+    updateMessage,
     availableUpdate,
     installReadyForAvailableUpdate,
     checkForUpdate,
@@ -114,6 +115,16 @@ export function TelaConfiguracoes() {
     const result = await checkForUpdate();
     if (result.status === 'up-to-date') {
       alert(`O app já está na versão mais recente (${result.currentVersion}).`);
+      return;
+    }
+
+    if (result.status === 'not-configured') {
+      alert('Canal de atualização externa ainda não configurado.');
+      return;
+    }
+
+    if (result.status === 'error') {
+      alert('Não foi possível verificar atualização agora. Tente novamente em instantes.');
     }
   };
 
@@ -175,6 +186,12 @@ export function TelaConfiguracoes() {
                       ? 'Quando houver nova versão, o app fará o download interno do APK e abrirá o instalador do Android.'
                       : 'Canal de atualização externa ainda não configurado.'}
                 </p>
+
+                {updateMessage ? (
+                  <p className="rounded-[18px] border border-[rgba(15,118,110,0.16)] bg-[rgba(240,253,250,0.92)] px-3 py-2 text-sm leading-relaxed text-[var(--qc-text)]">
+                    {updateMessage}
+                  </p>
+                ) : null}
               </div>
 
               <Button

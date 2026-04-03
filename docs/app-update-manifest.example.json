@@ -1,5 +1,12 @@
 {
   "version": "1.1.0",
   "required": false,
-  "url": "https://github.com/SEU_USUARIO/SEU_REPO/releases/download/v1.1/qualcoco.apk"
+  "fileName": "appqualcoco1.1.0.apk",
+  "url": "https://drive.google.com/uc?export=download&id=SEU_ARQUIVO_NO_DRIVE",
+  "urls": [
+    "https://drive.google.com/uc?export=download&id=SEU_ARQUIVO_NO_DRIVE",
+    "https://github.com/SEU_USUARIO/SEU_REPO/releases/download/v1.1.0/qualcoco.apk"
+  ],
+  "driveUrl": "https://drive.google.com/uc?export=download&id=SEU_ARQUIVO_NO_DRIVE",
+  "githubUrl": "https://github.com/SEU_USUARIO/SEU_REPO/releases/download/v1.1.0/qualcoco.apk"
 }

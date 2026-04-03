@@ -1,11 +1,12 @@
 import { App as CapacitorApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import {
-  Directory,
-  Filesystem,
+  FileTransfer,
+  type FileTransferError,
   type ProgressStatus,
-} from '@capacitor/filesystem';
-import { FileOpener } from '@capacitor-community/file-opener';
+} from '@capacitor/file-transfer';
+import { Directory, Filesystem } from '@capacitor/filesystem';
+import { AppInstaller } from '@/plugins/appInstaller';
 
 const APP_UPDATE_MANIFEST_URL = String(
   import.meta.env.VITE_APP_UPDATE_MANIFEST_URL || '',
@@ -15,6 +16,8 @@ export type RemoteAppUpdateManifest = {
   version: string;
   required: boolean;
   url: string;
+  urls: string[];
+  fileName: string;
 };
 
 export type AvailableAppUpdate = {
@@ -22,15 +25,36 @@ export type AvailableAppUpdate = {
   latestVersion: string;
   required: boolean;
   url: string;
+  urls: string[];
+  fileName: string;
 };
 
 const APP_UPDATE_INSTALLER_VERSION_KEY = 'appUpdate:installerVersion';
 
 type DownloadAndInstallAppUpdateOptions = {
-  url: string;
+  url?: string;
+  urls?: string[];
   version: string;
+  fileName?: string;
   onProgress?: (percent: number) => void;
 };
+
+export type AppUpdateInstallResult =
+  | {
+      status: 'installer-opened';
+      usedUrl: string | null;
+      message: string;
+    }
+  | {
+      status: 'needs-permission';
+      usedUrl: string | null;
+      message: string;
+    }
+  | {
+      status: 'error';
+      usedUrl: string | null;
+      message: string;
+    };
 
 export type AppUpdateCheckResult =
   | {
@@ -59,6 +83,8 @@ export const isNativeAndroidApp =
 
 export const isAppUpdateConfigured = Boolean(APP_UPDATE_MANIFEST_URL);
 
+const APP_UPDATE_DOWNLOAD_DIR = 'updates';
+
 const parseVersionPart = (value: string) => {
   const match = value.match(/^(\d+)/);
   return match ? Number(match[1]) : 0;
@@ -78,6 +104,9 @@ const isTruthyFlag = (value: unknown) =>
   String(value || '')
     .trim()
     .toLowerCase() === 'true';
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === 'object';
 
 const resolveUrl = (value: string) => new URL(value, window.location.origin);
 
@@ -113,6 +142,128 @@ const appendNoCacheParam = (value: string) => {
   } catch {
     return value;
   }
+};
+
+const toTrimmedString = (value: unknown) =>
+  typeof value === 'string' ? value.trim() : '';
+
+const getDefaultApkFileName = (version: string) =>
+  `appqualcoco${sanitizeVersionForFileName(version)}.apk`;
+
+const sanitizeVersionForFileName = (value: string) => {
+  const sanitized = value.trim().replace(/[^a-zA-Z0-9._-]+/g, '-');
+  return sanitized || 'latest';
+};
+
+const sanitizeFileName = (value: string) => {
+  const sanitized = value.trim().replace(/[^a-zA-Z0-9._-]+/g, '-');
+  if (!sanitized) {
+    return '';
+  }
+
+  return sanitized.toLowerCase().endsWith('.apk') ? sanitized : `${sanitized}.apk`;
+};
+
+const normalizeManifestFileName = (version: string, fileName?: string) =>
+  sanitizeFileName(fileName || '') || getDefaultApkFileName(version);
+
+const getUpdateApkPath = (version: string, fileName?: string) =>
+  `${APP_UPDATE_DOWNLOAD_DIR}/${normalizeManifestFileName(version, fileName)}`;
+
+const ensureUpdateDownloadDir = async () => {
+  try {
+    await Filesystem.mkdir({
+      path: APP_UPDATE_DOWNLOAD_DIR,
+      directory: Directory.Cache,
+      recursive: true,
+    });
+  } catch {
+    // Ignore if the directory already exists.
+  }
+};
+
+const getUpdateApkUri = async (version: string, fileName?: string) => {
+  await ensureUpdateDownloadDir();
+  const { uri } = await Filesystem.getUri({
+    path: getUpdateApkPath(version, fileName),
+    directory: Directory.Cache,
+  });
+  return uri;
+};
+
+const dedupeStrings = (values: string[]) => [...new Set(values.filter(Boolean))];
+
+const collectCandidateUrls = (record: Record<string, unknown>) =>
+  dedupeStrings(
+    [
+      toTrimmedString(record.url),
+      toTrimmedString(record.driveUrl),
+      toTrimmedString(record.googleDriveUrl),
+      toTrimmedString(record.githubUrl),
+      ...(Array.isArray(record.urls)
+        ? record.urls.map((item) => toTrimmedString(item))
+        : []),
+    ]
+      .map((item) => normalizeGoogleDriveDownloadUrl(item))
+      .filter(Boolean),
+  );
+
+const describeUpdateSource = (value: string) => {
+  try {
+    const hostname = resolveUrl(value).hostname.toLowerCase();
+    if (hostname.includes('drive.google.com')) {
+      return 'Google Drive';
+    }
+    if (
+      hostname.includes('github.com') ||
+      hostname.includes('githubusercontent.com') ||
+      hostname.includes('objects.githubusercontent.com')
+    ) {
+      return 'GitHub';
+    }
+    return hostname.replace(/^www\./, '') || 'fonte externa';
+  } catch {
+    return 'fonte externa';
+  }
+};
+
+const parseFileTransferError = (error: unknown): FileTransferError | null => {
+  if (!isRecord(error)) {
+    return null;
+  }
+
+  if (isRecord(error.data)) {
+    return error.data as FileTransferError;
+  }
+
+  if (typeof error.code === 'string') {
+    return error as FileTransferError;
+  }
+
+  return null;
+};
+
+const formatDownloadFailureMessage = (url: string, error: unknown) => {
+  const source = describeUpdateSource(url);
+  const transferError = parseFileTransferError(error);
+
+  if (transferError?.httpStatus) {
+    return `${source} retornou HTTP ${transferError.httpStatus}.`;
+  }
+
+  if (transferError?.exception) {
+    return `${source}: ${transferError.exception}.`;
+  }
+
+  if (transferError?.message) {
+    return `${source}: ${transferError.message}.`;
+  }
+
+  if (error instanceof Error && error.message.trim()) {
+    return `${source}: ${error.message.trim()}.`;
+  }
+
+  return `N\u00e3o foi poss\u00edvel baixar o APK por ${source}.`;
 };
 
 export const compareVersions = (left: string, right: string) => {
@@ -160,26 +311,27 @@ export const normalizeGoogleDriveDownloadUrl = (value: string) => {
 };
 
 const parseRemoteManifest = (payload: unknown): RemoteAppUpdateManifest | null => {
-  if (!payload || typeof payload !== 'object') {
+  if (!isRecord(payload)) {
     return null;
   }
 
-  const record = payload as Record<string, unknown>;
-  const version =
-    typeof record.version === 'string' ? record.version.trim() : '';
-  const url =
-    typeof record.url === 'string'
-      ? normalizeGoogleDriveDownloadUrl(record.url)
-      : '';
-
-  if (!version || !url) {
+  const version = toTrimmedString(payload.version);
+  const urls = collectCandidateUrls(payload);
+  if (!version || urls.length === 0) {
     return null;
   }
+
+  const fileName = normalizeManifestFileName(
+    version,
+    toTrimmedString(payload.fileName),
+  );
 
   return {
     version,
-    required: isTruthyFlag(record.required),
-    url,
+    required: isTruthyFlag(payload.required),
+    url: urls[0],
+    urls,
+    fileName,
   };
 };
 
@@ -274,44 +426,63 @@ export const checkForAppUpdate = async (
       latestVersion: remoteManifest.version,
       required: remoteManifest.required,
       url: remoteManifest.url,
+      urls: remoteManifest.urls,
+      fileName: remoteManifest.fileName,
     },
   };
 };
 
-const APP_UPDATE_MIME_TYPE = 'application/vnd.android.package-archive';
-const APP_UPDATE_DOWNLOAD_DIR = 'updates';
-
-const sanitizeVersionForFileName = (value: string) => {
-  const sanitized = value.trim().replace(/[^a-zA-Z0-9._-]+/g, '-');
-  return sanitized || 'latest';
-};
-
-const getUpdateApkPath = (version: string) =>
-  `${APP_UPDATE_DOWNLOAD_DIR}/qualcoco-${sanitizeVersionForFileName(version)}.apk`;
-
-const doesCachedUpdateExist = async (version: string) => {
+const doesCachedUpdateExist = async (version: string, fileName?: string) => {
   try {
-    await Filesystem.stat({
-      path: getUpdateApkPath(version),
+    await ensureUpdateDownloadDir();
+    const fileInfo = await Filesystem.stat({
+      path: getUpdateApkPath(version, fileName),
       directory: Directory.Cache,
     });
-    return true;
+    return Number(fileInfo.size || 0) > 0;
   } catch {
     return false;
   }
 };
 
-const openDownloadedUpdateInstaller = async (version: string) => {
-  const { uri } = await Filesystem.getUri({
-    path: getUpdateApkPath(version),
-    directory: Directory.Cache,
-  });
+export const hasPreparedAppUpdate = async (version: string, fileName?: string) =>
+  doesCachedUpdateExist(version, fileName);
 
-  await FileOpener.open({
-    filePath: uri,
-    contentType: APP_UPDATE_MIME_TYPE,
-    openWithDefault: true,
-  });
+const openDownloadedUpdateInstaller = async (
+  version: string,
+  fileName?: string,
+): Promise<AppUpdateInstallResult> => {
+  try {
+    const fileUri = await getUpdateApkUri(version, fileName);
+    const result = await AppInstaller.installApk({
+      filePath: fileUri,
+    });
+
+    if (result.status === 'needs_permission') {
+      return {
+        status: 'needs-permission',
+        usedUrl: null,
+        message:
+          'Permita instalar apps desconhecidos para o QualCoco e toque novamente em Atualizar.',
+      };
+    }
+
+    return {
+      status: 'installer-opened',
+      usedUrl: null,
+      message:
+        'O instalador do Android foi aberto. Confirme a instala\u00e7\u00e3o para concluir.',
+    };
+  } catch (error) {
+    return {
+      status: 'error',
+      usedUrl: null,
+      message:
+        error instanceof Error && error.message.trim()
+          ? error.message.trim()
+          : 'N\u00e3o foi poss\u00edvel abrir o instalador do Android.',
+    };
+  }
 };
 
 export const getStartedAppUpdateVersion = () =>
@@ -341,48 +512,57 @@ export const clearStartedAppUpdateVersion = (currentVersion?: string | null) => 
 
 export const downloadAndInstallAppUpdate = async ({
   url,
+  urls,
   version,
+  fileName,
   onProgress,
-}: DownloadAndInstallAppUpdateOptions): Promise<boolean> => {
+}: DownloadAndInstallAppUpdateOptions): Promise<AppUpdateInstallResult> => {
   if (!isNativeAndroidApp) {
-    return false;
+    return {
+      status: 'error',
+      usedUrl: null,
+      message: 'Atualiza\u00e7\u00e3o autom\u00e1tica n\u00e3o suportada neste dispositivo.',
+    };
   }
 
-  const targetUrl = normalizeGoogleDriveDownloadUrl(url);
-  if (!targetUrl) {
-    return false;
+  const candidateUrls = dedupeStrings(
+    [url || '', ...(urls || [])]
+      .map((item) => normalizeGoogleDriveDownloadUrl(item))
+      .filter(Boolean),
+  );
+
+  if (candidateUrls.length === 0) {
+    return {
+      status: 'error',
+      usedUrl: null,
+      message:
+        'Nenhuma URL v\u00e1lida do APK foi encontrada no manifesto de atualiza\u00e7\u00e3o.',
+    };
   }
 
-  const targetPath = getUpdateApkPath(version);
+  const targetPath = getUpdateApkPath(version, fileName);
+  const targetUri = await getUpdateApkUri(version, fileName);
   let progressListener: { remove: () => Promise<void> } | null = null;
-  let downloadedInCurrentRun = false;
+  let activeDownloadUrl = '';
 
   try {
     onProgress?.(0);
 
-    if (await doesCachedUpdateExist(version)) {
-      try {
-        onProgress?.(100);
-        await openDownloadedUpdateInstaller(version);
-        markStartedAppUpdateVersion(version);
-        return true;
-      } catch {
-        try {
-          await Filesystem.deleteFile({
-            path: targetPath,
-            directory: Directory.Cache,
-          });
-        } catch {
-          // Ignore stale cache cleanup failures.
-        }
-      }
+    if (await doesCachedUpdateExist(version, fileName)) {
+      return openDownloadedUpdateInstaller(version, fileName);
     }
 
     try {
-      progressListener = await Filesystem.addListener(
+      progressListener = await FileTransfer.addListener(
         'progress',
         (progress: ProgressStatus) => {
-          if (!onProgress || progress.contentLength <= 0) {
+          if (
+            !onProgress ||
+            progress.type !== 'download' ||
+            progress.url !== activeDownloadUrl ||
+            !progress.lengthComputable ||
+            progress.contentLength <= 0
+          ) {
             return;
           }
 
@@ -401,46 +581,49 @@ export const downloadAndInstallAppUpdate = async ({
       progressListener = null;
     }
 
-    try {
-      await Filesystem.deleteFile({
-        path: targetPath,
-        directory: Directory.Cache,
-      });
-    } catch {
-      // Ignore stale cache cleanup failures.
+    const failures: string[] = [];
+
+    for (const candidateUrl of candidateUrls) {
+      activeDownloadUrl = candidateUrl;
+      onProgress?.(0);
+
+      try {
+        await Filesystem.deleteFile({
+          path: targetPath,
+          directory: Directory.Cache,
+        });
+      } catch {
+        // Ignore stale cache cleanup failures.
+      }
+
+      try {
+        await FileTransfer.downloadFile({
+          url: candidateUrl,
+          path: targetUri,
+          progress: Boolean(onProgress),
+          connectTimeout: 30000,
+          readTimeout: 180000,
+        });
+
+        onProgress?.(100);
+
+        const installerResult = await openDownloadedUpdateInstaller(version, fileName);
+        return {
+          ...installerResult,
+          usedUrl: candidateUrl,
+        };
+      } catch (error) {
+        failures.push(formatDownloadFailureMessage(candidateUrl, error));
+      }
     }
 
-    await Filesystem.downloadFile({
-      url: targetUrl,
-      path: targetPath,
-      directory: Directory.Cache,
-      recursive: true,
-      progress: Boolean(onProgress),
-    });
-    downloadedInCurrentRun = true;
-
-    onProgress?.(100);
-
-    await openDownloadedUpdateInstaller(version);
-    markStartedAppUpdateVersion(version);
-
-    return true;
-  } catch {
-    if (downloadedInCurrentRun) {
-      // Keep the APK available for another installation attempt.
-      return false;
-    }
-
-    try {
-      await Filesystem.deleteFile({
-        path: targetPath,
-        directory: Directory.Cache,
-      });
-    } catch {
-      // Keep failures silent.
-    }
-
-    return false;
+    return {
+      status: 'error',
+      usedUrl: null,
+      message: failures.length
+        ? `Falha ao baixar a atualiza\u00e7\u00e3o. ${failures.join(' ')}`
+        : 'N\u00e3o foi poss\u00edvel baixar a atualiza\u00e7\u00e3o do aplicativo.',
+    };
   } finally {
     if (progressListener) {
       try {

@@ -12,7 +12,7 @@ import {
   clearStartedAppUpdateVersion,
   downloadAndInstallAppUpdate,
   getCurrentAppVersion,
-  getStartedAppUpdateVersion,
+  hasPreparedAppUpdate,
   hasStartedAppUpdateForVersion,
   isAppUpdateConfigured,
   isNativeAndroidApp,
@@ -28,6 +28,7 @@ type AppUpdateContextShape = {
   checkingUpdate: boolean;
   updatingApp: boolean;
   updateProgressPercent: number | null;
+  updateMessage: string | null;
   availableUpdate: AvailableAppUpdate | null;
   updateDialogOpen: boolean;
   blockingRequiredUpdate: boolean;
@@ -50,12 +51,12 @@ export function AppUpdateProvider({
   const [updateProgressPercent, setUpdateProgressPercent] = useState<number | null>(
     null,
   );
+  const [updateMessage, setUpdateMessage] = useState<string | null>(null);
   const [availableUpdate, setAvailableUpdate] =
     useState<AvailableAppUpdate | null>(null);
   const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
-  const [startedInstallerVersion, setStartedInstallerVersion] = useState<
-    string | null
-  >(() => getStartedAppUpdateVersion() || null);
+  const [installReadyForAvailableUpdate, setInstallReadyForAvailableUpdate] =
+    useState(false);
   const startupCheckDoneRef = useRef(false);
   const autoStartUpdateKeyRef = useRef<string | null>(null);
 
@@ -68,7 +69,6 @@ export function AppUpdateProvider({
     const version = await getCurrentAppVersion();
     if (version) {
       clearStartedAppUpdateVersion(version);
-      setStartedInstallerVersion(getStartedAppUpdateVersion() || null);
       setCurrentVersion(version);
     }
 
@@ -78,7 +78,9 @@ export function AppUpdateProvider({
   const checkForUpdate = useCallback(async (): Promise<AppUpdateCheckResult> => {
     if (!isNativeAndroidApp) {
       setAvailableUpdate(null);
+      setInstallReadyForAvailableUpdate(false);
       setUpdateDialogOpen(false);
+      setUpdateMessage(null);
       return {
         status: 'unsupported',
         currentVersion: null,
@@ -94,15 +96,25 @@ export function AppUpdateProvider({
 
       if (result.currentVersion && result.currentVersion !== currentVersion) {
         clearStartedAppUpdateVersion(result.currentVersion);
-        setStartedInstallerVersion(getStartedAppUpdateVersion() || null);
         setCurrentVersion(result.currentVersion);
       }
 
       if (result.status === 'available') {
+        const preparedUpdate = await hasPreparedAppUpdate(
+          result.update.latestVersion,
+          result.update.fileName,
+        );
+        const startedInstaller = hasStartedAppUpdateForVersion(
+          result.update.latestVersion,
+        );
+
         setAvailableUpdate(result.update);
-        setUpdateDialogOpen(
-          result.update.required ||
-            !hasStartedAppUpdateForVersion(result.update.latestVersion),
+        setInstallReadyForAvailableUpdate(preparedUpdate);
+        setUpdateDialogOpen(result.update.required || !startedInstaller);
+        setUpdateMessage(
+          preparedUpdate
+            ? 'O APK j\u00e1 foi baixado. Toque em Atualizar para reabrir o instalador.'
+            : null,
         );
       } else if (
         result.status === 'up-to-date' ||
@@ -110,7 +122,9 @@ export function AppUpdateProvider({
         result.status === 'unsupported'
       ) {
         setAvailableUpdate(null);
+        setInstallReadyForAvailableUpdate(false);
         setUpdateDialogOpen(false);
+        setUpdateMessage(null);
       }
 
       return result;
@@ -134,34 +148,38 @@ export function AppUpdateProvider({
 
     setUpdatingApp(true);
     setUpdateProgressPercent(0);
+    setUpdateMessage(null);
 
     try {
-      const opened = await downloadAndInstallAppUpdate({
-        url: availableUpdate.url,
+      const result = await downloadAndInstallAppUpdate({
+        urls: availableUpdate.urls,
         version: availableUpdate.latestVersion,
+        fileName: availableUpdate.fileName,
         onProgress: (percent) => {
           setUpdateProgressPercent(percent);
         },
       });
 
-      if (opened) {
+      const preparedUpdate = await hasPreparedAppUpdate(
+        availableUpdate.latestVersion,
+        availableUpdate.fileName,
+      );
+      setInstallReadyForAvailableUpdate(preparedUpdate);
+      setUpdateMessage(result.message);
+
+      if (result.status === 'installer-opened') {
         markStartedAppUpdateVersion(availableUpdate.latestVersion);
-        setStartedInstallerVersion(availableUpdate.latestVersion);
         if (!availableUpdate.required) {
           setUpdateDialogOpen(false);
         }
+      } else {
+        setUpdateDialogOpen(true);
       }
     } finally {
       setUpdatingApp(false);
       setUpdateProgressPercent(null);
     }
   }, [availableUpdate, updatingApp]);
-
-  const installReadyForAvailableUpdate = Boolean(
-    availableUpdate &&
-      hasStartedAppUpdateForVersion(availableUpdate.latestVersion) &&
-      startedInstallerVersion === availableUpdate.latestVersion,
-  );
 
   useEffect(() => {
     void hydrateCurrentVersion();
@@ -186,7 +204,7 @@ export function AppUpdateProvider({
       return;
     }
 
-    const autoStartKey = `${availableUpdate.latestVersion}:${availableUpdate.url}`;
+    const autoStartKey = `${availableUpdate.latestVersion}:${availableUpdate.urls.join('|')}`;
     if (autoStartUpdateKeyRef.current === autoStartKey) {
       return;
     }
@@ -209,6 +227,7 @@ export function AppUpdateProvider({
       checkingUpdate,
       updatingApp,
       updateProgressPercent,
+      updateMessage,
       availableUpdate,
       updateDialogOpen,
       blockingRequiredUpdate: Boolean(
@@ -227,6 +246,7 @@ export function AppUpdateProvider({
       dismissUpdate,
       installReadyForAvailableUpdate,
       openUpdate,
+      updateMessage,
       updateProgressPercent,
       updateDialogOpen,
       updatingApp,

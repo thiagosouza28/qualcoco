@@ -25,6 +25,8 @@ env:
   RELEASE_TAG: v1.0.${{ github.run_number }}
   RELEASE_APK_NAME: qualcoco.apk
   RELEASE_APK_URL: https://github.com/${{ github.repository }}/releases/download/v1.0.${{ github.run_number }}/qualcoco.apk
+  DRIVE_APK_NAME: appqualcoco1.0.${{ github.run_number }}.apk
+  GOOGLE_DRIVE_FOLDER_ID: ${{ vars.GOOGLE_DRIVE_FOLDER_ID || '1C0mtzoXTGKheEZIkDOEqjibvT4PZiI91' }}
   REQUIRED_UPDATE: ${{ vars.APP_UPDATE_REQUIRED || 'false' }}
   ANDROID_KEYSTORE_TYPE: ${{ vars.ANDROID_KEYSTORE_TYPE || 'PKCS12' }}
 
@@ -112,6 +114,9 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x android/gradlew
 
+      - name: Sync Capacitor Android project
+        run: npx cap sync android
+
       - name: Configure Android local.properties
         run: |
           if [ -n "${ANDROID_SDK_ROOT:-}" ]; then
@@ -122,14 +127,6 @@ jobs:
             echo "::error::ANDROID_SDK_ROOT/ANDROID_HOME not configured on runner"
             exit 1
           fi
-
-      - name: Copy web assets into Android project
-        run: |
-          # CI copies the already built web bundle directly into the versioned Android shell.
-          rm -rf android/app/src/main/assets/public
-          mkdir -p android/app/src/main/assets/public
-          cp -R dist/. android/app/src/main/assets/public/
-          cp capacitor.config.json android/app/src/main/assets/capacitor.config.json
 
       - name: Prepare Android keystore
         run: |
@@ -207,6 +204,146 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Authenticate Google Drive upload
+        id: google-auth
+        if: ${{ secrets.GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON != '' }}
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON }}
+          token_format: access_token
+
+      - name: Upload APK to Google Drive
+        id: google-drive-upload
+        if: ${{ steps.google-auth.outputs.access_token != '' }}
+        shell: bash
+        env:
+          GOOGLE_ACCESS_TOKEN: ${{ steps.google-auth.outputs.access_token }}
+          DRIVE_FOLDER_ID: ${{ env.GOOGLE_DRIVE_FOLDER_ID }}
+          DRIVE_APK_NAME: ${{ env.DRIVE_APK_NAME }}
+          SOURCE_APK_PATH: ${{ env.RELEASE_APK_NAME }}
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+
+          (async () => {
+            const token = String(process.env.GOOGLE_ACCESS_TOKEN || '').trim();
+            const folderId = String(process.env.DRIVE_FOLDER_ID || '').trim();
+            const fileName = String(process.env.DRIVE_APK_NAME || '').trim();
+            const sourcePath = String(process.env.SOURCE_APK_PATH || '').trim();
+            const githubEnv = String(process.env.GITHUB_ENV || '').trim();
+            const githubOutput = String(process.env.GITHUB_OUTPUT || '').trim();
+
+            if (!token || !folderId || !fileName || !sourcePath) {
+              throw new Error('Parâmetros insuficientes para upload no Google Drive.');
+            }
+
+            const appendGithubLine = (targetPath, key, value) => {
+              fs.appendFileSync(targetPath, `${key}=${String(value).replace(/\r?\n/g, '')}\n`);
+            };
+
+            const authHeaders = {
+              Authorization: `Bearer ${token}`,
+            };
+
+            const driveQuery = `name = '${fileName.replace(/'/g, "\\'")}' and '${folderId}' in parents and trashed = false`;
+            const searchResponse = await fetch(
+              `https://www.googleapis.com/drive/v3/files?fields=files(id,name)&q=${encodeURIComponent(driveQuery)}`,
+              {
+                headers: authHeaders,
+              },
+            );
+
+            if (!searchResponse.ok) {
+              throw new Error(`Falha ao pesquisar arquivo no Drive: HTTP ${searchResponse.status}`);
+            }
+
+            const searchPayload = await searchResponse.json();
+            let driveFileId = Array.isArray(searchPayload.files) && searchPayload.files.length
+              ? String(searchPayload.files[0].id || '').trim()
+              : '';
+
+            if (!driveFileId) {
+              const boundary = `qualcoco-${Date.now()}`;
+              const metadata = JSON.stringify({
+                name: fileName,
+                parents: [folderId],
+              });
+              const fileBytes = fs.readFileSync(sourcePath);
+              const multipartBody = Buffer.concat([
+                Buffer.from(
+                  `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n`,
+                ),
+                Buffer.from(
+                  `--${boundary}\r\nContent-Type: application/vnd.android.package-archive\r\n\r\n`,
+                ),
+                fileBytes,
+                Buffer.from(`\r\n--${boundary}--\r\n`),
+              ]);
+
+              const uploadResponse = await fetch(
+                'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name',
+                {
+                  method: 'POST',
+                  headers: {
+                    ...authHeaders,
+                    'Content-Type': `multipart/related; boundary=${boundary}`,
+                  },
+                  body: multipartBody,
+                },
+              );
+
+              if (!uploadResponse.ok) {
+                const body = await uploadResponse.text();
+                throw new Error(
+                  `Falha ao enviar APK para o Drive: HTTP ${uploadResponse.status} ${body}`,
+                );
+              }
+
+              const uploadPayload = await uploadResponse.json();
+              driveFileId = String(uploadPayload.id || '').trim();
+            }
+
+            if (!driveFileId) {
+              throw new Error('Google Drive não retornou o ID do arquivo publicado.');
+            }
+
+            const permissionResponse = await fetch(
+              `https://www.googleapis.com/drive/v3/files/${driveFileId}/permissions`,
+              {
+                method: 'POST',
+                headers: {
+                  ...authHeaders,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  role: 'reader',
+                  type: 'anyone',
+                }),
+              },
+            );
+
+            if (!permissionResponse.ok) {
+              const body = await permissionResponse.text();
+              if (
+                permissionResponse.status !== 409 &&
+                !/already/i.test(body)
+              ) {
+                throw new Error(
+                  `Falha ao tornar o APK público no Drive: HTTP ${permissionResponse.status} ${body}`,
+                );
+              }
+            }
+
+            const driveApkUrl = `https://drive.google.com/uc?export=download&id=${driveFileId}`;
+            appendGithubLine(githubEnv, 'DRIVE_APK_URL', driveApkUrl);
+            appendGithubLine(githubOutput, 'drive_apk_url', driveApkUrl);
+            appendGithubLine(githubOutput, 'drive_file_id', driveFileId);
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+
       - name: Generate version.json
         run: |
           node - <<'NODE'
@@ -215,11 +352,18 @@ jobs:
           const required = String(process.env.REQUIRED_UPDATE || 'false')
             .trim()
             .toLowerCase() === 'true';
+          const driveUrl = String(process.env.DRIVE_APK_URL || '').trim();
+          const githubUrl = String(process.env.RELEASE_APK_URL || '').trim();
+          const urls = [driveUrl, githubUrl].filter(Boolean);
 
           const payload = {
             version: process.env.APP_VERSION_NAME,
             required,
-            url: process.env.RELEASE_APK_URL,
+            fileName: process.env.DRIVE_APK_NAME,
+            url: urls[0] || githubUrl,
+            urls,
+            driveUrl: driveUrl || undefined,
+            githubUrl,
           };
 
           fs.writeFileSync('version.json', `${JSON.stringify(payload, null, 2)}\n`);

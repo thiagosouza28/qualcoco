@@ -1,11 +1,18 @@
 package br.qualcoco.app;
 
+import android.os.Bundle;
 import android.view.KeyEvent;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
 
     private static final String HARDWARE_VOLUME_EVENT = "qualcoco:hardware-volume";
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        registerPlugin(AppInstallerPlugin.class);
+        super.onCreate(savedInstanceState);
+    }
 
     private boolean shouldHandleVolumeButtons() {
         if (bridge == null || bridge.getWebView() == null) {

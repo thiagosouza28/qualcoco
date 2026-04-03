@@ -8,6 +8,7 @@ export function AppUpdateDialog() {
     updateDialogOpen,
     updatingApp,
     updateProgressPercent,
+    updateMessage,
     installReadyForAvailableUpdate,
     dismissUpdate,
     openUpdate,
@@ -63,6 +64,12 @@ export function AppUpdateDialog() {
                     ? 'O app vai baixar o APK internamente e abrir o instalador do Android automaticamente.'
                     : 'Um APK mais recente foi encontrado. O download ser\u00e1 feito dentro do aplicativo, sem abrir link externo.'}
             </p>
+
+            {updateMessage ? (
+              <p className="mt-3 rounded-[18px] border border-[rgba(15,118,110,0.16)] bg-[rgba(240,253,250,0.92)] px-3 py-2 text-sm leading-relaxed text-[var(--qc-text)]">
+                {updateMessage}
+              </p>
+            ) : null}
 
             <div className="mt-5 flex flex-col gap-2">
               <Button
