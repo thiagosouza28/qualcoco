@@ -132,9 +132,12 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
       - name: Build signed release APK
+        id: gradle_release
+        continue-on-error: true
         working-directory: android
         run: |
-          ./gradlew assembleRelease --stacktrace
+          set -o pipefail
+          ./gradlew assembleRelease --stacktrace --info 2>&1 | tee ../build-release.log
         env:
           APP_VERSION_CODE: ${{ env.APP_VERSION_CODE }}
           APP_VERSION_NAME: ${{ env.APP_VERSION_NAME }}
@@ -143,10 +146,21 @@ jobs:
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
+      - name: Print Gradle release diagnostics
+        if: steps.gradle_release.outcome == 'failure'
+        run: |
+          echo "---- build-release.log (tail) ----"
+          tail -n 200 build-release.log || true
+          echo "---- filtered failure lines ----"
+          grep -n -E "FAILURE:|What went wrong:|Execution failed for task|Caused by:|ERROR:" build-release.log | tail -n 80 || true
+          exit 1
+
       - name: Copy release APK
+        if: steps.gradle_release.outcome == 'success'
         run: cp android/app/build/outputs/apk/release/app-release.apk ${{ env.RELEASE_APK_NAME }}
 
       - name: Upload workflow artifact
+        if: steps.gradle_release.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: android-release-apk
@@ -154,6 +168,7 @@ jobs:
           if-no-files-found: error
 
       - name: Create GitHub release and upload APK
+        if: steps.gradle_release.outcome == 'success'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.RELEASE_TAG }}
@@ -165,6 +180,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate version.json
+        if: steps.gradle_release.outcome == 'success'
         run: |
           node - <<'NODE'
           const fs = require('node:fs');
@@ -183,6 +199,7 @@ jobs:
           NODE
 
       - name: Commit updated version.json
+        if: steps.gradle_release.outcome == 'success'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
