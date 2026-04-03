@@ -161,6 +161,8 @@ const openPdfInBrowser = (blob: Blob, fileName: string) => {
   window.setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
 };
 
+const RELATORIO_NATIVE_DIRECTORY = Directory.Cache;
+
 const saveAndOpenPdfOnDevice = async (blob: Blob, fileName: string) => {
   const path = `Relatorios/${fileName}`;
   const data = await blobToBase64(blob);
@@ -168,13 +170,14 @@ const saveAndOpenPdfOnDevice = async (blob: Blob, fileName: string) => {
   await Filesystem.writeFile({
     path,
     data,
-    directory: Directory.Documents,
+    // Usa armazenamento interno do app para evitar EACCES em Documents.
+    directory: RELATORIO_NATIVE_DIRECTORY,
     recursive: true,
   });
 
   const { uri } = await Filesystem.getUri({
     path,
-    directory: Directory.Documents,
+    directory: RELATORIO_NATIVE_DIRECTORY,
   });
 
   try {
@@ -954,4 +957,3 @@ export function TelaRelatorio() {
     </LayoutMobile>
   );
 }
-

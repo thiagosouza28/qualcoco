@@ -398,6 +398,8 @@ const openPdfInBrowser = (blob, fileName) => {
   window.setTimeout(() => URL.revokeObjectURL(blobUrl), 60 * 1000);
 };
 
+const RELATORIO_NATIVE_DIRECTORY = Directory.Cache;
+
 const saveAndOpenPdfOnDevice = async (blob, fileName) => {
   const path = `Relatorios/${fileName}`;
   const data = await blobToBase64(blob);
@@ -405,13 +407,14 @@ const saveAndOpenPdfOnDevice = async (blob, fileName) => {
   await Filesystem.writeFile({
     path,
     data,
-    directory: Directory.Documents,
+    // Usa armazenamento interno do app para evitar EACCES em Documents.
+    directory: RELATORIO_NATIVE_DIRECTORY,
     recursive: true,
   });
 
   const { uri } = await Filesystem.getUri({
     path,
-    directory: Directory.Documents,
+    directory: RELATORIO_NATIVE_DIRECTORY,
   });
 
   try {
