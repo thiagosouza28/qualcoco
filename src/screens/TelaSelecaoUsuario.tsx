@@ -63,7 +63,7 @@ export function TelaSelecaoUsuario() {
 
   return (
     <LayoutMobile
-      title="Trocar Colaborador"
+      title="Trocar colaborador"
       subtitle="Troca r\u00e1pida em campo"
       onBack={() => navigate('/login')}
     >
@@ -78,8 +78,8 @@ export function TelaSelecaoUsuario() {
                 {syncingWebAccess || sincronizando
                   ? 'Buscando usu\u00e1rios cadastrados na web para liberar o login neste aparelho.'
                   : online
-                    ? 'Este aparelho ainda n\u00e3o carregou os usu\u00e1rios da web.'
-                    : 'Conecte o aparelho \u00e0 internet para baixar os usu\u00e1rios cadastrados na web.'}
+                    ? 'Este aparelho ainda n\u00e3o carregou os usu\u00e1rios cadastrados na web.'
+                    : 'Conecte este aparelho \u00e0 internet para baixar os usu\u00e1rios cadastrados na web.'}
               </p>
 
               {online ? (

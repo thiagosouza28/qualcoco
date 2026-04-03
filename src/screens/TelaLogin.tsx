@@ -94,11 +94,11 @@ export function TelaLogin() {
       await login(identifier, pin);
     } catch (caught) {
       const fallbackMessage =
-        caught instanceof Error ? caught.message : 'Falha no login.';
+        caught instanceof Error ? caught.message : 'Falha ao entrar.';
 
       if (
         online &&
-        fallbackMessage === 'Usu\u00e1rio n\u00e3o encontrado no banco local.'
+        fallbackMessage === 'Usu\u00e1rio n\u00e3o encontrado neste aparelho.'
       ) {
         try {
           attemptedWebAccessSyncRef.current = true;
@@ -126,8 +126,8 @@ export function TelaLogin() {
           Coleta agr\u00edcola offline, segura e r\u00e1pida.
         </h1>
         <p className="hero-text">
-          Login por matr\u00edcula e PIN num\u00e9rico, com opera\u00e7\u00e3o pronta para
-          funcionar sem internet.
+          Entre com sua matr\u00edcula e seu PIN num\u00e9rico. O aplicativo continua
+          funcionando mesmo sem internet.
         </p>
       </section>
 
@@ -140,8 +140,8 @@ export function TelaLogin() {
               </p>
               <p className="text-sm text-slate-500">
                 {online
-                  ? 'Buscando logins cadastrados na web para liberar o acesso neste aparelho.'
-                  : 'Conecte o aparelho uma vez para baixar os logins cadastrados na web.'}
+                  ? 'Estamos buscando os logins cadastrados na web para liberar o acesso neste aparelho.'
+                  : 'Conecte este aparelho \u00e0 internet pelo menos uma vez para baixar os logins cadastrados na web.'}
               </p>
 
               {online ? (
@@ -156,7 +156,7 @@ export function TelaLogin() {
                   disabled={syncingWebAccess || sincronizando}
                 >
                   {syncingWebAccess || sincronizando
-                    ? 'Buscando logins...'
+                    ? 'Buscando logins da web...'
                     : 'Buscar logins da web'}
                 </Button>
               ) : null}

@@ -75,7 +75,7 @@ export function TelaDetalheAvaliacao() {
 
   return (
     <LayoutMobile
-      title="Detalhe da Avaliação"
+      title="Detalhes da avaliação"
       subtitle={data?.avaliacao?.status === 'completed' ? 'Finalizada' : 'Coleta em andamento'}
       onBack={() => navigate('/historico')}
     >

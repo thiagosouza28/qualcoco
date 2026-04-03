@@ -176,7 +176,7 @@ export function TelaHistorico() {
 
           <Select value={syncStatus} onValueChange={setSyncStatus}>
             <SelectTrigger className="h-11 rounded-[16px]">
-              <SelectValue placeholder="Status de sync" />
+              <SelectValue placeholder="Status da sincronização" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos os status</SelectItem>

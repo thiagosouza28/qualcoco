@@ -128,7 +128,7 @@ export function TelaSincronizacao() {
   return (
     <LayoutMobile
       title="Sincronização"
-      subtitle="Gestão de dados offline e nuvem"
+      subtitle="Gestão de dados offline e em nuvem"
       onBack={() => navigate('/dashboard')}
     >
       <div className="stack-lg">
@@ -427,7 +427,7 @@ export function TelaSincronizacao() {
         <div className="stack-md">
           <div className="section-head px-1">
             <h2 className="text-xl font-black tracking-tight text-[var(--qc-text)]">
-              Histórico de Sync
+              Histórico de sincronização
             </h2>
             <History className="h-5 w-5 text-[rgba(93,98,78,0.42)]" />
           </div>
@@ -484,4 +484,3 @@ export function TelaSincronizacao() {
     </LayoutMobile>
   );
 }
-

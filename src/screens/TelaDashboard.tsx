@@ -41,7 +41,7 @@ const quickActions = [
   },
   {
     label: 'Equipes',
-    subtitle: 'Gerenciamento e edição de colaboradores.',
+    subtitle: 'Gerenciamento e edição das equipes de campo.',
     icon: Users,
     to: '/equipes',
   },

@@ -903,7 +903,7 @@ export function TelaNovaAvaliacao() {
 
   return (
     <LayoutMobile
-      title={isEditMode ? 'Editar Avaliação' : 'Avaliação'}
+      title={isEditMode ? 'Editar avaliação' : 'Avaliação'}
       subtitle={
         isEditMode
           ? 'Reconfigure parcelas, equipes e alinhamentos'
@@ -2084,7 +2084,7 @@ export function TelaNovaAvaliacao() {
                     ? 'Salvando...'
                     : 'Iniciando...'
                   : isEditMode
-                    ? 'Salvar Alterações'
+                    ? 'Salvar alterações'
                     : 'Iniciar Coleta'}
                 <Check className="ml-2 h-5 w-5" />
              </Button>
@@ -2104,6 +2104,5 @@ export function TelaNovaAvaliacao() {
     </LayoutMobile>
   );
 }
-
 
 

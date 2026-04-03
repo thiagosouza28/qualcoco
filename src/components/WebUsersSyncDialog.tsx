@@ -53,8 +53,8 @@ export function WebUsersSyncDialog({
 
             <h3 className="mt-3 text-[1.65rem] font-black leading-[0.95] tracking-[-0.05em] text-[var(--qc-text)]">
               {syncing
-                ? 'Carregando usu\u00e1rios da web'
-                : 'N\u00e3o foi poss\u00edvel carregar'}
+                ? 'Carregando logins da web'
+                : 'N\u00e3o foi poss\u00edvel carregar os logins'}
             </h3>
 
             <p className="mt-3 text-sm leading-relaxed text-[var(--qc-text-muted)]">

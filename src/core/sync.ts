@@ -1965,7 +1965,7 @@ export const sincronizarAcessosWeb = async ({
         pullTotal: 1,
         storeRowsCompleted: rowsLoaded,
         storeRowsTotal: Math.max(rowsLoaded, 0),
-        label: `Baixando usu\u00e1rios da web - p\u00e1gina ${pageNumber}...`,
+        label: `Baixando usu\u00e1rios da web, p\u00e1gina ${pageNumber}...`,
         percent: 34,
       });
     });
@@ -1981,7 +1981,7 @@ export const sincronizarAcessosWeb = async ({
       storeRowsTotal: rows.length,
       label:
         rows.length > 0
-          ? `Aplicando ${rows.length} usu\u00e1rios no aparelho...`
+          ? `Atualizando ${rows.length} usu\u00e1rio(s) neste aparelho...`
           : 'Nenhum usu\u00e1rio novo encontrado na web.',
       percent: rows.length > 0 ? 62 : 90,
     });
@@ -2005,7 +2005,7 @@ export const sincronizarAcessosWeb = async ({
       storeRowsTotal: rows.length,
       label:
         rows.length > 0
-          ? 'Usu\u00e1rios da web carregados neste aparelho.'
+          ? 'Usu\u00e1rios da web atualizados neste aparelho.'
           : 'Nenhum usu\u00e1rio novo encontrado na web.',
       percent: 92,
     });
@@ -2024,16 +2024,16 @@ export const sincronizarAcessosWeb = async ({
     currentPage: 0,
     storeRowsCompleted: 0,
     storeRowsTotal: 0,
-    label: 'Finalizando carga dos acessos...',
+    label: 'Finalizando a atualiza\u00e7\u00e3o dos acessos...',
     percent: 97,
   });
 
   const hasErrors = pullErrors.length > 0 || Boolean(accessBlockedMessage);
   const details = [
     accessBlockedMessage,
-    pullErrors.length > 0 ? `Falhas no pull: ${pullErrors.join(' | ')}` : '',
+    pullErrors.length > 0 ? `Falhas no recebimento: ${pullErrors.join(' | ')}` : '',
     conflitos > 0 ? `${conflitos} conflito(s) detectado(s).` : '',
-    !hasErrors && conflitos === 0 ? 'Acessos da web sincronizados.' : '',
+    !hasErrors && conflitos === 0 ? 'Acessos da web sincronizados com sucesso.' : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -2429,8 +2429,8 @@ export const sincronizarNuvem = async ({
   const details = [
     accessBlockedMessage,
     ...schemaCapabilities.warnings,
-    pushErrors.length > 0 ? `Falhas no push: ${pushErrors.join(' | ')}` : '',
-    pullErrors.length > 0 ? `Falhas no pull: ${pullErrors.join(' | ')}` : '',
+    pushErrors.length > 0 ? `Falhas no envio: ${pushErrors.join(' | ')}` : '',
+    pullErrors.length > 0 ? `Falhas no recebimento: ${pullErrors.join(' | ')}` : '',
     conflitos > 0 ? `${conflitos} conflito(s) detectado(s).` : '',
     !hasErrors && !hasSchemaWarnings && conflitos === 0
       ? 'Sincroniza\u00e7\u00e3o com Firebase conclu\u00edda.'

@@ -57,13 +57,15 @@ export function CadastroColaborador() {
       navigate(colaborador ? '/colaboradores' : '/login');
     },
     onError: (caught) => {
-      setErro(caught instanceof Error ? caught.message : 'Falha ao salvar.');
+      setErro(
+        caught instanceof Error ? caught.message : 'Não foi possível salvar.',
+      );
     },
   });
 
   return (
     <LayoutMobile
-      title={colaborador ? 'Editar Colaborador' : 'Novo Colaborador'}
+      title={colaborador ? 'Editar colaborador' : 'Novo colaborador'}
       subtitle="Cadastro rápido para operação de campo"
       onBack={() => navigate(colaborador ? '/colaboradores' : '/login')}
     >

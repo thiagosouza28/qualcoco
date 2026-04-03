@@ -221,12 +221,12 @@ export const autenticarColaborador = async (
 ) => {
   const cleanIdentifier = identifier.trim();
   if (!cleanIdentifier) {
-    throw new Error('Informe a matrícula.');
+    throw new Error('Informe sua matr\u00edcula.');
   }
 
   if (!validarPin(pin)) {
     await registrarTentativa(null, cleanIdentifier, false, 'PIN inválido');
-    throw new Error('PIN inválido. Use 4 ou 6 dígitos.');
+    throw new Error('PIN inv\u00e1lido. Use 4 ou 6 d\u00edgitos num\u00e9ricos.');
   }
 
   if (await colaboradorBloqueado(cleanIdentifier)) {
@@ -237,7 +237,7 @@ export const autenticarColaborador = async (
       'Usuário bloqueado por tentativas',
     );
     throw new Error(
-      `Acesso bloqueado temporariamente. Tente novamente depois de ${LOGIN_LOCK_MINUTES} minutos.`,
+      `Acesso bloqueado temporariamente. Tente novamente em ${LOGIN_LOCK_MINUTES} minutos.`,
     );
   }
 
@@ -249,7 +249,7 @@ export const autenticarColaborador = async (
       false,
       'Usuário não encontrado',
     );
-    throw new Error('Usuário não encontrado no banco local.');
+    throw new Error('Usu\u00e1rio n\u00e3o encontrado neste aparelho.');
   }
 
   const pinCorreto = await compararPin(
@@ -270,7 +270,7 @@ export const autenticarColaborador = async (
         ? `PIN incorreto. Usuário bloqueado até ${formatDateTimeLabel(
             minutesAgo(-LOGIN_LOCK_MINUTES),
           )}.`
-        : 'PIN incorreto.',
+        : 'PIN incorreto. Confira e tente novamente.',
     );
   }
 
@@ -295,4 +295,3 @@ export const autenticarColaborador = async (
     session,
   };
 };
-

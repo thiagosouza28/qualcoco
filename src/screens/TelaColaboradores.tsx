@@ -38,11 +38,15 @@ export function TelaColaboradores() {
   return (
     <LayoutMobile
       title="Colaboradores"
-      subtitle={`${ativos.length} ativo(s) no dispositivo`}
+      subtitle={
+        ativos.length === 1
+          ? '1 colaborador ativo no dispositivo'
+          : `${ativos.length} colaboradores ativos no dispositivo`
+      }
       onBack={() => navigate('/dashboard')}
       action={
         <Button asChild size="sm">
-          <Link to="/colaboradores/cadastro">Novo</Link>
+          <Link to="/colaboradores/cadastro">Novo colaborador</Link>
         </Button>
       }
     >

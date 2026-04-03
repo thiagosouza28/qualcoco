@@ -56,7 +56,11 @@ export function TelaEquipes() {
       await refresh();
     },
     onError: (error) => {
-      setSaveError(error instanceof Error ? error.message : 'Falha ao salvar a equipe.');
+      setSaveError(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível salvar a equipe.',
+      );
     },
   });
 
@@ -76,7 +80,11 @@ export function TelaEquipes() {
       await refresh();
     },
     onError: (error) => {
-      setSaveError(error instanceof Error ? error.message : 'Falha ao salvar a equipe.');
+      setSaveError(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível salvar a equipe.',
+      );
     },
   });
 
@@ -234,7 +242,7 @@ export function TelaEquipes() {
                       : 'Cadastro rápido de equipe'}
                   </p>
                   <DialogTitle className="mt-1 text-[1.75rem] font-black tracking-[-0.05em] text-[var(--qc-text)]">
-                    {editingEquipe ? 'Editar Equipe' : 'Nova Equipe'}
+                    {editingEquipe ? 'Editar equipe' : 'Nova equipe'}
                   </DialogTitle>
                   <DialogDescription className="mt-1 max-w-[19rem] text-sm leading-relaxed text-[var(--qc-text-muted)]">
                     Defina o número exibido no campo, o nome da equipe e o fiscal
@@ -384,4 +392,3 @@ export function TelaEquipes() {
     </LayoutMobile>
   );
 }
-
