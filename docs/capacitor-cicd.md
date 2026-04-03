@@ -67,3 +67,5 @@ O workflow gera um APK release assinado a partir do keystore armazenado em secre
 ## Evitando loop de CI
 
 O trigger ignora mudanças em `version.json`, então o commit automático do manifesto não dispara um novo workflow.
+
+Última validação manual do pipeline: 2026-04-03.
