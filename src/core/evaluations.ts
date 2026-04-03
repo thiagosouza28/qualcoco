@@ -309,6 +309,7 @@ export const atualizarAvaliacaoConfiguracao = async (
   input: AtualizarAvaliacaoInput,
 ) => {
   const device = await getOrCreateDevice();
+  const dataAvaliacaoAtualizada = todayIso();
   const [avaliacao, participantesAtuais, parcelasAtuais, ruasAtuais, registrosAtuais] =
     await Promise.all([
       repository.get('avaliacoes', input.avaliacaoId),
@@ -355,7 +356,8 @@ export const atualizarAvaliacaoConfiguracao = async (
     ...avaliacao,
     usuarioId: responsavelId,
     dispositivoId: input.dispositivoId,
-    dataAvaliacao: input.dataAvaliacao || avaliacao.dataAvaliacao || todayIso(),
+    // Toda edição reabre a avaliação na data atual.
+    dataAvaliacao: dataAvaliacaoAtualizada,
     dataColheita: input.dataColheita || avaliacao.dataColheita || todayIso(),
     observacoes: input.observacoes,
     status: 'in_progress',
@@ -381,7 +383,7 @@ export const atualizarAvaliacaoConfiguracao = async (
   const { parcelas, ruas } = await materializarPlanejamentoAvaliacao({
     avaliacaoId: avaliacao.id,
     deviceId: device.id,
-    dataAvaliacao: nextAvaliacao.dataAvaliacao,
+    dataAvaliacao: dataAvaliacaoAtualizada,
     parcelasInput: input.parcelas,
     planejamentoEquipes: input.planejamentoEquipes,
     alinhamentoTipo: input.alinhamentoTipo,

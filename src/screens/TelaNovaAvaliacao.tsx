@@ -190,6 +190,7 @@ export function TelaNovaAvaliacao() {
   const { usuarioAtual, dispositivo } = useCampoApp();
   const isEditMode = Boolean(editingId);
   const initializedEditRef = useRef<string | null>(null);
+  const dataAvaliacaoEdicao = todayIso();
   
   const [step, setStep] = useState<Step>('participantes');
   const [temMaisPessoas, setTemMaisPessoas] = useState<boolean | null>(null);
@@ -807,7 +808,7 @@ export function TelaNovaAvaliacao() {
         return atualizarAvaliacaoConfiguracao({
           ...payload,
           avaliacaoId: editingId,
-          dataAvaliacao: editData.avaliacao.dataAvaliacao,
+          dataAvaliacao: dataAvaliacaoEdicao,
           responsavelId: responsavelId || editData.avaliacao.usuarioId,
         });
       }
@@ -1950,7 +1951,9 @@ export function TelaNovaAvaliacao() {
                            <span className="text-[var(--qc-text-muted)]">Data da avaliação:</span>
                            <span className="text-right font-bold capitalize text-[var(--qc-text)]">
                              {formatarDataColheita(
-                               editData?.avaliacao?.dataAvaliacao || todayIso(),
+                               isEditMode
+                                 ? dataAvaliacaoEdicao
+                                 : editData?.avaliacao?.dataAvaliacao || todayIso(),
                              )}
                            </span>
                         </div>
@@ -2104,5 +2107,4 @@ export function TelaNovaAvaliacao() {
     </LayoutMobile>
   );
 }
-
 
