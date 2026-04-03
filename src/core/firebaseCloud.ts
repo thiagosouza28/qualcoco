@@ -78,6 +78,7 @@ type UpsertOptions = {
 };
 
 const CLOUD_PAGE_SIZE = 50;
+const PUBLIC_COLABORADORES_PAGE_SIZE = 200;
 const authListeners = new Set<CloudAuthListener>();
 
 const createCloudError = (
@@ -152,8 +153,8 @@ const buildDeviceSnapshot = (device?: DeviceSnapshot) => {
   };
 };
 
-const getQueryLimit = (requested?: number) =>
-  Math.max(1, Math.min(Number(requested) || CLOUD_PAGE_SIZE, CLOUD_PAGE_SIZE));
+const getQueryLimit = (requested?: number, maxLimit = CLOUD_PAGE_SIZE) =>
+  Math.max(1, Math.min(Number(requested) || maxLimit, maxLimit));
 
 const normalizeFields = (fields?: string) =>
   String(fields || '')
@@ -319,6 +320,7 @@ const fetchCollectionRowsInternal = async ({
   limit: requestedLimit,
   fields,
   extraFilters = [],
+  maxLimit = CLOUD_PAGE_SIZE,
 }: {
   collectionName: string;
   updatedAfter?: string;
@@ -327,8 +329,10 @@ const fetchCollectionRowsInternal = async ({
   limit?: number;
   fields?: string;
   extraFilters?: Array<{ field: string; op: WhereFilterOp; value: unknown }>;
+  maxLimit?: number;
 }) => {
   ensureConfigured();
+  const effectiveLimit = getQueryLimit(requestedLimit, maxLimit);
   const constraints = buildConstraints({
     updatedAfter,
     requestedLimit,
@@ -346,7 +350,7 @@ const fetchCollectionRowsInternal = async ({
     constraints.push(startAfter(afterUpdatedAt));
   }
 
-  constraints.push(limit(getQueryLimit(requestedLimit)));
+  constraints.push(limit(effectiveLimit));
   const q = query(
     collection(firestoreDb!, collectionName),
     ...constraints,
@@ -358,7 +362,7 @@ const fetchCollectionRowsInternal = async ({
 
   return {
     rows,
-    cursor: buildCursorResponse(rows, getQueryLimit(requestedLimit)),
+    cursor: buildCursorResponse(rows, effectiveLimit),
   } satisfies CloudListResponse;
 };
 
@@ -685,6 +689,15 @@ export const getCloudSessionSafe = async (
 export const fetchCloudSession = async (): Promise<CloudSession | null> =>
   await getCloudSessionSafe('any');
 
+const ensureCloudReadSession = async () => {
+  const currentSession = await getCloudSessionSafe('any');
+  if (currentSession) {
+    return currentSession;
+  }
+
+  return await ensureCloudDeviceSession();
+};
+
 export const fetchCloudCapabilities = async () => ({
   provider: 'firebase',
   warnings: [] as string[],
@@ -711,7 +724,7 @@ export const fetchCloudPublicColaboradores = async ({
   limit?: number;
   fields?: string;
 }) => {
-  await ensureCloudDeviceSession();
+  await ensureCloudReadSession();
   const response = await fetchCollectionRowsInternal({
     collectionName: 'colaboradores',
     updatedAfter,
@@ -719,6 +732,7 @@ export const fetchCloudPublicColaboradores = async ({
     afterId,
     limit: requestedLimit,
     fields,
+    maxLimit: PUBLIC_COLABORADORES_PAGE_SIZE,
   });
 
   return {
@@ -744,7 +758,7 @@ export const fetchCloudCollectionRows = async ({
   limit?: number;
   fields?: string;
 }) => {
-  await ensureCloudDeviceSession();
+  await ensureCloudReadSession();
   return await fetchCollectionRowsInternal({
     collectionName,
     updatedAfter,

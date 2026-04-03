@@ -131,6 +131,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setPendenciasSync(await contarPendenciasSync({ repair: false }));
   }, []);
 
+  const refreshRelevantQueries = useCallback(
+    async (queryKeys: readonly (readonly unknown[])[]) => {
+      await atualizarPendencias().catch(() => undefined);
+      await Promise.all(
+        queryKeys.map((queryKey) =>
+          queryClient.invalidateQueries({ queryKey: [...queryKey] }),
+        ),
+      );
+    },
+    [atualizarPendencias, queryClient],
+  );
+
   const garantirSessaoCloudDispositivo = useCallback(
     async (deviceSnapshot?: Dispositivo | null) => {
       if (!isCloudConfigured || !onlineRef.current) {
@@ -152,6 +164,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       runner: (
         onProgress: (progress: SyncProgressSnapshot) => void,
       ) => Promise<SyncExecutionResult | null>,
+      options?: {
+        refreshMode?: 'full' | 'queries-only';
+        queryKeys?: readonly (readonly unknown[])[];
+      },
     ) => {
       if (!isCloudConfigured || !onlineRef.current) {
         atualizarEstadoOnline(onlineRef.current);
@@ -184,7 +200,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         try {
           return await runner(setSyncProgress);
         } finally {
-          await refreshApp();
+          if (options?.refreshMode === 'queries-only' && options.queryKeys?.length) {
+            await refreshRelevantQueries(options.queryKeys);
+          } else {
+            await refreshApp();
+          }
           syncPromiseRef.current = null;
           setSincronizando(false);
         }
@@ -193,7 +213,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       syncPromiseRef.current = runSync;
       return await runSync;
     },
-    [atualizarEstadoOnline, refreshApp],
+    [atualizarEstadoOnline, refreshApp, refreshRelevantQueries],
   );
 
   const executarSincronizacao = useCallback(
@@ -240,13 +260,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   );
 
   const sincronizarAcessosWebAgora = useCallback(async () => {
-    return await iniciarSincronizacao(async (onProgress) => {
-      const result = await sincronizarAcessosWeb({
-        onProgress,
-      });
-      lastSyncAtRef.current = Date.now();
-      return result;
-    });
+    return await iniciarSincronizacao(
+      async (onProgress) => {
+        const result = await sincronizarAcessosWeb({
+          onProgress,
+        });
+        lastSyncAtRef.current = Date.now();
+        return result;
+      },
+      {
+        refreshMode: 'queries-only',
+        queryKeys: [
+          ['login', 'colaboradores'],
+          ['usuarios', 'ativos'],
+          ['colaboradores', 'ativos'],
+          ['colaboradores', 'todos'],
+        ],
+      },
+    );
   }, [iniciarSincronizacao]);
 
   const agendarAutoSync = useCallback(
