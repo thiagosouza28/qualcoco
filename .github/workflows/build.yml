@@ -149,6 +149,7 @@ jobs:
         shell: bash
         working-directory: android
         run: |
+          set +e
           set -o pipefail
           ./gradlew assembleRelease --stacktrace --info 2>&1 | tee ../build-release.log
           status=$?
