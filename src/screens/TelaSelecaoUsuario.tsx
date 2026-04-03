@@ -64,7 +64,7 @@ export function TelaSelecaoUsuario() {
   return (
     <LayoutMobile
       title="Trocar colaborador"
-      subtitle="Troca r\u00e1pida em campo"
+      subtitle="Troca rápida em campo"
       onBack={() => navigate('/login')}
     >
       <div className="stack-lg">
@@ -76,10 +76,10 @@ export function TelaSelecaoUsuario() {
               </p>
               <p className="text-sm text-slate-500">
                 {syncingWebAccess || sincronizando
-                  ? 'Buscando usu\u00e1rios cadastrados na web para liberar o login neste aparelho.'
+                  ? 'Buscando usuários cadastrados na web para liberar o login neste aparelho.'
                   : online
-                    ? 'Este aparelho ainda n\u00e3o carregou os usu\u00e1rios cadastrados na web.'
-                    : 'Conecte este aparelho \u00e0 internet para baixar os usu\u00e1rios cadastrados na web.'}
+                    ? 'Este aparelho ainda não carregou os usuários cadastrados na web.'
+                    : 'Conecte este aparelho à internet para baixar os usuários cadastrados na web.'}
               </p>
 
               {online ? (
@@ -93,8 +93,8 @@ export function TelaSelecaoUsuario() {
                   disabled={syncingWebAccess || sincronizando}
                 >
                   {syncingWebAccess || sincronizando
-                    ? 'Buscando usu\u00e1rios...'
-                    : 'Buscar usu\u00e1rios da web'}
+                    ? 'Buscando usuários...'
+                    : 'Buscar usuários da web'}
                 </Button>
               ) : null}
             </CardContent>

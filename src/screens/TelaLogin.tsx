@@ -123,10 +123,10 @@ export function TelaLogin() {
       <section className="login-hero">
         <span className="hero-badge">QualCoco Campo</span>
         <h1 className="hero-title">
-          Coleta agr\u00edcola offline, segura e r\u00e1pida.
+          Coleta agrícola offline, segura e rápida.
         </h1>
         <p className="hero-text">
-          Entre com sua matr\u00edcula e seu PIN num\u00e9rico. O aplicativo continua
+          Entre com sua matrícula e seu PIN numérico. O aplicativo continua
           funcionando mesmo sem internet.
         </p>
       </section>
@@ -141,7 +141,7 @@ export function TelaLogin() {
               <p className="text-sm text-slate-500">
                 {online
                   ? 'Estamos buscando os logins cadastrados na web para liberar o acesso neste aparelho.'
-                  : 'Conecte este aparelho \u00e0 internet pelo menos uma vez para baixar os logins cadastrados na web.'}
+                  : 'Conecte este aparelho à internet pelo menos uma vez para baixar os logins cadastrados na web.'}
               </p>
 
               {online ? (
@@ -165,7 +165,7 @@ export function TelaLogin() {
 
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="input-block">
-              <label>Matr\u00edcula</label>
+              <label>Matrícula</label>
               <div className="input-shell">
                 <UserRound className="h-4 w-4 text-emerald-700" />
                 <Input
@@ -189,7 +189,7 @@ export function TelaLogin() {
                 <Input
                   value={pin}
                   type="tel"
-                  placeholder="4 ou 6 d\u00edgitos"
+                  placeholder="4 ou 6 dígitos"
                   inputMode="numeric"
                   pattern="[0-9]*"
                   autoComplete="current-password"
