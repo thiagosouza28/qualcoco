@@ -164,8 +164,6 @@ const getEquipePlanejamentoKey = ({
   equipeNome: string | null | undefined;
 }) => String(equipeId || equipeNome || '').trim().toUpperCase();
 
-const formatarTipoColeta = (_value: OrdemColeta) => 'Cacho primeiro';
-
 const formatarModoCalculo = (value: ModoCalculo) =>
   value === 'media_vizinhas'
     ? 'Média das ruas vizinhas'
@@ -1680,18 +1678,6 @@ export function TelaNovaAvaliacao() {
                   <div className="stack-sm rounded-[24px] border border-[var(--qc-border)] bg-[var(--qc-surface-muted)] p-4">
                     <div className="flex items-center justify-between gap-3">
                       <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--qc-secondary)]">
-                        Tipo de Coleta
-                      </label>
-                      <Badge variant="emerald">{formatarTipoColeta(ordemColeta)}</Badge>
-                    </div>
-                    <p className="text-sm font-medium leading-relaxed text-[var(--qc-text-muted)]">
-                      Fluxo fixo do aplicativo. A coleta sempre inicia por cacho.
-                    </p>
-                  </div>
-
-                  <div className="stack-sm rounded-[24px] border border-[var(--qc-border)] bg-[var(--qc-surface-muted)] p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--qc-secondary)]">
                         Cálculo
                       </label>
                       <Badge variant="emerald">{formatarModoCalculo(modoCalculo)}</Badge>
@@ -1979,12 +1965,6 @@ export function TelaNovaAvaliacao() {
                              {selecionadas.length > 1
                                ? 'Definido por parcela'
                                : descreverSentidoRuas(sentidoRuas)}
-                           </span>
-                        </div>
-                        <div className="flex justify-between items-center text-sm">
-                           <span className="text-[var(--qc-text-muted)]">Tipo de coleta:</span>
-                           <span className="font-bold text-[var(--qc-text)]">
-                             {formatarTipoColeta(ordemColeta)}
                            </span>
                         </div>
                         <div className="flex justify-between items-center text-sm">

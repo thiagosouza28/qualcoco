@@ -16,7 +16,6 @@ import { useCampoApp } from '@/core/AppProvider';
 import {
   limparFalhaRua,
   finalizarAvaliacao,
-  marcarFalhaRua,
   obterAvaliacaoDetalhada,
   salvarRegistroColeta,
 } from '@/core/evaluations';
@@ -47,7 +46,6 @@ import {
 } from '@/core/registroRua';
 import type {
   ModoCalculo,
-  OrdemColeta,
   SentidoRuas,
   SiglaResumoParcela,
   TipoFalhaRua,
@@ -325,8 +323,6 @@ const formatarTipoFalha = (value: TipoFalhaRua | null | undefined) => {
   return '';
 };
 
-const formatarOrdemColeta = (_value: OrdemColeta) => 'Cacho primeiro';
-
 const formatarModoCalculo = (value: ModoCalculo) =>
   value === 'media_vizinhas' ? 'Média vizinha' : 'Manual';
 
@@ -524,7 +520,6 @@ export function TelaRegistroLinhas() {
   const ruas = useMemo(() => data?.ruas || [], [data]);
   const ruaAtual = ruas[ruaIndex] || null;
   const totalRuas = ruas.length;
-  const ordemColeta = 'invertido' as OrdemColeta;
   const modoCalculo = (data?.avaliacao?.modoCalculo || 'manual') as ModoCalculo;
   const parcelasMap = useMemo(
     () => new Map((data?.parcelas || []).map((item) => [item.id, item])),
@@ -1108,34 +1103,6 @@ export function TelaRegistroLinhas() {
     },
   });
 
-  const marcarFalhaMutation = useMutation({
-    mutationFn: async (tipoFalha: TipoFalhaRua) => {
-      if (!ruaAtual) return null;
-
-      const failedIds = new Set(ruasComFalhaIds);
-      failedIds.add(ruaAtual.id);
-
-      await marcarFalhaRua({
-        avaliacaoId: id,
-        ruaId: ruaAtual.id,
-        tipoFalha,
-      });
-
-      return {
-        nextIndex: obterProximaRuaPendente(ruaIndex, ruaIdsComRegistro, failedIds),
-      };
-    },
-    onSuccess: async (result) => {
-      await queryClient.invalidateQueries({ queryKey: ['avaliacao', id] });
-      if (result && typeof result.nextIndex === 'number') {
-        navegarParaRua(result.nextIndex);
-        return;
-      }
-
-      setShowFinalizacaoModal(true);
-    },
-  });
-
   const limparFalhaMutation = useMutation({
     mutationFn: async () => {
       if (!ruaAtual) return null;
@@ -1660,7 +1627,6 @@ export function TelaRegistroLinhas() {
                       <Badge variant="emerald">Parcela {parcelaAtual.parcelaCodigo}</Badge>
                     ) : null}
                     <Badge variant="slate">Equipe {equipeAtual}</Badge>
-                    <Badge variant="slate">{formatarOrdemColeta(ordemColeta)}</Badge>
                     <Badge variant="slate">{formatarModoCalculo(modoCalculo)}</Badge>
                     {statusParcelaAtual ? (
                       <Badge
@@ -1880,39 +1846,6 @@ export function TelaRegistroLinhas() {
             </div>
           </CardContent>
         </Card>
-
-        {!ruaAtual?.tipoFalha ? (
-          <Card className="surface-card border-none shadow-sm">
-            <CardContent className="grid grid-cols-2 gap-3 p-4">
-              <Button
-                type="button"
-                variant="outline"
-                className="h-12 rounded-[18px] font-bold text-[var(--qc-danger)]"
-                disabled={marcarFalhaMutation.isPending || !ruaAtual}
-                onClick={() => {
-                  if (confirm('Marcar esta rua como falha e pular para a próxima válida?')) {
-                    marcarFalhaMutation.mutate('rua_com_falha');
-                  }
-                }}
-              >
-                Rua com falha
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="h-12 rounded-[18px] font-bold text-[var(--qc-danger)]"
-                disabled={marcarFalhaMutation.isPending || !ruaAtual}
-                onClick={() => {
-                  if (confirm('Marcar esta rua como linha inválida e pular para a próxima válida?')) {
-                    marcarFalhaMutation.mutate('linha_invalida');
-                  }
-                }}
-              >
-                Linha inválida
-              </Button>
-            </CardContent>
-          </Card>
-        ) : null}
 
         <Card className="surface-card border-none shadow-sm">
           <button
