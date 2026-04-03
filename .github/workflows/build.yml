@@ -26,6 +26,7 @@ env:
   RELEASE_APK_NAME: qualcoco.apk
   RELEASE_APK_URL: https://github.com/${{ github.repository }}/releases/download/v1.0.${{ github.run_number }}/qualcoco.apk
   REQUIRED_UPDATE: ${{ vars.APP_UPDATE_REQUIRED || 'false' }}
+  ANDROID_KEYSTORE_TYPE: ${{ vars.ANDROID_KEYSTORE_TYPE || 'PKCS12' }}
 
 jobs:
   build-android:
@@ -167,6 +168,7 @@ jobs:
           APP_VERSION_CODE: ${{ env.APP_VERSION_CODE }}
           APP_VERSION_NAME: ${{ env.APP_VERSION_NAME }}
           ANDROID_KEYSTORE_PATH: ${{ github.workspace }}/android/app/release.keystore
+          ANDROID_KEYSTORE_TYPE: ${{ env.ANDROID_KEYSTORE_TYPE }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}

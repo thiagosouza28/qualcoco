@@ -8,6 +8,7 @@ def envOrDefault = { String key, String fallback ->
 def appVersionCode = envOrDefault('APP_VERSION_CODE', '1').toInteger()
 def appVersionName = envOrDefault('APP_VERSION_NAME', '1.0.0')
 def androidKeystorePath = System.getenv('ANDROID_KEYSTORE_PATH')
+def androidKeystoreType = envOrDefault('ANDROID_KEYSTORE_TYPE', 'PKCS12')
 def androidKeystorePassword = System.getenv('ANDROID_KEYSTORE_PASSWORD')
 def androidKeyAlias = System.getenv('ANDROID_KEY_ALIAS')
 def androidKeyPassword = System.getenv('ANDROID_KEY_PASSWORD')
@@ -41,6 +42,7 @@ android {
         release {
             if (hasReleaseSigning) {
                 storeFile file(androidKeystorePath)
+                storeType androidKeystoreType
                 storePassword androidKeystorePassword
                 keyAlias androidKeyAlias
                 keyPassword androidKeyPassword
