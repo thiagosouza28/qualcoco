@@ -6,7 +6,6 @@ on:
       - main
     paths-ignore:
       - version.json
-      - ci-debug/**
   workflow_dispatch:
 
 permissions:
@@ -145,16 +144,19 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
 
       - name: Build signed release APK
-        continue-on-error: true
         shell: bash
         working-directory: android
         run: |
-          set +e
           set -o pipefail
           ./gradlew assembleRelease --stacktrace --info 2>&1 | tee ../build-release.log
           status=$?
-          echo "$status" > ../build-release.exit
-          exit 0
+          if [ "$status" -ne 0 ]; then
+            echo "---- build-release.log (tail) ----"
+            tail -n 200 ../build-release.log || true
+            echo "---- filtered failure lines ----"
+            grep -n -E "FAILURE:|What went wrong:|Execution failed for task|Caused by:|ERROR:" ../build-release.log | tail -n 80 || true
+            exit "$status"
+          fi
         env:
           APP_VERSION_CODE: ${{ env.APP_VERSION_CODE }}
           APP_VERSION_NAME: ${{ env.APP_VERSION_NAME }}
@@ -163,40 +165,6 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-
-      - name: Handle Gradle release result
-        shell: bash
-        run: |
-          status="$(cat build-release.exit)"
-          if [ "$status" = "0" ]; then
-            echo "Gradle release build succeeded."
-            exit 0
-          fi
-
-          mkdir -p ci-debug
-          {
-            echo "Run: ${GITHUB_RUN_NUMBER}"
-            echo "Commit: ${GITHUB_SHA}"
-            echo "UTC: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
-            echo
-            echo "Filtered lines:"
-            grep -n -E "FAILURE:|What went wrong:|Execution failed for task|Caused by:|ERROR:" build-release.log | tail -n 80 || true
-            echo
-            echo "Tail:"
-            tail -n 200 build-release.log || true
-          } > ci-debug/build-release-failure.txt
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add ci-debug/build-release-failure.txt
-
-          if ! git diff --cached --quiet; then
-            git commit -m "ci: capture release build failure [skip ci]"
-            git push origin HEAD:${GITHUB_REF_NAME}
-          fi
-
-          echo "::error::Gradle release build failed. See ci-debug/build-release-failure.txt in the repository."
-          exit 1
 
       - name: Copy release APK
         run: cp android/app/build/outputs/apk/release/app-release.apk ${{ env.RELEASE_APK_NAME }}
