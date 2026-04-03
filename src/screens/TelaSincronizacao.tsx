@@ -10,6 +10,7 @@ import {
   History,
   Loader2,
   Share2,
+  Trash2,
   Upload,
 } from 'lucide-react';
 import { LayoutMobile } from '@/components/LayoutMobile';
@@ -19,6 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import {
   exportarPacoteSyncLocal,
   importarPacoteSyncLocal,
+  limparHistoricoSincronizacao,
   obterDiagnosticoNuvem,
   type SyncExecutionResult,
 } from '@/core/sync';
@@ -78,6 +80,7 @@ export function TelaSincronizacao() {
     useCampoApp();
   const [ultimoResultadoSync, setUltimoResultadoSync] =
     useState<SyncExecutionResult | null>(null);
+  const [limpandoHistorico, setLimpandoHistorico] = useState(false);
 
   const { data: logs = [] } = useQuery({
     queryKey: ['sync', 'logs'],
@@ -100,6 +103,7 @@ export function TelaSincronizacao() {
   const sortedLogs = useMemo(
     () =>
       [...logs]
+        .filter((item) => !item.deletadoEm)
         .sort((a, b) => b.criadoEm.localeCompare(a.criadoEm))
         .slice(0, 15),
     [logs],
@@ -122,6 +126,32 @@ export function TelaSincronizacao() {
         'Falha ao importar pacote: ' +
           (error instanceof Error ? error.message : 'Erro desconhecido'),
       );
+    }
+  };
+
+  const handleLimparHistorico = async () => {
+    if (sortedLogs.length === 0 || limpandoHistorico) return;
+
+    if (!window.confirm('Deseja limpar o histórico de sincronização deste aparelho?')) {
+      return;
+    }
+
+    setLimpandoHistorico(true);
+
+    try {
+      const removidos = await limparHistoricoSincronizacao();
+      await queryClient.invalidateQueries({ queryKey: ['sync', 'logs'] });
+
+      if (removidos > 0) {
+        alert('Histórico de sincronização limpo neste aparelho.');
+      }
+    } catch (error) {
+      alert(
+        'Não foi possível limpar o histórico: ' +
+          (error instanceof Error ? error.message : 'Erro desconhecido'),
+      );
+    } finally {
+      setLimpandoHistorico(false);
     }
   };
 
@@ -425,11 +455,36 @@ export function TelaSincronizacao() {
         </Card>
 
         <div className="stack-md">
-          <div className="section-head px-1">
-            <h2 className="text-xl font-black tracking-tight text-[var(--qc-text)]">
-              Histórico de sincronização
-            </h2>
-            <History className="h-5 w-5 text-[rgba(93,98,78,0.42)]" />
+          <div className="section-head items-center gap-3 px-1">
+            <div className="flex min-w-0 items-center gap-2">
+              <h2 className="text-xl font-black tracking-tight text-[var(--qc-text)]">
+                Histórico de sincronização
+              </h2>
+              <History className="h-5 w-5 text-[rgba(93,98,78,0.42)]" />
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-10 rounded-[16px] font-bold"
+              onClick={() => {
+                void handleLimparHistorico();
+              }}
+              disabled={sortedLogs.length === 0 || limpandoHistorico}
+            >
+              {limpandoHistorico ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Limpando...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4" />
+                  Limpar histórico
+                </>
+              )}
+            </Button>
           </div>
 
           {sortedLogs.length === 0 ? (

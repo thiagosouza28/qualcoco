@@ -2556,6 +2556,31 @@ export const exportarPacoteSyncLocal = async () => {
   return pacote;
 };
 
+export const limparHistoricoSincronizacao = async () => {
+  const logs = await listAll<SyncLog>('syncLogs');
+  const ativos = logs.filter((item) => !item.deletadoEm);
+
+  if (ativos.length === 0) {
+    return 0;
+  }
+
+  const deletedAt = nowIso();
+
+  await Promise.all(
+    ativos.map((log) =>
+      saveEntity('syncLogs', {
+        ...log,
+        deletadoEm: deletedAt,
+        atualizadoEm: deletedAt,
+        syncStatus: 'pending_sync',
+        versao: log.versao + 1,
+      }),
+    ),
+  );
+
+  return ativos.length;
+};
+
 export const importarPacoteSyncLocal = async (fileContent: string) => {
   const device = await getOrCreateDevice();
   const pacote = JSON.parse(fileContent) as PacoteSyncLocal;
