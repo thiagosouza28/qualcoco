@@ -26,14 +26,15 @@ env:
   RELEASE_APK_NAME: qualcoco.apk
   RELEASE_APK_URL: https://github.com/${{ github.repository }}/releases/download/v1.0.${{ github.run_number }}/qualcoco.apk
   DRIVE_APK_NAME: appqualcoco1.0.${{ github.run_number }}.apk
-  GOOGLE_DRIVE_FOLDER_ID: ${{ vars.GOOGLE_DRIVE_FOLDER_ID || '1C0mtzoXTGKheEZIkDOEqjibvT4PZiI91' }}
-  REQUIRED_UPDATE: ${{ vars.APP_UPDATE_REQUIRED || 'false' }}
-  ANDROID_KEYSTORE_TYPE: ${{ vars.ANDROID_KEYSTORE_TYPE || 'PKCS12' }}
 
 jobs:
   build-android:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    env:
+      GOOGLE_DRIVE_FOLDER_ID: ${{ vars.GOOGLE_DRIVE_FOLDER_ID || '1C0mtzoXTGKheEZIkDOEqjibvT4PZiI91' }}
+      REQUIRED_UPDATE: ${{ vars.APP_UPDATE_REQUIRED || 'false' }}
+      ANDROID_KEYSTORE_TYPE: ${{ vars.ANDROID_KEYSTORE_TYPE || 'PKCS12' }}
 
     steps:
       - name: Checkout repository
