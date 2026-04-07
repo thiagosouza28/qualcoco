@@ -73,13 +73,13 @@ export function CadastroColaborador() {
         <CardContent className="stack-md p-5">
           <div className="input-block">
             <label>Nome completo</label>
-            <Input value={nome} onChange={(event: any) => setNome(event.target.value)} />
+            <Input value={nome} onChange={(event: React.ChangeEvent<HTMLInputElement>) => setNome(event.target.value)} />
           </div>
           <div className="input-block">
             <label>Primeiro nome</label>
             <Input
               value={primeiroNome}
-              onChange={(event: any) => setPrimeiroNome(event.target.value)}
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) => setPrimeiroNome(event.target.value)}
             />
           </div>
           <div className="input-block">
@@ -90,7 +90,7 @@ export function CadastroColaborador() {
               pattern="[0-9]*"
               autoComplete="off"
               value={matricula}
-              onChange={(event: any) =>
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                 setMatricula(event.target.value.replace(/\D/g, ''))
               }
             />
@@ -104,7 +104,7 @@ export function CadastroColaborador() {
               pattern="[0-9]*"
               autoComplete="off"
               maxLength={6}
-              onChange={(event: any) => setPin(event.target.value.replace(/\D/g, ''))}
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) => setPin(event.target.value.replace(/\D/g, ''))}
             />
           </div>
 

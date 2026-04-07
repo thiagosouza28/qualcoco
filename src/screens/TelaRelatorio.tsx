@@ -782,7 +782,7 @@ export function TelaRelatorio() {
                     type="date"
                     className="h-11 rounded-[16px] pl-11"
                     value={dataFiltro}
-                    onChange={(event) => setDataFiltro(event.target.value)}
+                    onChange={(event: React.ChangeEvent<HTMLInputElement>) => setDataFiltro(event.target.value)}
                   />
                   <CalendarIcon className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--qc-text-muted)]" />
                 </div>
@@ -845,7 +845,7 @@ export function TelaRelatorio() {
                     max={String(MAX_TEAM_SPACER_ROWS)}
                     className="w-full bg-transparent text-center font-bold text-[var(--qc-text)] focus:outline-none"
                     value={espacoEntreEquipes}
-                    onChange={(event) =>
+                    onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                       setEspacoEntreEquipes(
                         Math.max(
                           0,

@@ -158,7 +158,7 @@ export function TelaDetalheAvaliacao() {
                         inputMode="decimal"
                         placeholder={existente ? String(existente.quantidade) : 'Quantidade observada'}
                         value={draft.quantidade}
-                        onChange={(event: any) =>
+                        onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                           setDrafts((current) => ({
                             ...current,
                             [rua.id]: {
@@ -172,7 +172,7 @@ export function TelaDetalheAvaliacao() {
                         rows={2}
                         placeholder={existente?.observacoes || 'Observações da rua'}
                         value={draft.observacoes}
-                        onChange={(event: any) =>
+                        onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) =>
                           setDrafts((current) => ({
                             ...current,
                             [rua.id]: {

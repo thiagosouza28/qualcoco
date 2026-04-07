@@ -818,6 +818,7 @@ export function TelaNovaAvaliacao() {
       return criarAvaliacao(payload);
     },
     onSuccess: async (result) => {
+      if (!result) return;
       await queryClient.invalidateQueries();
       navigate(`/avaliacoes/${result.avaliacao.id}`);
     },
@@ -952,7 +953,7 @@ export function TelaNovaAvaliacao() {
                     type="date"
                     className="h-12 rounded-2xl bg-white font-bold"
                     value={dataColheita}
-                    onChange={(event) => setDataColheita(event.target.value)}
+                    onChange={(event: React.ChangeEvent<HTMLInputElement>) => setDataColheita(event.target.value)}
                     required
                   />
                 </div>
@@ -1071,7 +1072,7 @@ export function TelaNovaAvaliacao() {
                         value={buscaParcela}
                         className="h-12 rounded-[18px] pl-12 font-bold text-base"
                         placeholder="Código (Ex: A-121)"
-                        onChange={(event: any) =>
+                        onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                           setBuscaParcela(formatarBuscaParcela(event.target.value))
                         }
                       />
@@ -1239,7 +1240,7 @@ export function TelaNovaAvaliacao() {
                                     className="h-11 rounded-xl text-center font-bold"
                                     placeholder="01"
                                     value={config.linhaInicial}
-                                    onChange={(event: any) =>
+                                    onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                                       updateConfigParcela(
                                         parcela!.id,
                                         'linhaInicial',
@@ -1257,7 +1258,7 @@ export function TelaNovaAvaliacao() {
                                     className="h-11 rounded-xl text-center font-bold"
                                     placeholder="80"
                                     value={config.linhaFinal}
-                                    onChange={(event: any) =>
+                                    onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                                       updateConfigParcela(
                                         parcela!.id,
                                         'linhaFinal',
@@ -1333,7 +1334,7 @@ export function TelaNovaAvaliacao() {
                                   className="h-11 rounded-xl text-center font-bold"
                                   placeholder="Ex: 101-130, 141-150"
                                   value={config.falhasLinhas}
-                                  onChange={(event: any) =>
+                                  onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                                     updateFalhaParcela(
                                       parcela!.id,
                                       'falhasLinhas',
@@ -1399,7 +1400,7 @@ export function TelaNovaAvaliacao() {
                                           min="0"
                                           className="w-full bg-transparent text-center font-bold text-[var(--qc-text)] focus:outline-none"
                                           value={config.ruasEquipe1}
-                                          onChange={(event: any) =>
+                                          onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                                             updateRuasParcela(
                                               parcela!.id,
                                               'ruasEquipe1',
@@ -1474,7 +1475,7 @@ export function TelaNovaAvaliacao() {
                                             min="0"
                                             className="w-full bg-transparent text-center font-bold text-[var(--qc-text)] focus:outline-none"
                                             value={config.ruasEquipe2}
-                                            onChange={(event: any) =>
+                                            onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                                               updateRuasParcela(
                                                 parcela!.id,
                                                 'ruasEquipe2',
@@ -1745,7 +1746,7 @@ export function TelaNovaAvaliacao() {
                             type="number" 
                             className="w-full text-center bg-transparent border-none font-bold"
                             value={totalRuasEq1}
-                            onChange={(e: any) => setTotalRuasEq1(Number(e.target.value))}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTotalRuasEq1(Number(e.target.value))}
                           />
                            <button 
                             type="button"
@@ -1776,7 +1777,7 @@ export function TelaNovaAvaliacao() {
                             className="h-11 rounded-xl text-center font-bold" 
                             placeholder="01"
                             value={linhaInicioEq1}
-                            onChange={(e: any) => setLinhaInicioEq1(e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLinhaInicioEq1(e.target.value)}
                           />
                         </div>
                         <div className="stack-sm">
@@ -1786,7 +1787,7 @@ export function TelaNovaAvaliacao() {
                             className="h-11 rounded-xl text-center font-bold" 
                             placeholder="80"
                             value={linhaFimEq1}
-                            onChange={(e: any) => setLinhaFimEq1(e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLinhaFimEq1(e.target.value)}
                           />
                         </div>
                       </div>
@@ -1847,7 +1848,7 @@ export function TelaNovaAvaliacao() {
                               type="number" 
                               className="w-full text-center bg-transparent border-none font-bold"
                               value={totalRuasEq2}
-                              onChange={e => setTotalRuasEq2(Number(e.target.value))}
+                              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTotalRuasEq2(Number(e.target.value))}
                             />
                             <button 
                               type="button"
@@ -1877,7 +1878,7 @@ export function TelaNovaAvaliacao() {
                             className="h-11 rounded-xl text-center font-bold" 
                             placeholder="01"
                             value={linhaInicioEq2}
-                            onChange={(e: any) => setLinhaInicioEq2(e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLinhaInicioEq2(e.target.value)}
                           />
                         </div>
                         <div className="stack-sm">
@@ -1887,7 +1888,7 @@ export function TelaNovaAvaliacao() {
                             className="h-11 rounded-xl text-center font-bold" 
                             placeholder="80"
                             value={linhaFimEq2}
-                            onChange={(e: any) => setLinhaFimEq2(e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLinhaFimEq2(e.target.value)}
                           />
                         </div>
                       </div>
@@ -2036,7 +2037,7 @@ export function TelaNovaAvaliacao() {
                         className="rounded-xl italic text-sm"
                         placeholder="Ex.: Área com relevo íngreme"
                         value={observacoes}
-                        onChange={(event: any) => setObservacoes(event.target.value)}
+                        onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => setObservacoes(event.target.value)}
                       />
                    </div>
                 </CardContent>
