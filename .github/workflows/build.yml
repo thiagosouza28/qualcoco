@@ -169,7 +169,7 @@ jobs:
         working-directory: android
         run: |
           set -o pipefail
-          ./gradlew assembleRelease --stacktrace --info 2>&1 | tee ../build-release.log
+          ./gradlew assembleRelease --stacktrace --info --max-workers 2 2>&1 | tee ../build-release.log
           status=$?
           if [ "$status" -ne 0 ]; then
             echo "---- build-release.log (tail) ----"
@@ -186,6 +186,7 @@ jobs:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          _JAVA_OPTIONS: -Xmx4096m
 
       - name: Copy release APK
         run: cp android/app/build/outputs/apk/release/app-release.apk ${{ env.RELEASE_APK_NAME }}
