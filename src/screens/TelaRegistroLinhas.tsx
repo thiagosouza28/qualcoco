@@ -2159,7 +2159,7 @@ export function TelaRegistroLinhas() {
                             key={`${equipe}-${opcao.value}`}
                             type="button"
                             variant={siglaAtual === opcao.value ? 'default' : 'outline'}
-                            className="h-auto min-h-[52px] rounded-2xl px-3 py-3 text-left"
+                            className="flex min-h-[72px] w-full flex-col items-start justify-between rounded-2xl px-3 py-3 text-left break-words whitespace-normal"
                             onClick={() =>
                               setResumoParcelaDraft((current) =>
                                 current
@@ -2174,8 +2174,10 @@ export function TelaRegistroLinhas() {
                               )
                             }
                           >
-                            <span className="block text-sm font-black">{opcao.label}</span>
-                            <span className="mt-1 block text-xs font-medium opacity-80">
+                            <span className="block w-full text-sm font-black leading-tight tracking-tight text-[var(--qc-text)] whitespace-normal break-words">
+                              {opcao.label}
+                            </span>
+                            <span className="mt-2 block w-full text-xs font-medium leading-snug opacity-80 whitespace-normal break-words">
                               {opcao.descricao}
                             </span>
                           </Button>
@@ -2222,7 +2224,7 @@ export function TelaRegistroLinhas() {
                 const resumoRegistro = resumoRegistrosPorRua.get(rua.id);
                 const temRegistro = Boolean(resumoRegistro);
                 const temExtras =
-                  Boolean(resumoRegistro) &&
+                  resumoRegistro != null &&
                   (resumoRegistro.plantasEsquecidas > 0 ||
                     resumoRegistro.abelhas > 0 ||
                     resumoRegistro.tapios > 0);
