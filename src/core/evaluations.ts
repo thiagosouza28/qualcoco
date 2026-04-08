@@ -991,6 +991,68 @@ export const excluirAvaliacaoEmAndamento = async (avaliacaoId: string) => {
   return true;
 };
 
+export const excluirAvaliacaoCompleta = async (avaliacaoId: string) => {
+  const [
+    avaliacao,
+    participantes,
+    parcelas,
+    ruas,
+    registros,
+    logs,
+    retoques,
+  ] = await Promise.all([
+    repository.get('avaliacoes', avaliacaoId),
+    repository.filter(
+      'avaliacaoColaboradores',
+      (item) => item.avaliacaoId === avaliacaoId && !item.deletadoEm,
+    ),
+    repository.filter(
+      'avaliacaoParcelas',
+      (item) => item.avaliacaoId === avaliacaoId && !item.deletadoEm,
+    ),
+    repository.filter(
+      'avaliacaoRuas',
+      (item) => item.avaliacaoId === avaliacaoId && !item.deletadoEm,
+    ),
+    repository.filter(
+      'registrosColeta',
+      (item) => item.avaliacaoId === avaliacaoId && !item.deletadoEm,
+    ),
+    repository.filter(
+      'avaliacaoLogs',
+      (item) => item.avaliacaoId === avaliacaoId && !item.deletadoEm,
+    ),
+    repository.filter(
+      'avaliacaoRetoques',
+      (item) => item.avaliacaoId === avaliacaoId && !item.deletadoEm,
+    ),
+  ]);
+
+  if (!avaliacao || avaliacao.deletadoEm) return null;
+
+  for (const registro of registros) {
+    await softDeleteAvaliacaoRecord('registrosColeta', registro);
+  }
+  for (const rua of ruas) {
+    await softDeleteAvaliacaoRecord('avaliacaoRuas', rua);
+  }
+  for (const participante of participantes) {
+    await softDeleteAvaliacaoRecord('avaliacaoColaboradores', participante);
+  }
+  for (const parcela of parcelas) {
+    await softDeleteAvaliacaoRecord('avaliacaoParcelas', parcela);
+  }
+  for (const log of logs) {
+    await softDeleteAvaliacaoRecord('avaliacaoLogs', log);
+  }
+  for (const retoque of retoques) {
+    await softDeleteAvaliacaoRecord('avaliacaoRetoques', retoque);
+  }
+
+  await softDeleteAvaliacaoRecord('avaliacoes', avaliacao);
+  return true;
+};
+
 export const finalizarAvaliacao = async (avaliacaoId: string) => {
   const [avaliacao, configs, participantes, retoques] = await Promise.all([
     repository.get('avaliacoes', avaliacaoId),

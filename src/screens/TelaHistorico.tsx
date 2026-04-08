@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { LayoutMobile } from '@/components/LayoutMobile';
 import { CardHistorico } from '@/components/CardHistorico';
@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/select';
 import { listarColaboradoresAtivos } from '@/core/auth';
 import { useCampoApp } from '@/core/AppProvider';
-import { listarHistorico } from '@/core/evaluations';
+import { excluirAvaliacaoCompleta, listarHistorico } from '@/core/evaluations';
 import { normalizeDateKey, todayIso } from '@/core/date';
 import { repository } from '@/core/repositories';
 
@@ -24,6 +24,7 @@ const HISTORY_PAGE_SIZE = 20;
 
 export function TelaHistorico() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { usuarioAtual } = useCampoApp();
   const [dataFilter, setDataFilter] = useState(todayIso());
   const [colaboradorId, setColaboradorId] = useState('all');
@@ -80,6 +81,22 @@ export function TelaHistorico() {
     staleTime: 30_000,
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async (avaliacaoId: string) => excluirAvaliacaoCompleta(avaliacaoId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['historico'] });
+      await queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] });
+      await queryClient.invalidateQueries({ queryKey: ['dashboard', 'avaliacoes'] });
+    },
+  });
+
+  const handleDelete = (avaliacaoId: string) => {
+    if (deleteMutation.isPending) return;
+    if (confirm('Excluir esta avaliação do histórico? Esta ação não pode ser desfeita.')) {
+      deleteMutation.mutate(avaliacaoId);
+    }
+  };
+
   useEffect(() => {
     setPage(1);
   }, [colaboradorId, dataFilter, parcelaId, syncStatus, usuarioAtual?.id]);
@@ -90,21 +107,22 @@ export function TelaHistorico() {
   );
   const hasMore = historico.length > visibleLimit;
 
-  const participanteMap = useMemo(
-    () =>
-      participantes.reduce<Record<string, string[]>>((acc, item) => {
-        if (item.deletadoEm) return acc;
-        const colaborador = colaboradores.find(
-          (row) => row.id === item.colaboradorId,
-        );
-        acc[item.avaliacaoId] = acc[item.avaliacaoId] || [];
-        if (colaborador && !acc[item.avaliacaoId].includes(colaborador.primeiroNome)) {
-          acc[item.avaliacaoId].push(colaborador.primeiroNome);
-        }
-        return acc;
-      }, {}),
-    [colaboradores, participantes],
-  );
+  const participanteMap = useMemo(() => {
+    return participantes.reduce<Record<string, string[]>>((acc, item) => {
+      if (item.deletadoEm) return acc;
+      const colaborador = colaboradores.find(
+        (row) => row.id === item.colaboradorId,
+      );
+      const nome =
+        item.colaboradorPrimeiroNome || colaborador?.primeiroNome || '';
+      if (!nome) return acc;
+      acc[item.avaliacaoId] = acc[item.avaliacaoId] || [];
+      if (!acc[item.avaliacaoId].includes(nome)) {
+        acc[item.avaliacaoId].push(nome);
+      }
+      return acc;
+    }, {});
+  }, [colaboradores, participantes]);
 
   const parcelaMap = useMemo(
     () =>
@@ -235,6 +253,7 @@ export function TelaHistorico() {
                     avaliacao={item}
                     parcelas={parcelaMap[item.id] || []}
                     participantes={participanteMap[item.id] || []}
+                    onDelete={handleDelete}
                   />
                 ))}
               </div>
