@@ -25,7 +25,7 @@ env:
   RELEASE_TAG: v1.0.${{ github.run_number }}
   RELEASE_APK_NAME: qualcoco.apk
   RELEASE_APK_URL: https://github.com/${{ github.repository }}/releases/download/v1.0.${{ github.run_number }}/qualcoco.apk
-  DRIVE_APK_NAME: appqualcoco1.0.${{ github.run_number }}.apk
+  DRIVE_APK_NAME: qualcoco.apk
 
 jobs:
   build-android:
@@ -202,222 +202,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Assert Google Drive credentials
-        shell: bash
-        env:
-          GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON }}
-          GOOGLE_DRIVE_FOLDER_ID: ${{ env.GOOGLE_DRIVE_FOLDER_ID }}
-        run: |
-          if [ -z "${GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON:-}" ]; then
-            echo "::error::Missing required GitHub secret: GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON"
-            exit 1
-          fi
-          if [ -z "${GOOGLE_DRIVE_FOLDER_ID:-}" ]; then
-            echo "::error::Missing required Google Drive folder id (GOOGLE_DRIVE_FOLDER_ID)."
-            exit 1
-          fi
-
-      - name: Upload APK to Google Drive
-        id: google-drive-upload
-        shell: bash
-        env:
-          GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON }}
-          DRIVE_FOLDER_ID: ${{ env.GOOGLE_DRIVE_FOLDER_ID }}
-          DRIVE_APK_NAME: ${{ env.DRIVE_APK_NAME }}
-          SOURCE_APK_PATH: ${{ env.RELEASE_APK_NAME }}
-        run: |
-          node - <<'NODE'
-          const fs = require('node:fs');
-          const crypto = require('node:crypto');
-          const https = require('node:https');
-
-          const readJson = () => {
-            try {
-              return JSON.parse(String(process.env.GOOGLE_DRIVE_SERVICE_ACCOUNT_JSON || '').trim());
-            } catch {
-              return null;
-            }
-          };
-
-          const request = (url, method, headers, body) =>
-            new Promise((resolve, reject) => {
-              const req = https.request(
-                url,
-                { method, headers },
-                (res) => {
-                  let data = '';
-                  res.on('data', (chunk) => (data += chunk));
-                  res.on('end', () => resolve({ status: res.statusCode || 0, body: data }));
-                },
-              );
-              req.on('error', reject);
-              if (body) req.write(body);
-              req.end();
-            });
-
-          const base64Url = (input) =>
-            Buffer.from(input)
-              .toString('base64')
-              .replace(/=/g, '')
-              .replace(/\+/g, '-')
-              .replace(/\//g, '_');
-
-          const signJwt = (payload, privateKey) => {
-            const header = { alg: 'RS256', typ: 'JWT' };
-            const encodedHeader = base64Url(JSON.stringify(header));
-            const encodedPayload = base64Url(JSON.stringify(payload));
-            const toSign = `${encodedHeader}.${encodedPayload}`;
-            const signature = crypto
-              .createSign('RSA-SHA256')
-              .update(toSign)
-              .sign(privateKey);
-            return `${toSign}.${base64Url(signature)}`;
-          };
-
-          (async () => {
-            const serviceAccount = readJson();
-            const folderId = String(process.env.DRIVE_FOLDER_ID || '').trim();
-            const fileName = String(process.env.DRIVE_APK_NAME || '').trim();
-            const sourcePath = String(process.env.SOURCE_APK_PATH || '').trim();
-            const githubEnv = String(process.env.GITHUB_ENV || '').trim();
-            const githubOutput = String(process.env.GITHUB_OUTPUT || '').trim();
-
-            if (!serviceAccount || !serviceAccount.client_email || !serviceAccount.private_key) {
-              throw new Error('Google Drive service account JSON inválido.');
-            }
-            if (!folderId || !fileName || !sourcePath) {
-              throw new Error('Parâmetros insuficientes para upload no Google Drive.');
-            }
-
-            const now = Math.floor(Date.now() / 1000);
-            const jwt = signJwt(
-              {
-                iss: serviceAccount.client_email,
-                scope: 'https://www.googleapis.com/auth/drive',
-                aud: 'https://oauth2.googleapis.com/token',
-                iat: now,
-                exp: now + 3600,
-              },
-              serviceAccount.private_key,
-            );
-
-            const tokenResponse = await request(
-              'https://oauth2.googleapis.com/token',
-              'POST',
-              { 'Content-Type': 'application/x-www-form-urlencoded' },
-              `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${encodeURIComponent(jwt)}`,
-            );
-
-            if (tokenResponse.status !== 200) {
-              throw new Error(`Falha ao gerar access token: HTTP ${tokenResponse.status} ${tokenResponse.body}`);
-            }
-
-            const tokenPayload = JSON.parse(tokenResponse.body || '{}');
-            const token = String(tokenPayload.access_token || '').trim();
-            if (!token) {
-              throw new Error('Access token vazio retornado pelo Google.');
-            }
-
-            const appendGithubLine = (targetPath, key, value) => {
-              fs.appendFileSync(targetPath, `${key}=${String(value).replace(/\r?\n/g, '')}\n`);
-            };
-
-            const authHeaders = {
-              Authorization: `Bearer ${token}`,
-            };
-
-            const driveQuery = `name = '${fileName.replace(/'/g, "\\'")}' and '${folderId}' in parents and trashed = false`;
-            const searchResponse = await request(
-              `https://www.googleapis.com/drive/v3/files?fields=files(id,name)&q=${encodeURIComponent(driveQuery)}`,
-              'GET',
-              authHeaders,
-            );
-
-            if (searchResponse.status !== 200) {
-              throw new Error(`Falha ao pesquisar arquivo no Drive: HTTP ${searchResponse.status} ${searchResponse.body}`);
-            }
-
-            const searchPayload = JSON.parse(searchResponse.body || '{}');
-            let driveFileId = Array.isArray(searchPayload.files) && searchPayload.files.length
-              ? String(searchPayload.files[0].id || '').trim()
-              : '';
-
-            if (!driveFileId) {
-              const boundary = `qualcoco-${Date.now()}`;
-              const metadata = JSON.stringify({
-                name: fileName,
-                parents: [folderId],
-              });
-              const fileBytes = fs.readFileSync(sourcePath);
-              const multipartBody = Buffer.concat([
-                Buffer.from(
-                  `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n`,
-                ),
-                Buffer.from(
-                  `--${boundary}\r\nContent-Type: application/vnd.android.package-archive\r\n\r\n`,
-                ),
-                fileBytes,
-                Buffer.from(`\r\n--${boundary}--\r\n`),
-              ]);
-
-              const uploadResponse = await request(
-                'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name',
-                'POST',
-                {
-                  ...authHeaders,
-                  'Content-Type': `multipart/related; boundary=${boundary}`,
-                },
-                multipartBody,
-              );
-
-              if (uploadResponse.status !== 200) {
-                throw new Error(
-                  `Falha ao enviar APK para o Drive: HTTP ${uploadResponse.status} ${uploadResponse.body}`,
-                );
-              }
-
-              const uploadPayload = JSON.parse(uploadResponse.body || '{}');
-              driveFileId = String(uploadPayload.id || '').trim();
-            }
-
-            if (!driveFileId) {
-              throw new Error('Google Drive não retornou o ID do arquivo publicado.');
-            }
-
-            const permissionResponse = await request(
-              `https://www.googleapis.com/drive/v3/files/${driveFileId}/permissions`,
-              'POST',
-              {
-                ...authHeaders,
-                'Content-Type': 'application/json',
-              },
-              JSON.stringify({
-                role: 'reader',
-                type: 'anyone',
-              }),
-            );
-
-            if (permissionResponse.status !== 200) {
-              if (
-                permissionResponse.status !== 409 &&
-                !/already/i.test(permissionResponse.body || '')
-              ) {
-                throw new Error(
-                  `Falha ao tornar o APK público no Drive: HTTP ${permissionResponse.status} ${permissionResponse.body}`,
-                );
-              }
-            }
-
-            const driveApkUrl = `https://drive.google.com/uc?export=download&id=${driveFileId}`;
-            appendGithubLine(githubEnv, 'DRIVE_APK_URL', driveApkUrl);
-            appendGithubLine(githubOutput, 'drive_apk_url', driveApkUrl);
-            appendGithubLine(githubOutput, 'drive_file_id', driveFileId);
-          })().catch((error) => {
-            console.error(error);
-            process.exit(1);
-          });
-          NODE
-
       - name: Generate version.json
         run: |
           node - <<'NODE'
@@ -426,17 +210,15 @@ jobs:
           const required = String(process.env.REQUIRED_UPDATE || 'false')
             .trim()
             .toLowerCase() === 'true';
-          const driveUrl = String(process.env.DRIVE_APK_URL || '').trim();
           const githubUrl = String(process.env.RELEASE_APK_URL || '').trim();
-          const urls = [driveUrl, githubUrl].filter(Boolean);
+          const urls = [githubUrl].filter(Boolean);
 
           const payload = {
             version: process.env.APP_VERSION_NAME,
             required,
             fileName: process.env.DRIVE_APK_NAME,
-            url: urls[0] || githubUrl,
+            url: githubUrl,
             urls,
-            driveUrl: driveUrl || undefined,
             githubUrl,
           };
 
