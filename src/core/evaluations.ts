@@ -145,11 +145,23 @@ const colaboradorPodeVerAvaliacao = (
   (avaliacao.usuarioId === colaboradorId ||
     avaliacaoIdsAcessiveis.has(avaliacao.id));
 
+const colaboradorTemVisaoTotal = async (colaboradorId?: string) => {
+  if (!colaboradorId) return false;
+  const colaborador = await repository.get('colaboradores', colaboradorId);
+  const perfil = String(colaborador?.perfil || '').trim().toLowerCase();
+  return perfil === 'fiscal' || perfil === 'admin' || perfil === 'gestor';
+};
+
 export const listarIdsAvaliacoesAcessiveis = async (
   colaboradorId?: string,
 ) => {
   if (!colaboradorId) {
     return new Set<string>();
+  }
+
+  if (await colaboradorTemVisaoTotal(colaboradorId)) {
+    const avaliacoes = await repository.list('avaliacoes');
+    return new Set(avaliacoes.filter((item) => !item.deletadoEm).map((item) => item.id));
   }
 
   const participantes = await repository.list('avaliacaoColaboradores');
@@ -588,12 +600,13 @@ export const listarAvaliacoesAtivas = async (
     return [];
   }
 
+  const visaoTotal = await colaboradorTemVisaoTotal(colaboradorId);
   const [avaliacoes, avaliacaoParcelas, avaliacaoRuas, avaliacaoIdsAcessiveis] =
     await Promise.all([
     repository.list('avaliacoes'),
     repository.list('avaliacaoParcelas'),
     repository.list('avaliacaoRuas'),
-    listarIdsAvaliacoesAcessiveis(colaboradorId),
+    visaoTotal ? Promise.resolve(new Set<string>()) : listarIdsAvaliacoesAcessiveis(colaboradorId),
   ]);
 
   const parcelasPorAvaliacao = avaliacaoParcelas.reduce<Record<string, string[]>>(
@@ -631,11 +644,12 @@ export const listarAvaliacoesAtivas = async (
     .filter(
       (item) =>
         !item.deletadoEm &&
-        colaboradorPodeVerAvaliacao(
-          item,
-          colaboradorId,
-          avaliacaoIdsAcessiveis,
-        ),
+        (visaoTotal ||
+          colaboradorPodeVerAvaliacao(
+            item,
+            colaboradorId,
+            avaliacaoIdsAcessiveis,
+          )),
     )
     .map((item) => {
       const parcelas = parcelasPorAvaliacao[item.id] || [];
@@ -671,15 +685,17 @@ export const obterAvaliacaoDetalhada = async (
     return null;
   }
 
+  const visaoTotal = await colaboradorTemVisaoTotal(colaboradorId);
   const [avaliacao, avaliacaoIdsAcessiveis] = await Promise.all([
     repository.get('avaliacoes', avaliacaoId),
-    listarIdsAvaliacoesAcessiveis(colaboradorId),
+    visaoTotal ? Promise.resolve(new Set<string>()) : listarIdsAvaliacoesAcessiveis(colaboradorId),
   ]);
 
   if (
     !avaliacao ||
     avaliacao.deletadoEm ||
-    !colaboradorPodeVerAvaliacao(avaliacao, colaboradorId, avaliacaoIdsAcessiveis)
+    (!visaoTotal &&
+      !colaboradorPodeVerAvaliacao(avaliacao, colaboradorId, avaliacaoIdsAcessiveis))
   ) {
     return null;
   }
@@ -1174,6 +1190,7 @@ export const listarHistorico = async (
     return [];
   }
 
+  const visaoTotal = await colaboradorTemVisaoTotal(colaboradorLogadoId);
   const [
     avaliacoes,
     avaliacaoColaboradores,
@@ -1184,18 +1201,21 @@ export const listarHistorico = async (
       repository.list('avaliacoes'),
       repository.list('avaliacaoColaboradores'),
       repository.list('avaliacaoParcelas'),
-      listarIdsAvaliacoesAcessiveis(colaboradorLogadoId),
+      visaoTotal
+        ? Promise.resolve(new Set<string>())
+        : listarIdsAvaliacoesAcessiveis(colaboradorLogadoId),
     ]);
 
   const result = avaliacoes
     .filter(
       (item) =>
         !item.deletadoEm &&
-        colaboradorPodeVerAvaliacao(
-          item,
-          colaboradorLogadoId,
-          avaliacaoIdsAcessiveis,
-        ),
+        (visaoTotal ||
+          colaboradorPodeVerAvaliacao(
+            item,
+            colaboradorLogadoId,
+            avaliacaoIdsAcessiveis,
+          )),
     )
     .filter((item) =>
       filters.data ? normalizeDateKey(item.dataAvaliacao) === filters.data : true,
@@ -1237,6 +1257,7 @@ export const estatisticasDashboard = async (colaboradorId?: string) => {
     return EMPTY_DASHBOARD_STATS;
   }
 
+  const visaoTotal = await colaboradorTemVisaoTotal(colaboradorId);
   const [
     avaliacoes,
     registros,
@@ -1251,13 +1272,16 @@ export const estatisticasDashboard = async (colaboradorId?: string) => {
       repository.list('colaboradores'),
       repository.list('avaliacaoColaboradores'),
       repository.list('avaliacaoParcelas'),
-      listarIdsAvaliacoesAcessiveis(colaboradorId),
+      visaoTotal
+        ? Promise.resolve(new Set<string>())
+        : listarIdsAvaliacoesAcessiveis(colaboradorId),
     ]);
 
   const avaliacoesVisiveis = avaliacoes.filter(
     (item) =>
       !item.deletadoEm &&
-      colaboradorPodeVerAvaliacao(item, colaboradorId, avaliacaoIdsAcessiveis),
+      (visaoTotal ||
+        colaboradorPodeVerAvaliacao(item, colaboradorId, avaliacaoIdsAcessiveis)),
   );
   const avaliacaoIdsVisiveis = new Set(avaliacoesVisiveis.map((item) => item.id));
 
