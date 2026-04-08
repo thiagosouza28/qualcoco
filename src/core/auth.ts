@@ -11,10 +11,22 @@ import {
   signInCloudColaborador,
   signOutCloudSession,
 } from '@/core/firebaseCloud';
+import { normalizePerfilUsuario } from '@/core/permissions';
 import { compararPin, gerarHashPin, validarPin } from '@/core/security';
-import type { Colaborador, SessaoCampo } from '@/core/types';
+import type { Colaborador, PerfilUsuario, SessaoCampo } from '@/core/types';
 
 const normalizeIdentifier = (value: string) => value.trim().toLowerCase();
+const normalizeMatricula = (value: string) => value.trim().toLowerCase();
+const derivePrimeiroNome = (nome: string, primeiroNome?: string) =>
+  String(primeiroNome || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)[0] ||
+  String(nome || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)[0] ||
+  '';
 
 const persistSession = (session: SessaoCampo) => {
   window.localStorage.setItem(STORAGE_KEYS.sessao, JSON.stringify(session));
@@ -84,6 +96,85 @@ export const listarColaboradoresAtivos = async () => {
     .sort((a, b) => a.nome.localeCompare(b.nome));
 };
 
+export const listarUsuarios = async () => {
+  const colaboradores = await repository.list('colaboradores');
+  return colaboradores
+    .filter((item) => !item.deletadoEm)
+    .sort((a, b) => a.nome.localeCompare(b.nome));
+};
+
+export const buscarUsuariosPorNomeOuMatricula = async (search = '') => {
+  const normalized = normalizeIdentifier(search);
+  const usuarios = await listarUsuarios();
+
+  if (!normalized) {
+    return usuarios;
+  }
+
+  return usuarios.filter(
+    (item) =>
+      normalizeIdentifier(item.nome).includes(normalized) ||
+      normalizeIdentifier(item.primeiroNome).includes(normalized) ||
+      normalizeMatricula(item.matricula).includes(normalized),
+  );
+};
+
+export const listarEquipeIdsDoUsuario = async (usuarioId?: string) => {
+  if (!usuarioId) return [];
+
+  const vinculos = await repository.filter(
+    'usuarioEquipes',
+    (item) => item.usuarioId === usuarioId && !item.deletadoEm,
+  );
+
+  return Array.from(new Set(vinculos.map((item) => item.equipeId))).filter(Boolean);
+};
+
+const salvarVinculosUsuarioEquipes = async (
+  usuarioId: string,
+  equipeIds: string[] = [],
+) => {
+  const device = await getOrCreateDevice();
+  const normalizedIds = Array.from(
+    new Set(
+      equipeIds
+        .map((item) => String(item || '').trim())
+        .filter(Boolean),
+    ),
+  );
+  const atuais = await repository.filter(
+    'usuarioEquipes',
+    (item) => item.usuarioId === usuarioId && !item.deletadoEm,
+  );
+  const atuaisSet = new Set(atuais.map((item) => item.equipeId));
+  const desejadosSet = new Set(normalizedIds);
+
+  for (const vinculo of atuais) {
+    if (desejadosSet.has(vinculo.equipeId)) {
+      continue;
+    }
+
+    await saveEntity('usuarioEquipes', {
+      ...vinculo,
+      deletadoEm: nowIso(),
+      atualizadoEm: nowIso(),
+      syncStatus: 'pending_sync',
+      versao: vinculo.versao + 1,
+    });
+  }
+
+  for (const equipeId of normalizedIds) {
+    if (atuaisSet.has(equipeId)) {
+      continue;
+    }
+
+    await createEntity('usuarioEquipes', device.id, {
+      usuarioId,
+      equipeId,
+    });
+  }
+};
+
 export const buscarColaboradorPorLogin = async (identifier: string) => {
   const normalized = normalizeIdentifier(identifier);
   const colaboradores = await listarColaboradoresAtivos();
@@ -120,17 +211,24 @@ export const cadastrarColaborador = async (input: {
   matricula: string;
   pin: string;
   ativo?: boolean;
-  perfil?: string;
+  perfil?: PerfilUsuario;
+  equipeIds?: string[];
 }) => {
   if (!validarPin(input.pin)) {
     throw new Error('O PIN precisa ter 4 ou 6 dígitos numéricos.');
   }
 
+  if (!input.nome.trim()) {
+    throw new Error('Informe o nome completo.');
+  }
+
+  if (!input.matricula.trim()) {
+    throw new Error('Informe a matrícula.');
+  }
+
   const existing = await repository.filter(
     'colaboradores',
-    (item) =>
-      item.matricula.trim().toLowerCase() ===
-      input.matricula.trim().toLowerCase(),
+    (item) => normalizeMatricula(item.matricula) === normalizeMatricula(input.matricula),
   );
 
   if (existing.length > 0) {
@@ -139,15 +237,18 @@ export const cadastrarColaborador = async (input: {
 
   const device = await getOrCreateDevice();
   const { hash, salt } = await gerarHashPin(input.pin);
-  return createEntity('colaboradores', device.id, {
+  const colaborador = await createEntity('colaboradores', device.id, {
     nome: input.nome.trim(),
-    primeiroNome: input.primeiroNome.trim(),
+    primeiroNome: derivePrimeiroNome(input.nome, input.primeiroNome),
     matricula: input.matricula.trim(),
     pinHash: hash,
     pinSalt: salt,
     ativo: input.ativo ?? true,
-    perfil: input.perfil || 'colaborador',
+    perfil: normalizePerfilUsuario(input.perfil),
   });
+
+  await salvarVinculosUsuarioEquipes(colaborador.id, input.equipeIds);
+  return colaborador;
 };
 
 export const atualizarColaborador = async (
@@ -158,16 +259,38 @@ export const atualizarColaborador = async (
     matricula: string;
     ativo: boolean;
     pin?: string;
-    perfil?: string;
+    perfil?: PerfilUsuario;
+    equipeIds?: string[];
   },
 ) => {
+  if (!input.nome.trim()) {
+    throw new Error('Informe o nome completo.');
+  }
+
+  if (!input.matricula.trim()) {
+    throw new Error('Informe a matrícula.');
+  }
+
+  if (normalizeMatricula(input.matricula) !== normalizeMatricula(colaborador.matricula)) {
+    const existing = await repository.filter(
+      'colaboradores',
+      (item) =>
+        item.id !== colaborador.id &&
+        normalizeMatricula(item.matricula) === normalizeMatricula(input.matricula),
+    );
+
+    if (existing.length > 0) {
+      throw new Error('Já existe colaborador com essa matrícula.');
+    }
+  }
+
   let next: Colaborador = {
     ...colaborador,
     nome: input.nome.trim(),
-    primeiroNome: input.primeiroNome.trim(),
+    primeiroNome: derivePrimeiroNome(input.nome, input.primeiroNome),
     matricula: input.matricula.trim(),
     ativo: input.ativo,
-    perfil: input.perfil || colaborador.perfil || 'colaborador',
+    perfil: normalizePerfilUsuario(input.perfil || colaborador.perfil),
   };
 
   if (input.pin) {
@@ -189,6 +312,10 @@ export const atualizarColaborador = async (
     syncStatus: 'pending_sync',
     versao: next.versao + 1,
   });
+
+  if (input.equipeIds) {
+    await salvarVinculosUsuarioEquipes(colaborador.id, input.equipeIds);
+  }
 
   return next;
 };
@@ -241,7 +368,7 @@ export const autenticarColaborador = async (
 ) => {
   const cleanIdentifier = identifier.trim();
   if (!cleanIdentifier) {
-    throw new Error('Informe sua matr\u00edcula.');
+    throw new Error('Informe sua matrícula ou primeiro nome.');
   }
 
   if (!validarPin(pin)) {

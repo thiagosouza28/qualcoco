@@ -18,6 +18,7 @@ import { listarColaboradoresAtivos } from '@/core/auth';
 import { useCampoApp } from '@/core/AppProvider';
 import { excluirAvaliacaoCompleta, listarHistorico } from '@/core/evaluations';
 import { normalizeDateKey, todayIso } from '@/core/date';
+import { canManageUsers } from '@/core/permissions';
 import { repository } from '@/core/repositories';
 
 const HISTORY_PAGE_SIZE = 20;
@@ -253,7 +254,7 @@ export function TelaHistorico() {
                     avaliacao={item}
                     parcelas={parcelaMap[item.id] || []}
                     participantes={participanteMap[item.id] || []}
-                    onDelete={handleDelete}
+                    onDelete={canManageUsers(usuarioAtual?.perfil) ? handleDelete : undefined}
                   />
                 ))}
               </div>

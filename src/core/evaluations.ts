@@ -1,6 +1,12 @@
 import { nowIso, todayIso } from '@/core/date';
 import { getOrCreateDevice } from '@/core/device';
 import { planejarParcelasAvaliacao } from '@/core/evaluationPlanning';
+import {
+  canMarkRetoque,
+  getAccessContext,
+  normalizePapelAvaliacao,
+  normalizePerfilUsuario,
+} from '@/core/permissions';
 import { inferirAlinhamentoTipoPorLinha } from '@/core/plots';
 import { normalizarContagemRua } from '@/core/registroRua';
 import { createEntity, repository, saveEntity } from '@/core/repositories';
@@ -18,6 +24,7 @@ import type {
   NovaAvaliacaoInput,
   RegistroColeta,
   SentidoRuas,
+  PerfilUsuario,
 } from '@/core/types';
 
 export type AvaliacaoAtivaResumo = Avaliacao & {
@@ -48,6 +55,27 @@ const EMPTY_DASHBOARD_STATS = {
 };
 
 const ORDEM_COLETA_FIXA = 'invertido' as const;
+
+const getEquipeIdsDaAvaliacao = (
+  avaliacaoId: string,
+  avaliacoes: Avaliacao[],
+  ruas: AvaliacaoRua[],
+) => {
+  const avaliacao = avaliacoes.find((item) => item.id === avaliacaoId) || null;
+  const equipeIds = new Set<string>();
+
+  if (avaliacao?.equipeId) {
+    equipeIds.add(avaliacao.equipeId);
+  }
+
+  ruas.forEach((item) => {
+    if (item.avaliacaoId === avaliacaoId && !item.deletadoEm && item.equipeId) {
+      equipeIds.add(item.equipeId);
+    }
+  });
+
+  return Array.from(equipeIds);
+};
 
 const inferirSentidoGrupo = (
   ruasGrupo: Array<Pick<AvaliacaoRua, 'linhaInicial' | 'linhaFinal'>>,
@@ -145,12 +173,8 @@ const colaboradorPodeVerAvaliacao = (
   (avaliacao.usuarioId === colaboradorId ||
     avaliacaoIdsAcessiveis.has(avaliacao.id));
 
-const colaboradorTemVisaoTotal = async (colaboradorId?: string) => {
-  if (!colaboradorId) return false;
-  const colaborador = await repository.get('colaboradores', colaboradorId);
-  const perfil = String(colaborador?.perfil || '').trim().toLowerCase();
-  return perfil === 'fiscal' || perfil === 'admin' || perfil === 'gestor';
-};
+const colaboradorTemVisaoTotal = async (colaboradorId?: string) =>
+  (await getAccessContext(colaboradorId)).visaoTotal;
 
 export const listarIdsAvaliacoesAcessiveis = async (
   colaboradorId?: string,
@@ -159,23 +183,42 @@ export const listarIdsAvaliacoesAcessiveis = async (
     return new Set<string>();
   }
 
-  if (await colaboradorTemVisaoTotal(colaboradorId)) {
-    const avaliacoes = await repository.list('avaliacoes');
+  const access = await getAccessContext(colaboradorId);
+  const [avaliacoes, participantes, ruas] = await Promise.all([
+    repository.list('avaliacoes'),
+    repository.list('avaliacaoColaboradores'),
+    repository.list('avaliacaoRuas'),
+  ]);
+
+  if (access.visaoTotal) {
     return new Set(avaliacoes.filter((item) => !item.deletadoEm).map((item) => item.id));
   }
 
-  const participantes = await repository.list('avaliacaoColaboradores');
-
-  return participantes.reduce<Set<string>>((acc, item) => {
+  const ids = participantes.reduce<Set<string>>((acc, item) => {
     if (!item.deletadoEm && item.colaboradorId === colaboradorId) {
       acc.add(item.avaliacaoId);
     }
     return acc;
   }, new Set<string>());
+
+  if (access.perfil !== 'colaborador' && access.equipeIds.length > 0) {
+    avaliacoes.forEach((avaliacao) => {
+      if (avaliacao.deletadoEm) {
+        return;
+      }
+
+      const equipeIds = getEquipeIdsDaAvaliacao(avaliacao.id, avaliacoes, ruas);
+      if (equipeIds.some((item) => access.equipeIds.includes(item))) {
+        ids.add(avaliacao.id);
+      }
+    });
+  }
+
+  return ids;
 };
 
 const resolveColaboradorPerfil = (colaborador?: Colaborador | null) =>
-  String(colaborador?.perfil || 'colaborador').trim() || 'colaborador';
+  normalizePerfilUsuario(colaborador?.perfil);
 
 const criarParticipantesAvaliacao = async ({
   avaliacaoId,
@@ -190,9 +233,7 @@ const criarParticipantesAvaliacao = async ({
   participanteIds: string[];
   colaboradoresMap: Map<string, Colaborador> | null;
 }) => {
-  const colaboradorIds = Array.from(
-    new Set([responsavelId, ...participanteIds]),
-  );
+  const colaboradorIds = Array.from(new Set([responsavelId, ...participanteIds]));
   const participantes: AvaliacaoColaborador[] = [];
 
   for (const colaboradorId of colaboradorIds) {
@@ -202,7 +243,9 @@ const criarParticipantesAvaliacao = async ({
         avaliacaoId,
         colaboradorId,
         papel:
-          colaboradorId === responsavelId ? 'responsavel' : 'participante',
+          colaboradorId === responsavelId
+            ? 'responsavel_principal'
+            : 'ajudante',
         colaboradorNome: colaborador?.nome || '',
         colaboradorPrimeiroNome: colaborador?.primeiroNome || '',
         colaboradorMatricula: colaborador?.matricula || '',
@@ -216,14 +259,21 @@ const criarParticipantesAvaliacao = async ({
 
 const criarLogAvaliacao = async (input: {
   avaliacaoId: string;
+  parcelaId?: string | null;
   colaboradorId: string | null;
   acao: string;
   descricao: string;
 }) => {
   const device = await getOrCreateDevice();
+  const colaborador = input.colaboradorId
+    ? await repository.get('colaboradores', input.colaboradorId)
+    : null;
   const log: AvaliacaoLog = await createEntity('avaliacaoLogs', device.id, {
     avaliacaoId: input.avaliacaoId,
+    parcelaId: input.parcelaId || null,
     colaboradorId: input.colaboradorId,
+    usuarioNome: colaborador?.nome || '',
+    usuarioPerfil: normalizePerfilUsuario(colaborador?.perfil) as PerfilUsuario,
     acao: input.acao,
     descricao: input.descricao,
   });
@@ -369,21 +419,98 @@ const materializarPlanejamentoAvaliacao = async ({
   };
 };
 
+const resolveEquipePrincipal = ({
+  equipeId,
+  equipeNome,
+  planejamentoEquipes,
+}: {
+  equipeId?: string | null;
+  equipeNome?: string;
+  planejamentoEquipes?: NovaAvaliacaoInput['planejamentoEquipes'];
+}) => {
+  const principal = planejamentoEquipes?.[0] || null;
+  return {
+    equipeId: equipeId || principal?.equipeId || null,
+    equipeNome: equipeNome || principal?.equipeNome || '',
+  };
+};
+
+const registrarLogsParticipantes = async ({
+  avaliacaoId,
+  responsavelId,
+  participanteIds,
+  colaboradoresMap,
+}: {
+  avaliacaoId: string;
+  responsavelId: string;
+  participanteIds: string[];
+  colaboradoresMap: Map<string, Colaborador>;
+}) => {
+  const responsavel = colaboradoresMap.get(responsavelId) || null;
+  await criarLogAvaliacao({
+    avaliacaoId,
+    colaboradorId: responsavelId,
+    acao: 'responsavel_vinculado',
+    descricao: `Responsável principal definido: ${responsavel?.nome || 'Usuário'}.`,
+  });
+
+  for (const participanteId of participanteIds) {
+    const participante = colaboradoresMap.get(participanteId) || null;
+    await criarLogAvaliacao({
+      avaliacaoId,
+      colaboradorId: responsavelId,
+      acao: 'ajudante_vinculado',
+      descricao: `Ajudante ${participante?.nome || 'não identificado'} vinculado à avaliação.`,
+    });
+  }
+};
+
 export const criarAvaliacao = async (input: NovaAvaliacaoInput) => {
+  if (!input.dataColheita) {
+    throw new Error('Informe a data da coleta antes de iniciar a avaliação.');
+  }
+
+  if (!input.usuarioId) {
+    throw new Error('Defina o responsável principal da avaliação.');
+  }
+
+  if (input.acompanhado && input.participanteIds.length === 0) {
+    throw new Error('Selecione ao menos um ajudante para a avaliação acompanhada.');
+  }
+
   const device = await getOrCreateDevice();
   const colaboradores = await repository.list('colaboradores');
   const colaboradoresMap = new Map(
     colaboradores.map((item) => [item.id, item]),
   );
+  const responsavel = colaboradoresMap.get(input.usuarioId) || null;
+  const equipePrincipal = resolveEquipePrincipal({
+    equipeId: input.equipeId,
+    equipeNome: input.equipeNome,
+    planejamentoEquipes: input.planejamentoEquipes,
+  });
+  const inicioEm = nowIso();
   const avaliacao = await createEntity('avaliacoes', device.id, {
     usuarioId: input.usuarioId,
     dispositivoId: input.dispositivoId,
     dataAvaliacao: todayIso(),
-    dataColheita: input.dataColheita || todayIso(),
+    dataColheita: input.dataColheita,
     observacoes: input.observacoes,
     status: 'in_progress',
     tipo: input.tipo || 'normal',
     avaliacaoOriginalId: input.avaliacaoOriginalId || null,
+    equipeId: equipePrincipal.equipeId,
+    equipeNome: equipePrincipal.equipeNome,
+    responsavelPrincipalId: input.usuarioId,
+    responsavelPrincipalNome: responsavel?.nome || '',
+    inicioEm,
+    fimEm: null,
+    encerradoPorId: null,
+    encerradoPorNome: '',
+    marcadoRetoquePorId: null,
+    marcadoRetoquePorNome: '',
+    marcadoRetoqueEm: null,
+    motivoRetoque: '',
     totalRegistros: 0,
     mediaParcela: 0,
     mediaCachos3: 0,
@@ -410,12 +537,18 @@ export const criarAvaliacao = async (input: NovaAvaliacaoInput) => {
     sentidoRuas: input.sentidoRuas,
   });
 
-  const responsavel = colaboradoresMap.get(input.usuarioId);
   await criarLogAvaliacao({
     avaliacaoId: avaliacao.id,
     colaboradorId: input.usuarioId,
     acao: 'avaliacao_iniciada',
     descricao: `Avaliação iniciada por ${responsavel?.primeiroNome || 'colaborador'}.`,
+  });
+
+  await registrarLogsParticipantes({
+    avaliacaoId: avaliacao.id,
+    responsavelId: input.usuarioId,
+    participanteIds: input.participanteIds,
+    colaboradoresMap,
   });
 
   return {
@@ -430,6 +563,8 @@ export const criarRetoqueAvaliacao = async (input: {
   avaliacaoOriginalId: string;
   responsavelId: string;
   participanteIds: string[];
+  equipeId?: string | null;
+  equipeNome?: string;
 }) => {
   const device = await getOrCreateDevice();
   const [avaliacaoOriginal, colaboradores] = await Promise.all([
@@ -444,6 +579,12 @@ export const criarRetoqueAvaliacao = async (input: {
   const colaboradoresMap = new Map(
     colaboradores.map((item) => [item.id, item]),
   );
+  const responsavel = colaboradoresMap.get(input.responsavelId) || null;
+  const equipePrincipal = resolveEquipePrincipal({
+    equipeId: input.equipeId || avaliacaoOriginal.equipeId,
+    equipeNome: input.equipeNome || avaliacaoOriginal.equipeNome,
+  });
+  const inicioEm = nowIso();
 
   const avaliacao = await createEntity('avaliacoes', device.id, {
     usuarioId: input.responsavelId,
@@ -454,6 +595,18 @@ export const criarRetoqueAvaliacao = async (input: {
     status: 'in_progress',
     tipo: 'retoque',
     avaliacaoOriginalId: avaliacaoOriginal.id,
+    equipeId: equipePrincipal.equipeId,
+    equipeNome: equipePrincipal.equipeNome,
+    responsavelPrincipalId: input.responsavelId,
+    responsavelPrincipalNome: responsavel?.nome || '',
+    inicioEm,
+    fimEm: null,
+    encerradoPorId: null,
+    encerradoPorNome: '',
+    marcadoRetoquePorId: avaliacaoOriginal.marcadoRetoquePorId || null,
+    marcadoRetoquePorNome: avaliacaoOriginal.marcadoRetoquePorNome || '',
+    marcadoRetoqueEm: avaliacaoOriginal.marcadoRetoqueEm || null,
+    motivoRetoque: avaliacaoOriginal.motivoRetoque || '',
     totalRegistros: 0,
     mediaParcela: 0,
     mediaCachos3: 0,
@@ -478,12 +631,52 @@ export const criarRetoqueAvaliacao = async (input: {
     dataAvaliacao: avaliacao.dataAvaliacao,
   });
 
-  const responsavel = colaboradoresMap.get(input.responsavelId);
   await criarLogAvaliacao({
     avaliacaoId: avaliacao.id,
     colaboradorId: input.responsavelId,
     acao: 'retoque_iniciado',
-    descricao: `Retoque iniciado por ${responsavel?.primeiroNome || 'colaborador'}.`,
+    descricao: `Retoque iniciado por ${responsavel?.nome || 'Usuário'} em ${inicioEm}.`,
+  });
+  await registrarLogsParticipantes({
+    avaliacaoId: avaliacao.id,
+    responsavelId: input.responsavelId,
+    participanteIds: input.participanteIds,
+    colaboradoresMap,
+  });
+  await createEntity('avaliacaoRetoques', device.id, {
+    avaliacaoId: avaliacao.id,
+    avaliacaoOriginalId: avaliacaoOriginal.id,
+    responsavelId: input.responsavelId,
+    responsavelNome: responsavel?.nome || '',
+    responsavelMatricula: responsavel?.matricula || '',
+    equipeId: equipePrincipal.equipeId,
+    equipeNome: equipePrincipal.equipeNome,
+    ajudanteIds: input.participanteIds,
+    ajudanteNomes: input.participanteIds
+      .map((item) => colaboradoresMap.get(item)?.nome || '')
+      .filter(Boolean),
+    quantidadeBags: 0,
+    quantidadeCargas: 0,
+    dataRetoque: '',
+    dataInicio: inicioEm,
+    dataFim: null,
+    observacao: '',
+    finalizadoPorId: null,
+    finalizadoPorNome: '',
+    status: 'em_retoque',
+  });
+  await saveEntity('avaliacoes', {
+    ...avaliacaoOriginal,
+    status: 'em_retoque',
+    atualizadoEm: nowIso(),
+    syncStatus: 'pending_sync',
+    versao: avaliacaoOriginal.versao + 1,
+  });
+  await criarLogAvaliacao({
+    avaliacaoId: avaliacaoOriginal.id,
+    colaboradorId: input.responsavelId,
+    acao: 'retoque_aberto',
+    descricao: `Retoque iniciado na avaliação original. Equipe do retoque: ${equipePrincipal.equipeNome || 'Não informada'}.`,
   });
 
   return {
@@ -545,6 +738,12 @@ export const atualizarAvaliacaoConfiguracao = async (
   }
 
   const responsavelId = input.responsavelId || avaliacao.usuarioId || input.usuarioId;
+  const responsavel = colaboradoresMap.get(responsavelId) || null;
+  const equipePrincipal = resolveEquipePrincipal({
+    equipeId: input.equipeId || avaliacao.equipeId,
+    equipeNome: input.equipeNome || avaliacao.equipeNome,
+    planejamentoEquipes: input.planejamentoEquipes,
+  });
   const nextAvaliacao: Avaliacao = {
     ...avaliacao,
     usuarioId: responsavelId,
@@ -554,6 +753,14 @@ export const atualizarAvaliacaoConfiguracao = async (
     dataColheita: input.dataColheita || avaliacao.dataColheita || todayIso(),
     observacoes: input.observacoes,
     status: 'in_progress',
+    equipeId: equipePrincipal.equipeId,
+    equipeNome: equipePrincipal.equipeNome,
+    responsavelPrincipalId: responsavelId,
+    responsavelPrincipalNome: responsavel?.nome || '',
+    inicioEm: nowIso(),
+    fimEm: null,
+    encerradoPorId: null,
+    encerradoPorNome: '',
     totalRegistros: 0,
     mediaParcela: 0,
     mediaCachos3: 0,
@@ -707,6 +914,10 @@ export const obterAvaliacaoDetalhada = async (
     participantes,
     logs,
     retoques,
+    avaliacoesBase,
+    participantesBase,
+    logsBase,
+    retoquesBase,
     colaboradoresBase,
     parcelasCatalogo,
   ] = await Promise.all([
@@ -734,6 +945,10 @@ export const obterAvaliacaoDetalhada = async (
       'avaliacaoRetoques',
       (item) => item.avaliacaoId === avaliacaoId && !item.deletadoEm,
     ),
+    repository.list('avaliacoes'),
+    repository.list('avaliacaoColaboradores'),
+    repository.list('avaliacaoLogs'),
+    repository.list('avaliacaoRetoques'),
     repository.list('colaboradores'),
     repository.list('parcelas'),
   ]);
@@ -769,6 +984,42 @@ export const obterAvaliacaoDetalhada = async (
     avaliacao.alinhamentoTipo ||
     ruasNormalizadas[0]?.alinhamentoTipo ||
     undefined;
+  const avaliacaoOriginal = avaliacao.avaliacaoOriginalId
+    ? avaliacoesBase.find(
+        (item) => item.id === avaliacao.avaliacaoOriginalId && !item.deletadoEm,
+      ) || null
+    : null;
+  const retoquesRelacionados = avaliacoesBase
+    .filter(
+      (item) =>
+        !item.deletadoEm &&
+        item.tipo === 'retoque' &&
+        item.avaliacaoOriginalId ===
+          (avaliacao.tipo === 'retoque'
+            ? avaliacao.avaliacaoOriginalId
+            : avaliacao.id),
+    )
+    .sort((a, b) => a.criadoEm.localeCompare(b.criadoEm))
+    .map((item) => ({
+      avaliacao: item,
+      participantes: participantesBase
+        .filter(
+          (participante) =>
+            !participante.deletadoEm && participante.avaliacaoId === item.id,
+        )
+        .map((participante) => ({
+          ...participante,
+          papel: normalizePapelAvaliacao(participante.papel),
+          colaborador: colaboradoresMap.get(participante.colaboradorId) || null,
+        })),
+      logs: logsBase
+        .filter((log) => !log.deletadoEm && log.avaliacaoId === item.id)
+        .sort((a, b) => a.criadoEm.localeCompare(b.criadoEm)),
+      detalheRetoque:
+        retoquesBase.find(
+          (registro) => !registro.deletadoEm && registro.avaliacaoId === item.id,
+        ) || null,
+    }));
 
   return {
     avaliacao: {
@@ -782,10 +1033,13 @@ export const obterAvaliacaoDetalhada = async (
     registros,
     participantes: participantes.map((item) => ({
       ...item,
+      papel: normalizePapelAvaliacao(item.papel),
       colaborador: colaboradoresMap.get(item.colaboradorId) || null,
     })),
     logs: logs.sort((a, b) => a.criadoEm.localeCompare(b.criadoEm)),
     retoque: retoques[0] || null,
+    avaliacaoOriginal,
+    retoquesRelacionados,
     parcelasCatalogo: parcelasMap,
   };
 };
@@ -1069,7 +1323,10 @@ export const excluirAvaliacaoCompleta = async (avaliacaoId: string) => {
   return true;
 };
 
-export const finalizarAvaliacao = async (avaliacaoId: string) => {
+export const finalizarAvaliacao = async (
+  avaliacaoId: string,
+  finalizadoPorId?: string,
+) => {
   const [avaliacao, configs, participantes, retoques] = await Promise.all([
     repository.get('avaliacoes', avaliacaoId),
     repository.list('configuracoes'),
@@ -1084,7 +1341,9 @@ export const finalizarAvaliacao = async (avaliacaoId: string) => {
   ]);
 
   if (!avaliacao) return null;
-  const responsavel = participantes.find((item) => item.papel === 'responsavel');
+  const responsavel = participantes.find(
+    (item) => normalizePapelAvaliacao(item.papel) === 'responsavel_principal',
+  );
   if (!responsavel) {
     throw new Error('Defina um responsável antes de finalizar a avaliação.');
   }
@@ -1095,13 +1354,29 @@ export const finalizarAvaliacao = async (avaliacaoId: string) => {
   const config = configs[0];
   const limiteCocos = config?.limiteCocosChao ?? 19;
   const limiteCachos = config?.limiteCachos3Cocos ?? 19;
+  const excedeuLimites =
+    avaliacao.mediaParcela > limiteCocos || avaliacao.mediaCachos3 > limiteCachos;
+  const finalizadorId = finalizadoPorId || responsavel?.colaboradorId || null;
+  const finalizador = finalizadorId
+    ? await repository.get('colaboradores', finalizadorId)
+    : null;
 
   // Lógica de decisão: se a média de cocos no chão OU cachos com 3 for maior que o limite, marca como refazer
-  const statusFinal = (avaliacao.mediaParcela > limiteCocos || avaliacao.mediaCachos3 > limiteCachos) ? 'refazer' : 'ok';
+  const statusFinal =
+    avaliacao.tipo === 'retoque'
+      ? excedeuLimites
+        ? 'refazer'
+        : 'revisado'
+      : excedeuLimites
+        ? 'refazer'
+        : 'ok';
 
   const next: Avaliacao = {
     ...avaliacao,
     status: statusFinal,
+    fimEm: nowIso(),
+    encerradoPorId: finalizadorId,
+    encerradoPorNome: finalizador?.nome || '',
     atualizadoEm: nowIso(),
     syncStatus: 'pending_sync',
     versao: avaliacao.versao + 1,
@@ -1109,14 +1384,86 @@ export const finalizarAvaliacao = async (avaliacaoId: string) => {
 
   await saveEntity('avaliacoes', next);
 
+  if (avaliacao.tipo === 'retoque' && avaliacao.avaliacaoOriginalId) {
+    const original = await repository.get('avaliacoes', avaliacao.avaliacaoOriginalId);
+    if (original && !original.deletadoEm) {
+      await saveEntity('avaliacoes', {
+        ...original,
+        status: statusFinal === 'revisado' ? 'revisado' : 'refazer',
+        fimEm: next.fimEm,
+        encerradoPorId: finalizadorId,
+        encerradoPorNome: finalizador?.nome || '',
+        atualizadoEm: nowIso(),
+        syncStatus: 'pending_sync',
+        versao: original.versao + 1,
+      });
+      await criarLogAvaliacao({
+        avaliacaoId: original.id,
+        colaboradorId: finalizadorId,
+        acao: 'retoque_resultado_final',
+        descricao:
+          statusFinal === 'revisado'
+            ? 'Retoque concluído com resultado revisado.'
+            : 'Retoque concluído e a parcela continua necessitando ação.',
+      });
+    }
+  }
+
   await criarLogAvaliacao({
     avaliacaoId,
-    colaboradorId: responsavel.colaboradorId,
+    colaboradorId: finalizadorId || responsavel.colaboradorId,
     acao: 'avaliacao_finalizada',
     descricao:
       next.status === 'refazer'
         ? 'Avaliação finalizada com retoque.'
         : 'Avaliação finalizada com status OK.',
+  });
+
+  return next;
+};
+
+export const marcarAvaliacaoParaRetoque = async (input: {
+  avaliacaoId: string;
+  usuarioId: string;
+  motivo?: string;
+}) => {
+  const [avaliacao, usuario] = await Promise.all([
+    repository.get('avaliacoes', input.avaliacaoId),
+    repository.get('colaboradores', input.usuarioId),
+  ]);
+
+  if (!avaliacao || avaliacao.deletadoEm) {
+    throw new Error('Avaliação não encontrada para marcação de retoque.');
+  }
+
+  if (avaliacao.tipo === 'retoque') {
+    throw new Error('A avaliação de retoque não pode ser remarcada.');
+  }
+
+  if (!canMarkRetoque(usuario?.perfil)) {
+    throw new Error('Seu perfil não pode marcar a parcela para retoque.');
+  }
+
+  const next: Avaliacao = {
+    ...avaliacao,
+    status: 'em_retoque',
+    marcadoRetoquePorId: input.usuarioId,
+    marcadoRetoquePorNome: usuario?.nome || '',
+    marcadoRetoqueEm: nowIso(),
+    motivoRetoque: String(input.motivo || '').trim(),
+    atualizadoEm: nowIso(),
+    syncStatus: 'pending_sync',
+    versao: avaliacao.versao + 1,
+  };
+
+  await saveEntity('avaliacoes', next);
+  await criarLogAvaliacao({
+    avaliacaoId: input.avaliacaoId,
+    colaboradorId: input.usuarioId,
+    acao: 'avaliacao_marcada_retoque',
+    descricao: next.motivoRetoque
+      ? `Parcela enviada para retoque por ${usuario?.nome || 'Usuário'}. Motivo: ${next.motivoRetoque}.`
+      : `Parcela enviada para retoque por ${usuario?.nome || 'Usuário'}.`,
   });
 
   return next;
@@ -1129,11 +1476,16 @@ export const registrarRetoque = async (input: {
   dataRetoque: string;
   observacao: string;
   responsavelId: string;
+  finalizadoPorId?: string;
 }) => {
   const device = await getOrCreateDevice();
-  const [avaliacao, colaboradores] = await Promise.all([
+  const [avaliacao, colaboradores, participantes] = await Promise.all([
     repository.get('avaliacoes', input.avaliacaoId),
     repository.list('colaboradores'),
+    repository.filter(
+      'avaliacaoColaboradores',
+      (item) => item.avaliacaoId === input.avaliacaoId && !item.deletadoEm,
+    ),
   ]);
   if (!avaliacao || avaliacao.tipo !== 'retoque' || !avaliacao.avaliacaoOriginalId) {
     throw new Error('Retoque não disponível para esta avaliação.');
@@ -1151,10 +1503,27 @@ export const registrarRetoque = async (input: {
     responsavelId: input.responsavelId,
     responsavelNome: responsavel?.nome || '',
     responsavelMatricula: responsavel?.matricula || '',
+    equipeId: avaliacao.equipeId || null,
+    equipeNome: avaliacao.equipeNome || '',
+    ajudanteIds: participantes
+      .filter((item) => normalizePapelAvaliacao(item.papel) === 'ajudante')
+      .map((item) => item.colaboradorId),
+    ajudanteNomes: participantes
+      .filter((item) => normalizePapelAvaliacao(item.papel) === 'ajudante')
+      .map((item) => item.colaboradorNome || item.colaboradorPrimeiroNome || '')
+      .filter(Boolean),
     quantidadeBags: input.quantidadeBags,
     quantidadeCargas: input.quantidadeCargas,
     dataRetoque: input.dataRetoque,
+    dataInicio: existente[0]?.dataInicio || avaliacao.inicioEm || nowIso(),
+    dataFim: nowIso(),
     observacao: input.observacao,
+    finalizadoPorId: input.finalizadoPorId || input.responsavelId,
+    finalizadoPorNome:
+      colaboradores.find(
+        (item) => item.id === (input.finalizadoPorId || input.responsavelId),
+      )?.nome || '',
+    status: 'finalizado' as const,
   };
 
   let record: AvaliacaoRetoque;
@@ -1174,8 +1543,15 @@ export const registrarRetoque = async (input: {
   await criarLogAvaliacao({
     avaliacaoId: input.avaliacaoId,
     colaboradorId: input.responsavelId,
+    acao: 'retoque_quantidades_registradas',
+    descricao: `Fechamento do retoque com ${Math.max(0, input.quantidadeBags)} bag(s) e ${Math.max(0, input.quantidadeCargas)} carga(s).`,
+  });
+
+  await criarLogAvaliacao({
+    avaliacaoId: input.avaliacaoId,
+    colaboradorId: input.finalizadoPorId || input.responsavelId,
     acao: 'retoque_finalizado',
-    descricao: `Retoque finalizado por ${responsavel?.primeiroNome || 'colaborador'}.`,
+    descricao: `Retoque finalizado por ${payload.finalizadoPorNome || responsavel?.nome || 'Usuário'}.`,
   });
 
   return record;

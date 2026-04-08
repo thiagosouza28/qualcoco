@@ -6,6 +6,7 @@ import { CounterInput } from '@/components/CounterInput';
 import { useCampoApp } from '@/core/AppProvider';
 import { useAppUpdate } from '@/core/AppUpdateProvider';
 import { getDeviceId } from '@/core/device';
+import { canManageTeams, canManageUsers } from '@/core/permissions';
 import { repository, saveEntity } from '@/core/repositories';
 import { nowIso } from '@/core/date';
 import type { Configuracao } from '@/core/types';
@@ -252,6 +253,26 @@ export function TelaConfiguracoes() {
             >
               Editar meu perfil
             </Button>
+
+            {canManageUsers(usuarioAtual?.perfil) ? (
+              <Button
+                variant="outline"
+                className="h-11 w-full rounded-[18px] font-bold"
+                onClick={() => navigate('/colaboradores')}
+              >
+                Gerenciar usuários
+              </Button>
+            ) : null}
+
+            {canManageTeams(usuarioAtual?.perfil) ? (
+              <Button
+                variant="outline"
+                className="h-11 w-full rounded-[18px] font-bold"
+                onClick={() => navigate('/equipes')}
+              >
+                Gerenciar equipes
+              </Button>
+            ) : null}
           </CardContent>
         </Card>
 

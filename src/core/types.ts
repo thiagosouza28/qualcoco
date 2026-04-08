@@ -1,6 +1,7 @@
 export type StoreName =
   | 'equipes'
   | 'colaboradores'
+  | 'usuarioEquipes'
   | 'parcelas'
   | 'avaliacoes'
   | 'avaliacaoColaboradores'
@@ -18,6 +19,25 @@ export type StoreName =
 export type SyncStatus = 'local' | 'pending_sync' | 'synced' | 'conflict' | 'error';
 export type OrigemDado = 'local' | 'shared' | 'firebase';
 export type TipoSync = 'firebase_push' | 'firebase_pull' | 'local_export' | 'local_import';
+export type PerfilUsuario =
+  | 'colaborador'
+  | 'fiscal'
+  | 'fiscal_chefe'
+  | 'administrador';
+export type PapelAvaliacao =
+  | 'responsavel'
+  | 'participante'
+  | 'responsavel_principal'
+  | 'ajudante'
+  | 'fiscal_revisor';
+export type StatusAvaliacao =
+  | 'draft'
+  | 'in_progress'
+  | 'completed'
+  | 'ok'
+  | 'refazer'
+  | 'em_retoque'
+  | 'revisado';
 
 export interface BaseEntity {
   id: string;
@@ -44,9 +64,14 @@ export interface Colaborador extends BaseEntity {
   pinHash: string;
   pinSalt: string;
   ativo: boolean;
-  perfil?: string;
+  perfil?: PerfilUsuario;
   authUserId?: string | null;
   authEmail?: string | null;
+}
+
+export interface UsuarioEquipe extends BaseEntity {
+  usuarioId: string;
+  equipeId: string;
 }
 
 export interface Parcela extends BaseEntity {
@@ -67,9 +92,21 @@ export interface Avaliacao extends BaseEntity {
   dataAvaliacao: string;
   dataColheita?: string;
   observacoes: string;
-  status: 'draft' | 'in_progress' | 'completed' | 'ok' | 'refazer';
+  status: StatusAvaliacao;
   tipo?: 'normal' | 'retoque';
   avaliacaoOriginalId?: string | null;
+  equipeId?: string | null;
+  equipeNome?: string;
+  responsavelPrincipalId?: string | null;
+  responsavelPrincipalNome?: string;
+  inicioEm?: string;
+  fimEm?: string | null;
+  encerradoPorId?: string | null;
+  encerradoPorNome?: string;
+  marcadoRetoquePorId?: string | null;
+  marcadoRetoquePorNome?: string;
+  marcadoRetoqueEm?: string | null;
+  motivoRetoque?: string;
   totalRegistros: number;
   mediaParcela: number;
   mediaCachos3: number;
@@ -83,11 +120,11 @@ export interface Avaliacao extends BaseEntity {
 export interface AvaliacaoColaborador extends BaseEntity {
   avaliacaoId: string;
   colaboradorId: string;
-  papel: 'responsavel' | 'participante';
+  papel: PapelAvaliacao;
   colaboradorNome?: string;
   colaboradorPrimeiroNome?: string;
   colaboradorMatricula?: string;
-  colaboradorPerfil?: string;
+  colaboradorPerfil?: PerfilUsuario;
 }
 
 export interface AvaliacaoRetoque extends BaseEntity {
@@ -96,15 +133,27 @@ export interface AvaliacaoRetoque extends BaseEntity {
   responsavelId: string;
   responsavelNome: string;
   responsavelMatricula: string;
+  equipeId?: string | null;
+  equipeNome?: string;
+  ajudanteIds?: string[];
+  ajudanteNomes?: string[];
   quantidadeBags: number;
   quantidadeCargas: number;
   dataRetoque: string;
+  dataInicio?: string;
+  dataFim?: string | null;
   observacao: string;
+  finalizadoPorId?: string | null;
+  finalizadoPorNome?: string;
+  status?: 'em_retoque' | 'finalizado';
 }
 
 export interface AvaliacaoLog extends BaseEntity {
   avaliacaoId: string;
+  parcelaId?: string | null;
   colaboradorId: string | null;
+  usuarioNome?: string;
+  usuarioPerfil?: PerfilUsuario;
   acao: string;
   descricao: string;
 }
@@ -231,8 +280,11 @@ export interface NovaAvaliacaoInput {
   dataColheita: string;
   observacoes: string;
   participanteIds: string[];
+  acompanhado?: boolean;
   tipo?: 'normal' | 'retoque';
   avaliacaoOriginalId?: string | null;
+  equipeId?: string | null;
+  equipeNome?: string;
   parcelas: ParcelaConfigurada[];
   planejamentoEquipes: PlanejamentoEquipeInput[];
   alinhamentoTipo: 'inferior-impar' | 'inferior-par';

@@ -61,7 +61,7 @@ export function CardHistorico({
               <Trash2 className="h-4 w-4" />
             </Button>
           ) : null}
-          <Link to={`/avaliacoes/${avaliacao.id}`}>
+          <Link to={`/detalhe/${avaliacao.id}`}>
             <ChevronRight className="h-5 w-5 shrink-0 text-[rgba(93,98,78,0.42)]" />
           </Link>
         </div>

@@ -27,11 +27,13 @@ import type {
   SyncQueueItem,
   TentativaLogin,
   Configuracao,
+  UsuarioEquipe,
 } from '@/core/types';
 
 type EntityByStore = {
   equipes: Equipe;
   colaboradores: Colaborador;
+  usuarioEquipes: UsuarioEquipe;
   parcelas: Parcela;
   avaliacoes: Avaliacao;
   avaliacaoColaboradores: AvaliacaoColaborador;
@@ -50,6 +52,7 @@ type EntityByStore = {
 const syncableStores = new Set<StoreName>([
   'equipes',
   'colaboradores',
+  'usuarioEquipes',
   'parcelas',
   'avaliacoes',
   'avaliacaoColaboradores',

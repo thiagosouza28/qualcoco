@@ -22,6 +22,7 @@ import {
 } from '@/core/evaluations';
 import { saveEntity } from '@/core/repositories';
 import { nowIso } from '@/core/date';
+import { normalizePapelAvaliacao } from '@/core/permissions';
 import { inferirAlinhamentoTipoPorLinha } from '@/core/plots';
 import { STORAGE_KEYS } from '@/core/constants';
 import { Button } from '@/components/ui/button';
@@ -523,6 +524,17 @@ export function TelaRegistroLinhas() {
       navigate('/dashboard', { replace: true });
     }
   }, [data, isFetched, navigate]);
+
+  useEffect(() => {
+    const status = data?.avaliacao?.status;
+    if (!isFetched || !status) {
+      return;
+    }
+
+    if (status !== 'draft' && status !== 'in_progress') {
+      navigate(`/detalhe/${id}`, { replace: true });
+    }
+  }, [data?.avaliacao?.status, id, isFetched, navigate]);
 
   const ruas = useMemo(() => data?.ruas || [], [data]);
   const ruaAtual = ruas[ruaIndex] || null;
@@ -1455,7 +1467,7 @@ export function TelaRegistroLinhas() {
         return;
       }
       setFinalizandoDestino(destino);
-      await finalizarAvaliacao(id);
+      await finalizarAvaliacao(id, usuarioAtual?.id);
       await queryClient.invalidateQueries();
 
       if (destino === 'relatorio') {
@@ -1474,7 +1486,9 @@ export function TelaRegistroLinhas() {
 
   const salvarRetoqueEFinalizar = async () => {
     const responsavelId =
-      data?.participantes.find((item) => item.papel === 'responsavel')?.colaboradorId || '';
+      data?.participantes.find(
+        (item) => normalizePapelAvaliacao(item.papel) === 'responsavel_principal',
+      )?.colaboradorId || '';
 
     if (!responsavelId) {
       alert('Defina um responsável antes de finalizar o retoque.');
@@ -1507,6 +1521,7 @@ export function TelaRegistroLinhas() {
       dataRetoque: retoqueData,
       observacao: retoqueObs,
       responsavelId,
+      finalizadoPorId: usuarioAtual?.id,
     });
 
     setRetoqueRegistrado(true);
@@ -1645,7 +1660,7 @@ export function TelaRegistroLinhas() {
                       ? 'emerald'
                       : item.status === 'em_andamento'
                         ? 'amber'
-                        : 'slate'
+                        : 'amber'
                   }
                 >
                   {item.parcelaCodigo} •{' '}
@@ -1731,7 +1746,7 @@ export function TelaRegistroLinhas() {
                             ? 'emerald'
                             : statusParcelaAtual.status === 'em_andamento'
                               ? 'amber'
-                              : 'slate'
+                              : 'amber'
                         }
                       >
                         {statusParcelaAtual.status === 'concluida'
@@ -2239,14 +2254,18 @@ export function TelaRegistroLinhas() {
                   Responsáveis
                 </p>
                 <p className="text-sm font-bold text-[var(--qc-text)]">
-                  {data?.participantes.find((item) => item.papel === 'responsavel')?.colaborador
+                  {data?.participantes.find(
+                    (item) => normalizePapelAvaliacao(item.papel) === 'responsavel_principal',
+                  )?.colaborador
                     ?.primeiroNome || 'Responsável não informado'}
                 </p>
-                {data?.participantes.some((item) => item.papel === 'participante') ? (
+                {data?.participantes.some(
+                  (item) => normalizePapelAvaliacao(item.papel) === 'ajudante',
+                ) ? (
                   <p className="text-xs text-[var(--qc-text-muted)]">
                     Ajudantes:{' '}
                     {data.participantes
-                      .filter((item) => item.papel === 'participante')
+                      .filter((item) => normalizePapelAvaliacao(item.papel) === 'ajudante')
                       .map((item) => item.colaborador?.primeiroNome || '')
                       .filter(Boolean)
                       .join(', ') || 'Não informado'}
@@ -2264,18 +2283,22 @@ export function TelaRegistroLinhas() {
                         <p className="text-sm font-black tracking-tight text-[var(--qc-text)]">
                           Equipe {equipe}
                         </p>
-                        <Badge variant={siglaAtual ? 'emerald' : 'slate'}>
+                        <Badge variant={siglaAtual ? 'emerald' : 'amber'}>
                           {siglaAtual || 'Pendente'}
                         </Badge>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-2 gap-2.5">
                         {SIGLAS_RESUMO_PARCELA.map((opcao) => (
-                          <Button
+                          <button
                             key={`${equipe}-${opcao.value}`}
                             type="button"
-                            variant={siglaAtual === opcao.value ? 'default' : 'outline'}
-                            className="flex min-h-[72px] w-full flex-col items-start justify-between rounded-2xl px-3 py-3 text-left break-words whitespace-normal"
+                            className={cn(
+                              'relative flex min-h-[94px] w-full flex-col items-center justify-center rounded-[22px] border px-3 py-3 text-center transition-transform',
+                              siglaAtual === opcao.value
+                                ? 'border-[rgba(0,107,68,0.22)] bg-[rgba(0,107,68,0.08)] shadow-[0_18px_28px_-24px_rgba(0,107,68,0.42)]'
+                                : 'border-[var(--qc-border)] bg-[var(--qc-surface-muted)]',
+                            )}
                             onClick={() =>
                               setResumoParcelaDraft((current) =>
                                 current
@@ -2290,13 +2313,16 @@ export function TelaRegistroLinhas() {
                               )
                             }
                           >
-                            <span className="block w-full text-sm font-black leading-tight tracking-tight text-[var(--qc-text)] whitespace-normal break-words">
+                            {siglaAtual === opcao.value ? (
+                              <CheckCircle2 className="absolute right-3 top-3 h-4.5 w-4.5 text-[var(--qc-primary)]" />
+                            ) : null}
+                            <span className="block w-full text-lg font-black leading-none tracking-[-0.03em] text-[var(--qc-text)]">
                               {opcao.label}
                             </span>
-                            <span className="mt-2 block w-full text-xs font-medium leading-snug opacity-80 whitespace-normal break-words">
+                            <span className="mt-1.5 block w-full text-[11px] font-medium leading-snug text-[var(--qc-text-muted)]">
                               {opcao.descricao}
                             </span>
-                          </Button>
+                          </button>
                         ))}
                       </div>
                     </div>

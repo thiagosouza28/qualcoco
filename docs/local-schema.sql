@@ -190,3 +190,79 @@ create table tentativas_login (
   versao integer not null default 1,
   origem_dispositivo_id text not null
 );
+
+create table usuario_equipes (
+  local_id text primary key,
+  id text not null unique,
+  usuario_id text not null,
+  equipe_id text not null,
+  criado_em text not null,
+  atualizado_em text not null,
+  deletado_em text,
+  sync_status text not null,
+  versao integer not null default 1,
+  origem_dispositivo_id text not null
+);
+
+create table avaliacao_retoques (
+  local_id text primary key,
+  id text not null unique,
+  avaliacao_id text not null,
+  avaliacao_original_id text not null,
+  responsavel_id text not null,
+  responsavel_nome text not null,
+  responsavel_matricula text not null,
+  equipe_id text,
+  equipe_nome text,
+  ajudante_ids text not null,
+  ajudante_nomes text not null,
+  quantidade_bags real not null default 0,
+  quantidade_cargas real not null default 0,
+  data_retoque text,
+  data_inicio text,
+  data_fim text,
+  observacao text,
+  finalizado_por_id text,
+  finalizado_por_nome text,
+  status text not null default 'em_retoque',
+  criado_em text not null,
+  atualizado_em text not null,
+  deletado_em text,
+  sync_status text not null,
+  versao integer not null default 1,
+  origem_dispositivo_id text not null
+);
+
+create table avaliacao_logs (
+  local_id text primary key,
+  id text not null unique,
+  avaliacao_id text not null,
+  parcela_id text,
+  colaborador_id text,
+  usuario_nome text,
+  usuario_perfil text,
+  acao text not null,
+  descricao text not null,
+  criado_em text not null,
+  atualizado_em text not null,
+  deletado_em text,
+  sync_status text not null,
+  versao integer not null default 1,
+  origem_dispositivo_id text not null
+);
+
+alter table colaboradores add column perfil text not null default 'colaborador';
+alter table avaliacoes add column tipo text not null default 'normal';
+alter table avaliacoes add column avaliacao_original_id text;
+alter table avaliacoes add column equipe_id text;
+alter table avaliacoes add column equipe_nome text not null default '';
+alter table avaliacoes add column responsavel_principal_id text;
+alter table avaliacoes add column responsavel_principal_nome text not null default '';
+alter table avaliacoes add column inicio_em text;
+alter table avaliacoes add column fim_em text;
+alter table avaliacoes add column encerrado_por_id text;
+alter table avaliacoes add column encerrado_por_nome text not null default '';
+alter table avaliacoes add column marcado_retoque_por_id text;
+alter table avaliacoes add column marcado_retoque_por_nome text not null default '';
+alter table avaliacoes add column marcado_retoque_em text;
+alter table avaliacoes add column motivo_retoque text not null default '';

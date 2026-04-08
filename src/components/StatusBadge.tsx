@@ -1,42 +1,75 @@
-import { AlertTriangle, CheckCircle2, Clock3 } from 'lucide-react';
+import {
+  AlertTriangle,
+  CheckCircle2,
+  CircleDashed,
+  RefreshCcw,
+  Wrench,
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { getEvaluationStatusMeta } from '@/core/evaluationStatus';
 
 interface StatusBadgeProps {
-  status: 'ok' | 'refazer' | 'in_progress' | 'draft' | 'completed' | string;
+  status: string;
 }
 
 export function StatusBadge({ status }: StatusBadgeProps) {
-  if (status === 'ok' || status === 'completed') {
+  const meta = getEvaluationStatusMeta(status);
+
+  if (meta.tone === 'success') {
     return (
       <Badge
         variant="emerald"
-        className="gap-1.5 border-[var(--qc-border-strong)] bg-[var(--qc-tertiary)] text-[var(--qc-primary)]"
+        className="gap-1.5 border-[rgba(0,107,68,0.18)] bg-[rgba(0,107,68,0.1)] text-[var(--qc-primary)]"
       >
         <CheckCircle2 className="h-3.5 w-3.5" />
-        OK
+        {meta.label}
       </Badge>
     );
   }
 
-  if (status === 'refazer') {
+  if (meta.tone === 'reviewed') {
     return (
       <Badge
-        variant="destructive"
-        className="gap-1.5 border-[rgba(197,58,53,0.12)] bg-[rgba(197,58,53,0.1)] text-[var(--qc-danger)]"
+        variant="blue"
+        className="gap-1.5 border-[rgba(31,97,164,0.2)] bg-[rgba(31,97,164,0.1)] text-[#1f61a4]"
+      >
+        <RefreshCcw className="h-3.5 w-3.5" />
+        {meta.label}
+      </Badge>
+    );
+  }
+
+  if (meta.tone === 'active') {
+    return (
+      <Badge
+        variant="default"
+        className="gap-1.5 border-[rgba(221,124,41,0.22)] bg-[rgba(221,124,41,0.12)] text-[#b45c13]"
+      >
+        <Wrench className="h-3.5 w-3.5" />
+        {meta.label}
+      </Badge>
+    );
+  }
+
+  if (meta.tone === 'warning') {
+    return (
+      <Badge
+        variant="amber"
+        className="gap-1.5 border-[#f1d483] bg-[#fff3c7] text-[#8c6a00]"
       >
         <AlertTriangle className="h-3.5 w-3.5" />
-        RETOQUE
+        {meta.label}
       </Badge>
     );
   }
 
   return (
     <Badge
-      variant="secondary"
-      className="gap-1.5 border-[rgba(93,98,78,0.12)] bg-[rgba(93,98,78,0.08)] text-[var(--qc-secondary)]"
+      variant="amber"
+      className="gap-1.5 border-[#eadfbe] bg-[#f8f1de] text-[#7f6b2b]"
     >
-      <Clock3 className="h-3.5 w-3.5" />
-      EM ANDAMENTO
+      <CircleDashed className="h-3.5 w-3.5" />
+      {meta.label}
     </Badge>
   );
 }

@@ -27,8 +27,8 @@ import {
   obterAvaliacaoDetalhada,
 } from '@/core/evaluations';
 import { clamp } from '@/core/plots';
+import { filtrarEquipesVisiveis } from '@/core/permissions';
 import { repository } from '@/core/repositories';
-import { listarEquipesAtivas } from '@/core/teams';
 import { ListaParcelas } from '@/components/ListaParcelas';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -220,8 +220,8 @@ export function TelaNovaAvaliacao() {
     queryFn: listarColaboradoresAtivos,
   });
   const { data: equipes = [] } = useQuery({
-    queryKey: ['equipes', 'ativas'],
-    queryFn: listarEquipesAtivas,
+    queryKey: ['equipes', 'visiveis', usuarioAtual?.id],
+    queryFn: () => filtrarEquipesVisiveis(usuarioAtual),
   });
   const { data: parcelas = [] } = useQuery({
     queryKey: ['parcelas', 'catalogo'],
@@ -797,6 +797,9 @@ export function TelaNovaAvaliacao() {
         dataColheita,
         observacoes,
         participanteIds: temMaisPessoas ? participanteIds : [],
+        acompanhado: temMaisPessoas === true,
+        equipeId: equipe1Id || null,
+        equipeNome: equipe1?.nome || '',
         alinhamentoTipo,
         sentidoRuas,
         ordemColeta,
@@ -1009,7 +1012,10 @@ export function TelaNovaAvaliacao() {
                         ? "border-none bg-[var(--qc-primary)] text-white" 
                         : "border-2 border-[var(--qc-border-strong)] bg-white text-[var(--qc-secondary)]"
                     )}
-                    onClick={() => setTemMaisPessoas(false)}
+                    onClick={() => {
+                      setTemMaisPessoas(false);
+                      setParticipanteIds([]);
+                    }}
                   >
                     Sozinho
                   </Button>
@@ -1033,7 +1039,7 @@ export function TelaNovaAvaliacao() {
                     <div className="flex items-center justify-between px-1">
                       <span className="text-[10px] font-black uppercase tracking-widest text-[var(--qc-secondary)]">SELECIONAR AJUDANTES</span>
                       <Link 
-                        to="/colaboradores/cadastro"
+                        to={`/colaboradores/cadastro?quick=1&returnTo=${encodeURIComponent(isEditMode ? `/avaliacoes/${editingId}/editar` : '/avaliacoes/nova')}`}
                         className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-[var(--qc-primary)]"
                       >
                         <Plus className="h-3 w-3" />

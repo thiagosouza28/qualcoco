@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Pencil, Plus, Trash2, User, Users } from 'lucide-react';
 import { atualizarEquipe, cadastrarEquipe, excluirEquipe, listarEquipes } from '@/core/teams';
+import { useCampoApp } from '@/core/AppProvider';
+import { canManageTeams } from '@/core/permissions';
 import type { Equipe } from '@/core/types';
 import { LayoutMobile } from '@/components/LayoutMobile';
 import { Button } from '@/components/ui/button';
@@ -27,6 +29,7 @@ const initialForm = {
 export function TelaEquipes() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { usuarioAtual } = useCampoApp();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingEquipe, setEditingEquipe] = useState<Equipe | null>(null);
   const [form, setForm] = useState(initialForm);
@@ -36,6 +39,25 @@ export function TelaEquipes() {
     queryKey: ['equipes'],
     queryFn: listarEquipes,
   });
+
+  if (!canManageTeams(usuarioAtual?.perfil)) {
+    return (
+      <LayoutMobile
+        title="Equipes"
+        subtitle="Acesso restrito"
+        onBack={() => navigate('/dashboard')}
+        showBottomNav
+      >
+        <Card className="surface-card border-none shadow-sm">
+          <CardContent className="p-5">
+            <p className="text-sm text-[var(--qc-text-muted)]">
+              Apenas administradores podem cadastrar, editar ou excluir equipes.
+            </p>
+          </CardContent>
+        </Card>
+      </LayoutMobile>
+    );
+  }
 
   const refresh = async () => {
     await queryClient.invalidateQueries({ queryKey: ['equipes'] });

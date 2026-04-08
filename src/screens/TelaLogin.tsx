@@ -9,8 +9,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { WebUsersSyncDialog } from '@/components/WebUsersSyncDialog';
 
-const sanitizeMatriculaInput = (value: string) => value.replace(/\D/g, '');
-
 export function TelaLogin() {
   const {
     session,
@@ -23,7 +21,7 @@ export function TelaLogin() {
   } = useCampoApp();
   const [params] = useSearchParams();
   const [identifier, setIdentifier] = useState(
-    sanitizeMatriculaInput(params.get('usuario') || getUltimoUsuario()),
+    String(params.get('usuario') || getUltimoUsuario() || ''),
   );
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
@@ -170,13 +168,11 @@ export function TelaLogin() {
                 <UserRound className="h-4 w-4 text-emerald-700" />
                 <Input
                   value={identifier}
-                  type="tel"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
+                  type="text"
                   autoComplete="username"
-                  placeholder="Ex.: 10392"
+                  placeholder="Ex.: 10392 ou João"
                   onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                    setIdentifier(sanitizeMatriculaInput(event.target.value))
+                    setIdentifier(event.target.value)
                   }
                 />
               </div>

@@ -9,6 +9,7 @@ export const MAX_PARCELAS = 3;
 export const STORE_NAMES: StoreName[] = [
   'equipes',
   'colaboradores',
+  'usuarioEquipes',
   'parcelas',
   'avaliacoes',
   'avaliacaoColaboradores',
@@ -42,6 +43,7 @@ export const APP_DATA_RESET_VERSION = '2026-03-19-empty-app-v2';
 export const REMOTE_COLLECTION_MAP: Record<StoreName, string | null> = {
   equipes: 'equipes',
   colaboradores: 'colaboradores',
+  usuarioEquipes: 'usuario_equipes',
   parcelas: 'parcelas',
   avaliacoes: 'avaliacoes',
   avaliacaoColaboradores: 'avaliacao_colaboradores',
