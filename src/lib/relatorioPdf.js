@@ -152,6 +152,17 @@ const createPdfRows = (page) => {
       if (referenteLinha) {
         observacaoLinhas.push(referenteLinha);
       }
+      if (isPrimeiraLinhaEquipe) {
+        const responsaveisEquipe = (entry.responsaveis || [])
+          .map((item) => String(item || '').trim())
+          .filter(Boolean);
+        if (responsaveisEquipe.length > 0) {
+          observacaoLinhas.push(`Responsáveis: ${responsaveisEquipe.join(', ')}`);
+        }
+      }
+      if (row.observacao) {
+        observacaoLinhas.push(formatObservacaoColunaPdf(row.observacao));
+      }
       if (
         isUltimaLinhaParcela &&
         row.parcelaCompleta !== false &&
