@@ -152,14 +152,6 @@ const createPdfRows = (page) => {
       if (referenteLinha) {
         observacaoLinhas.push(referenteLinha);
       }
-      if (isPrimeiraLinhaEquipe) {
-        const responsaveisEquipe = (entry.responsaveis || [])
-          .map((item) => String(item || '').trim())
-          .filter(Boolean);
-        if (responsaveisEquipe.length > 0) {
-          observacaoLinhas.push(`Responsáveis: ${responsaveisEquipe.join(', ')}`);
-        }
-      }
       if (row.observacao) {
         observacaoLinhas.push(formatObservacaoColunaPdf(row.observacao));
       }
@@ -181,9 +173,14 @@ const createPdfRows = (page) => {
         rua: row.rua || '',
         cachoPl: row.cachoPl || '',
         cocosDeixados: row.cocosDeixados || '',
-        responsavel: formatResponsaveisPdf(row.responsaveisLista),
-        observacao: observacaoLinhas.length > 0
+        responsavel: observacaoLinhas.length > 0
           ? observacaoLinhas.join('\n')
+          : '',
+        observacao: isPrimeiraLinhaEquipe
+          ? (entry.responsaveis || [])
+              .map((item) => String(item || '').trim())
+              .filter(Boolean)
+              .join(', ')
           : '',
         highlightCacho: row.excedeuCacho,
         highlightCocos: row.excedeuCocos,
@@ -319,6 +316,18 @@ export const createRelatorioPdfBlob = ({
           hook.cell.styles.fillColor = MARKER_FILL;
           hook.cell.styles.textColor = MARKER_TEXT;
           hook.cell.styles.fontStyle = 'bold';
+        }
+
+        if (key === 'responsavel') {
+          const rawText = Array.isArray(hook.cell.text)
+            ? hook.cell.text.join(' ')
+            : String(hook.cell.text || '');
+          const textLen = rawText.replace(/\s+/g, ' ').trim().length;
+          if (textLen > 70) {
+            hook.cell.styles.fontSize = 6.2;
+          } else if (textLen > 40) {
+            hook.cell.styles.fontSize = 7.2;
+          }
         }
       },
     });
