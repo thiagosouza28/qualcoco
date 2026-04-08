@@ -170,9 +170,7 @@ const createPdfRows = (page) => {
         rua: row.rua || '',
         cachoPl: row.cachoPl || '',
         cocosDeixados: row.cocosDeixados || '',
-        responsavel: row.observacao
-          ? String(row.observacao).trim()
-          : '',
+        responsavel: formatResponsaveisPdf(row.responsaveisLista),
         observacao: observacaoLinhas.length > 0
           ? observacaoLinhas.join('\n')
           : '',

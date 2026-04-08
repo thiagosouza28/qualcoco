@@ -7,6 +7,7 @@ import { LayoutMobile } from '@/components/LayoutMobile';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export function CadastroColaborador() {
   const navigate = useNavigate();
@@ -24,6 +25,7 @@ export function CadastroColaborador() {
   const [primeiroNome, setPrimeiroNome] = useState('');
   const [matricula, setMatricula] = useState('');
   const [pin, setPin] = useState('');
+  const [perfil, setPerfil] = useState('colaborador');
   const [erro, setErro] = useState('');
 
   useEffect(() => {
@@ -31,6 +33,7 @@ export function CadastroColaborador() {
     setNome(colaborador.nome);
     setPrimeiroNome(colaborador.primeiroNome);
     setMatricula(colaborador.matricula);
+    setPerfil(colaborador.perfil || 'colaborador');
   }, [colaborador]);
 
   const mutation = useMutation({
@@ -42,6 +45,7 @@ export function CadastroColaborador() {
           matricula,
           ativo: colaborador.ativo,
           pin: pin || undefined,
+          perfil,
         });
       }
 
@@ -50,6 +54,7 @@ export function CadastroColaborador() {
         primeiroNome,
         matricula,
         pin,
+        perfil,
       });
     },
     onSuccess: async () => {
@@ -94,6 +99,18 @@ export function CadastroColaborador() {
                 setMatricula(event.target.value.replace(/\D/g, ''))
               }
             />
+          </div>
+          <div className="input-block">
+            <label>Perfil</label>
+            <Select value={perfil} onValueChange={setPerfil}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o perfil" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="colaborador">Colaborador</SelectItem>
+                <SelectItem value="fiscal">Fiscal</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="input-block">
             <label>{colaborador ? 'Novo PIN (opcional)' : 'PIN'}</label>

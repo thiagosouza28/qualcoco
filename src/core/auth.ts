@@ -120,6 +120,7 @@ export const cadastrarColaborador = async (input: {
   matricula: string;
   pin: string;
   ativo?: boolean;
+  perfil?: string;
 }) => {
   if (!validarPin(input.pin)) {
     throw new Error('O PIN precisa ter 4 ou 6 dígitos numéricos.');
@@ -145,7 +146,7 @@ export const cadastrarColaborador = async (input: {
     pinHash: hash,
     pinSalt: salt,
     ativo: input.ativo ?? true,
-    perfil: 'colaborador',
+    perfil: input.perfil || 'colaborador',
   });
 };
 
@@ -157,6 +158,7 @@ export const atualizarColaborador = async (
     matricula: string;
     ativo: boolean;
     pin?: string;
+    perfil?: string;
   },
 ) => {
   let next: Colaborador = {
@@ -165,7 +167,7 @@ export const atualizarColaborador = async (
     primeiroNome: input.primeiroNome.trim(),
     matricula: input.matricula.trim(),
     ativo: input.ativo,
-    perfil: colaborador.perfil || 'colaborador',
+    perfil: input.perfil || colaborador.perfil || 'colaborador',
   };
 
   if (input.pin) {

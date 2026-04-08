@@ -28,6 +28,7 @@ export function TelaColaboradores() {
         primeiroNome: colaborador.primeiroNome,
         matricula: colaborador.matricula,
         ativo: !colaborador.ativo,
+        perfil: colaborador.perfil || 'colaborador',
       });
     },
     onSuccess: async () => {
@@ -59,9 +60,14 @@ export function TelaColaboradores() {
                 <p className="text-sm text-slate-500">
                   {colaborador.primeiroNome} • {colaborador.matricula}
                 </p>
-                <span className={`sync-badge sync-badge--${colaborador.ativo ? 'synced' : 'error'}`}>
-                  {colaborador.ativo ? 'ativo' : 'inativo'}
-                </span>
+                <div className="mt-1 flex flex-wrap gap-2">
+                  <span className={`sync-badge sync-badge--${colaborador.ativo ? 'synced' : 'error'}`}>
+                    {colaborador.ativo ? 'ativo' : 'inativo'}
+                  </span>
+                  {colaborador.perfil === 'fiscal' ? (
+                    <span className="sync-badge sync-badge--synced">fiscal</span>
+                  ) : null}
+                </div>
               </div>
               <div className="flex gap-2">
                 <Button asChild variant="outline" size="icon">

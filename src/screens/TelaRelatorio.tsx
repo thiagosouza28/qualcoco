@@ -373,6 +373,11 @@ export function TelaRelatorio() {
     queryFn: () => repository.list('avaliacaoColaboradores'),
   });
 
+  const { data: colaboradores = [] } = useQuery({
+    queryKey: ['relatorio', 'colaboradores'],
+    queryFn: () => repository.list('colaboradores'),
+  });
+
   const { data: avaliacaoRetoques = [] } = useQuery({
     queryKey: ['relatorio', 'avaliacaoRetoques'],
     queryFn: () => repository.list('avaliacaoRetoques'),
@@ -452,6 +457,30 @@ export function TelaRelatorio() {
   }, [avaliacaoIds, avaliacaoParcelas, avaliacoes, dataFiltro, registros, ruas]);
 
   const gruposConsolidados = useMemo(() => {
+    const colaboradoresMap = new Map(
+      colaboradores.map((item) => [item.id, item]),
+    );
+    const responsaveisPorAvaliacao = participantes.reduce<
+      Record<string, string[]>
+    >((acc, item) => {
+      if (item.deletadoEm) return acc;
+      if (item.papel !== 'responsavel') return acc;
+
+      const nome =
+        item.colaboradorPrimeiroNome ||
+        item.colaboradorNome ||
+        colaboradoresMap.get(item.colaboradorId)?.primeiroNome ||
+        colaboradoresMap.get(item.colaboradorId)?.nome ||
+        '';
+      if (!nome) return acc;
+
+      acc[item.avaliacaoId] = acc[item.avaliacaoId] || [];
+      if (!acc[item.avaliacaoId].includes(nome)) {
+        acc[item.avaliacaoId].push(nome);
+      }
+      return acc;
+    }, {});
+
     const groups = new Map<
       string,
       {
@@ -461,12 +490,14 @@ export function TelaRelatorio() {
         equipeSort: number;
         data: string;
         status: string;
+        responsaveis: string[];
       }
     >();
 
     linhasDoDia.forEach((item) => {
       const key = `${item.parcela}::${item.equipe}`;
       const current = groups.get(key);
+      const responsaveis = responsaveisPorAvaliacao[item.avaliacaoId] || [];
 
       if (!current) {
         groups.set(key, {
@@ -476,6 +507,7 @@ export function TelaRelatorio() {
           equipeSort: item.equipeSort,
           data: item.data,
           status: item.status,
+          responsaveis,
         });
         return;
       }
@@ -492,7 +524,7 @@ export function TelaRelatorio() {
       }
       return a.equipe.localeCompare(b.equipe, 'pt-BR', { numeric: true });
     });
-  }, [linhasDoDia]);
+  }, [linhasDoDia, participantes, colaboradores]);
 
   const stats = useMemo(() => {
     const avaliacaoIdsComDados = new Set(linhasDoDia.map((item) => item.avaliacaoId));
@@ -988,13 +1020,21 @@ export function TelaRelatorio() {
                       </span>
                     </div>
 
-                    <div className="mt-4 grid grid-cols-2 gap-3 rounded-[20px] border border-[var(--qc-border)] bg-[var(--qc-surface-muted)] p-4">
+                    <div className="mt-4 grid gap-3 rounded-[20px] border border-[var(--qc-border)] bg-[var(--qc-surface-muted)] p-4 sm:grid-cols-3">
                       <div className="stack-xs">
                         <span className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[var(--qc-secondary)]">
                           Equipe
                         </span>
                         <p className="text-sm font-bold text-[var(--qc-text)]">
                           Eq {item.equipe}
+                        </p>
+                      </div>
+                      <div className="stack-xs">
+                        <span className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[var(--qc-secondary)]">
+                          Responsável
+                        </span>
+                        <p className="text-sm font-bold text-[var(--qc-text)]">
+                          {item.responsaveis?.length ? item.responsaveis.join(', ') : 'Não informado'}
                         </p>
                       </div>
                       <div className="stack-xs">

@@ -1483,8 +1483,12 @@ export function TelaRegistroLinhas() {
 
     const bags = Number(retoqueBags || 0);
     const cargas = Number(retoqueCargas || 0);
-    if (!Number.isFinite(bags) && !Number.isFinite(cargas)) {
-      alert('Informe a quantidade de bags ou cargas.');
+    if (!Number.isFinite(bags)) {
+      alert('Quantidade de bags inválida.');
+      return;
+    }
+    if (!Number.isFinite(cargas)) {
+      alert('Quantidade de cargas inválida.');
       return;
     }
     if (bags <= 0 && cargas <= 0) {
@@ -2228,6 +2232,26 @@ export function TelaRegistroLinhas() {
                   Escolha uma única sigla por equipe. Ela será exibida uma única vez no
                   fechamento da parcela no relatório.
                 </p>
+              </div>
+
+              <div className="stack-xs rounded-[24px] border border-[var(--qc-border)] bg-white p-4">
+                <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-[var(--qc-secondary)]">
+                  Responsáveis
+                </p>
+                <p className="text-sm font-bold text-[var(--qc-text)]">
+                  {data?.participantes.find((item) => item.papel === 'responsavel')?.colaborador
+                    ?.primeiroNome || 'Responsável não informado'}
+                </p>
+                {data?.participantes.some((item) => item.papel === 'participante') ? (
+                  <p className="text-xs text-[var(--qc-text-muted)]">
+                    Ajudantes:{' '}
+                    {data.participantes
+                      .filter((item) => item.papel === 'participante')
+                      .map((item) => item.colaborador?.primeiroNome || '')
+                      .filter(Boolean)
+                      .join(', ') || 'Não informado'}
+                  </p>
+                ) : null}
               </div>
 
               {resumoParcelaDraft
