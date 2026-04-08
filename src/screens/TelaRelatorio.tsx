@@ -205,6 +205,7 @@ const saveAndOpenPdfOnDevice = async (blob: Blob, fileName: string) => {
 type RelatorioPdfRow = {
   id: string;
   data: string;
+  dataColheita: string;
   parcela: string;
   parcelaCompleta?: boolean;
   siglaResumoParcela?: SiglaResumoParcela | '';
@@ -227,6 +228,7 @@ type RelatorioPdfGroup = {
   key: string;
   equipe: string;
   equipeSort: number;
+  dataColheita: string;
   responsaveis: string[];
   referentes: string[];
   rows: RelatorioPdfRow[];
@@ -613,6 +615,7 @@ export function TelaRelatorio() {
           rows.push({
             id: rua.id,
             data: dataRelatorio,
+            dataColheita,
             parcela:
               parcelaCodigoMap.get(rua.avaliacaoParcelaId) ||
               avaliacao.parcelaCodigo ||
@@ -685,6 +688,7 @@ export function TelaRelatorio() {
           key: string;
           equipe: string;
           equipeSort: number;
+          dataColheita: string;
           responsaveis: Set<string>;
           referentes: Set<string>;
           rows: RelatorioPdfRow[];
@@ -692,18 +696,21 @@ export function TelaRelatorio() {
       >();
 
       rows.forEach((row) => {
-        if (!groupedRows.has(row.equipeKey)) {
-          groupedRows.set(row.equipeKey, {
-            key: row.equipeKey,
+        const colheitaKey = row.dataColheita || row.referente || 'sem_colheita';
+        const groupKey = `${row.equipeKey}::${colheitaKey}`;
+        if (!groupedRows.has(groupKey)) {
+          groupedRows.set(groupKey, {
+            key: groupKey,
             equipe: row.equipe,
             equipeSort: row.equipeSort,
+            dataColheita: colheitaKey,
             responsaveis: new Set<string>(),
             referentes: new Set<string>(),
             rows: [],
           });
         }
 
-        const group = groupedRows.get(row.equipeKey)!;
+        const group = groupedRows.get(groupKey)!;
         row.responsaveisLista.forEach((responsavel) => group.responsaveis.add(responsavel));
         if (row.referente) {
           group.referentes.add(row.referente);
@@ -716,12 +723,18 @@ export function TelaRelatorio() {
           if (a.equipeSort !== b.equipeSort) {
             return a.equipeSort - b.equipeSort;
           }
+          if (a.dataColheita !== b.dataColheita) {
+            return String(a.dataColheita).localeCompare(String(b.dataColheita), 'pt-BR', {
+              numeric: true,
+            });
+          }
           return a.equipe.localeCompare(b.equipe, 'pt-BR', { numeric: true });
         })
         .map((group) => ({
           key: group.key,
           equipe: group.equipe,
           equipeSort: group.equipeSort,
+          dataColheita: group.dataColheita,
           responsaveis: Array.from(group.responsaveis).sort((a, b) =>
             a.localeCompare(b, 'pt-BR', { numeric: true }),
           ),

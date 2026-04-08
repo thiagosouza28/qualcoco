@@ -892,22 +892,6 @@ export function TelaRegistroLinhas() {
   }, [ruaAtual?.id]);
 
   useEffect(() => {
-    if (
-      modoCalculo !== 'media_vizinhas' ||
-      registroExistente ||
-      !mediaRuasVizinhas ||
-      !ruaAtual ||
-      ruaAtual.tipoFalha ||
-      estadoColeta !== 'normal'
-    ) {
-      return;
-    }
-
-    setQuantidade(mediaRuasVizinhas.quantidade);
-    setCachos3(mediaRuasVizinhas.cachos3);
-  }, [estadoColeta, mediaRuasVizinhas, modoCalculo, registroExistente, ruaAtual]);
-
-  useEffect(() => {
     setEditRuaLinhaIni(String(ruaAtual?.linhaInicial || ''));
     setEditRuaLinhaFim(String(ruaAtual?.linhaFinal || ''));
   }, [ruaAtual?.id, ruaAtual?.linhaFinal, ruaAtual?.linhaInicial]);
