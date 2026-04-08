@@ -14,6 +14,8 @@ import type {
   AvaliacaoColaborador,
   AvaliacaoParcela,
   AvaliacaoRua,
+  AvaliacaoRetoque,
+  AvaliacaoLog,
   BaseEntity,
   Colaborador,
   Dispositivo,
@@ -35,6 +37,8 @@ type EntityByStore = {
   avaliacaoColaboradores: AvaliacaoColaborador;
   avaliacaoParcelas: AvaliacaoParcela;
   avaliacaoRuas: AvaliacaoRua;
+  avaliacaoRetoques: AvaliacaoRetoque;
+  avaliacaoLogs: AvaliacaoLog;
   registrosColeta: RegistroColeta;
   dispositivos: Dispositivo;
   tentativasLogin: TentativaLogin;
@@ -51,6 +55,8 @@ const syncableStores = new Set<StoreName>([
   'avaliacaoColaboradores',
   'avaliacaoParcelas',
   'avaliacaoRuas',
+  'avaliacaoRetoques',
+  'avaliacaoLogs',
   'registrosColeta',
   'dispositivos',
   'tentativasLogin',

@@ -6,6 +6,8 @@ export type StoreName =
   | 'avaliacaoColaboradores'
   | 'avaliacaoParcelas'
   | 'avaliacaoRuas'
+  | 'avaliacaoRetoques'
+  | 'avaliacaoLogs'
   | 'registrosColeta'
   | 'syncQueue'
   | 'syncLogs'
@@ -42,6 +44,7 @@ export interface Colaborador extends BaseEntity {
   pinHash: string;
   pinSalt: string;
   ativo: boolean;
+  perfil?: string;
   authUserId?: string | null;
   authEmail?: string | null;
 }
@@ -65,6 +68,8 @@ export interface Avaliacao extends BaseEntity {
   dataColheita?: string;
   observacoes: string;
   status: 'draft' | 'in_progress' | 'completed' | 'ok' | 'refazer';
+  tipo?: 'normal' | 'retoque';
+  avaliacaoOriginalId?: string | null;
   totalRegistros: number;
   mediaParcela: number;
   mediaCachos3: number;
@@ -79,6 +84,29 @@ export interface AvaliacaoColaborador extends BaseEntity {
   avaliacaoId: string;
   colaboradorId: string;
   papel: 'responsavel' | 'participante';
+  colaboradorNome?: string;
+  colaboradorPrimeiroNome?: string;
+  colaboradorMatricula?: string;
+  colaboradorPerfil?: string;
+}
+
+export interface AvaliacaoRetoque extends BaseEntity {
+  avaliacaoId: string;
+  avaliacaoOriginalId: string;
+  responsavelId: string;
+  responsavelNome: string;
+  responsavelMatricula: string;
+  quantidadeBags: number;
+  quantidadeCargas: number;
+  dataRetoque: string;
+  observacao: string;
+}
+
+export interface AvaliacaoLog extends BaseEntity {
+  avaliacaoId: string;
+  colaboradorId: string | null;
+  acao: string;
+  descricao: string;
 }
 
 export interface AvaliacaoParcela extends BaseEntity {
@@ -203,6 +231,8 @@ export interface NovaAvaliacaoInput {
   dataColheita: string;
   observacoes: string;
   participanteIds: string[];
+  tipo?: 'normal' | 'retoque';
+  avaliacaoOriginalId?: string | null;
   parcelas: ParcelaConfigurada[];
   planejamentoEquipes: PlanejamentoEquipeInput[];
   alinhamentoTipo: 'inferior-impar' | 'inferior-par';

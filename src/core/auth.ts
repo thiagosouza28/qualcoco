@@ -145,6 +145,7 @@ export const cadastrarColaborador = async (input: {
     pinHash: hash,
     pinSalt: salt,
     ativo: input.ativo ?? true,
+    perfil: 'colaborador',
   });
 };
 
@@ -164,6 +165,7 @@ export const atualizarColaborador = async (
     primeiroNome: input.primeiroNome.trim(),
     matricula: input.matricula.trim(),
     ativo: input.ativo,
+    perfil: colaborador.perfil || 'colaborador',
   };
 
   if (input.pin) {

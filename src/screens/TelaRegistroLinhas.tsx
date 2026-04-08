@@ -17,6 +17,7 @@ import {
   limparFalhaRua,
   finalizarAvaliacao,
   obterAvaliacaoDetalhada,
+  registrarRetoque,
   salvarRegistroColeta,
 } from '@/core/evaluations';
 import { saveEntity } from '@/core/repositories';
@@ -497,6 +498,12 @@ export function TelaRegistroLinhas() {
   const [finalizandoDestino, setFinalizandoDestino] = useState<
     'dashboard' | 'relatorio' | null
   >(null);
+  const [showRetoqueModal, setShowRetoqueModal] = useState(false);
+  const [retoqueBags, setRetoqueBags] = useState('');
+  const [retoqueCargas, setRetoqueCargas] = useState('');
+  const [retoqueData, setRetoqueData] = useState(nowIso().slice(0, 10));
+  const [retoqueObs, setRetoqueObs] = useState('');
+  const [retoqueRegistrado, setRetoqueRegistrado] = useState(false);
   const [editRuaLinhaIni, setEditRuaLinhaIni] = useState('');
   const [editRuaLinhaFim, setEditRuaLinhaFim] = useState('');
   const [invertParcelaSentido, setInvertParcelaSentido] =
@@ -890,6 +897,10 @@ export function TelaRegistroLinhas() {
   useEffect(() => {
     setContadorVolumeAtivo('cachos3');
   }, [ruaAtual?.id]);
+
+  useEffect(() => {
+    setRetoqueRegistrado(Boolean(data?.retoque));
+  }, [data?.avaliacao?.id, data?.retoque]);
 
   useEffect(() => {
     setEditRuaLinhaIni(String(ruaAtual?.linhaInicial || ''));
@@ -1438,6 +1449,11 @@ export function TelaRegistroLinhas() {
     }
 
     try {
+      if (data?.avaliacao?.tipo === 'retoque' && !data?.retoque && !retoqueRegistrado) {
+        setShowRetoqueModal(true);
+        setFinalizandoDestino(destino);
+        return;
+      }
       setFinalizandoDestino(destino);
       await finalizarAvaliacao(id);
       await queryClient.invalidateQueries();
@@ -1456,6 +1472,44 @@ export function TelaRegistroLinhas() {
     }
   };
 
+  const salvarRetoqueEFinalizar = async () => {
+    const responsavelId =
+      data?.participantes.find((item) => item.papel === 'responsavel')?.colaboradorId || '';
+
+    if (!responsavelId) {
+      alert('Defina um responsável antes de finalizar o retoque.');
+      return;
+    }
+
+    const bags = Number(retoqueBags || 0);
+    const cargas = Number(retoqueCargas || 0);
+    if (!Number.isFinite(bags) && !Number.isFinite(cargas)) {
+      alert('Informe a quantidade de bags ou cargas.');
+      return;
+    }
+    if (bags <= 0 && cargas <= 0) {
+      alert('Informe a quantidade de bags ou cargas.');
+      return;
+    }
+    if (!retoqueData) {
+      alert('Informe a data do retoque.');
+      return;
+    }
+
+    await registrarRetoque({
+      avaliacaoId: id,
+      quantidadeBags: Math.max(0, bags),
+      quantidadeCargas: Math.max(0, cargas),
+      dataRetoque: retoqueData,
+      observacao: retoqueObs,
+      responsavelId,
+    });
+
+    setRetoqueRegistrado(true);
+    setShowRetoqueModal(false);
+    await concluirColeta(finalizandoDestino || 'dashboard');
+  };
+
   return (
     <LayoutMobile
       title={parcelaAtual?.parcelaCodigo || data?.avaliacao?.parcelaCodigo || 'Registro'}
@@ -1463,6 +1517,60 @@ export function TelaRegistroLinhas() {
       onBack={() => navigate('/dashboard')}
     >
       <div className="stack-lg">
+        <Dialog open={showRetoqueModal} onOpenChange={setShowRetoqueModal}>
+          <DialogContent className="max-w-[420px]">
+            <DialogHeader>
+              <DialogTitle>Finalização do retoque</DialogTitle>
+            </DialogHeader>
+            <div className="stack-md">
+              <p className="text-sm text-[var(--qc-text-muted)]">
+                Informe os dados obrigatórios do retoque antes de finalizar.
+              </p>
+              <Input
+                type="date"
+                value={retoqueData}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                  setRetoqueData(event.target.value)
+                }
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  placeholder="Bags"
+                  value={retoqueBags}
+                  onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                    setRetoqueBags(event.target.value)
+                  }
+                />
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  placeholder="Cargas"
+                  value={retoqueCargas}
+                  onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                    setRetoqueCargas(event.target.value)
+                  }
+                />
+              </div>
+              <Textarea
+                rows={3}
+                placeholder="Observação do retoque (opcional)"
+                value={retoqueObs}
+                onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) =>
+                  setRetoqueObs(event.target.value)
+                }
+              />
+            </div>
+            <DialogFooter className="gap-2">
+              <Button variant="outline" onClick={() => setShowRetoqueModal(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={salvarRetoqueEFinalizar}>Salvar e finalizar</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         <Card className="surface-card border-none shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-center justify-between gap-3">

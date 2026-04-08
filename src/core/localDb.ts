@@ -15,7 +15,7 @@ import type {
 import { nowIso } from '@/core/date';
 
 const DB_NAME = 'qualcoco-campo-v2';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const SYNC_QUEUE_CHANGED_EVENT = 'qualcoco:sync-queue-changed';
 const LEGACY_STORAGE_KEYS = ['responsavel_nome', 'jornada_id', 'jornada_data'];
 const PARCELAS_CATALOGO_SEED_VERSION = '2026-03-23-v1';

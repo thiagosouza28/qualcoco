@@ -8,8 +8,11 @@ import { normalizeDateKey } from '@/core/date';
 import type {
   Avaliacao,
   AvaliacaoColaborador,
+  AvaliacaoLog,
   AvaliacaoParcela,
+  AvaliacaoRetoque,
   AvaliacaoRua,
+  Colaborador,
   FiltrosHistorico,
   TipoFalhaRua,
   NovaAvaliacaoInput,
@@ -159,16 +162,21 @@ export const listarIdsAvaliacoesAcessiveis = async (
   }, new Set<string>());
 };
 
+const resolveColaboradorPerfil = (colaborador?: Colaborador | null) =>
+  String(colaborador?.perfil || 'colaborador').trim() || 'colaborador';
+
 const criarParticipantesAvaliacao = async ({
   avaliacaoId,
   deviceId,
   responsavelId,
   participanteIds,
+  colaboradoresMap,
 }: {
   avaliacaoId: string;
   deviceId: string;
   responsavelId: string;
   participanteIds: string[];
+  colaboradoresMap: Map<string, Colaborador> | null;
 }) => {
   const colaboradorIds = Array.from(
     new Set([responsavelId, ...participanteIds]),
@@ -176,17 +184,103 @@ const criarParticipantesAvaliacao = async ({
   const participantes: AvaliacaoColaborador[] = [];
 
   for (const colaboradorId of colaboradorIds) {
+    const colaborador = colaboradoresMap?.get(colaboradorId) || null;
     participantes.push(
       await createEntity('avaliacaoColaboradores', deviceId, {
         avaliacaoId,
         colaboradorId,
         papel:
           colaboradorId === responsavelId ? 'responsavel' : 'participante',
+        colaboradorNome: colaborador?.nome || '',
+        colaboradorPrimeiroNome: colaborador?.primeiroNome || '',
+        colaboradorMatricula: colaborador?.matricula || '',
+        colaboradorPerfil: resolveColaboradorPerfil(colaborador),
       }),
     );
   }
 
   return participantes;
+};
+
+const criarLogAvaliacao = async (input: {
+  avaliacaoId: string;
+  colaboradorId: string | null;
+  acao: string;
+  descricao: string;
+}) => {
+  const device = await getOrCreateDevice();
+  const log: AvaliacaoLog = await createEntity('avaliacaoLogs', device.id, {
+    avaliacaoId: input.avaliacaoId,
+    colaboradorId: input.colaboradorId,
+    acao: input.acao,
+    descricao: input.descricao,
+  });
+  return log;
+};
+
+const clonarPlanejamentoParaRetoque = async ({
+  avaliacaoId,
+  avaliacaoOriginalId,
+  deviceId,
+  dataAvaliacao,
+}: {
+  avaliacaoId: string;
+  avaliacaoOriginalId: string;
+  deviceId: string;
+  dataAvaliacao: string;
+}) => {
+  const [parcelasOriginais, ruasOriginais] = await Promise.all([
+    repository.filter(
+      'avaliacaoParcelas',
+      (item) => item.avaliacaoId === avaliacaoOriginalId && !item.deletadoEm,
+    ),
+    repository.filter(
+      'avaliacaoRuas',
+      (item) => item.avaliacaoId === avaliacaoOriginalId && !item.deletadoEm,
+    ),
+  ]);
+
+  const parcelaIdMap = new Map<string, string>();
+  const parcelas: AvaliacaoParcela[] = [];
+  const ruas: AvaliacaoRua[] = [];
+
+  for (const parcela of parcelasOriginais) {
+    const novaParcela = await createEntity('avaliacaoParcelas', deviceId, {
+      avaliacaoId,
+      parcelaId: parcela.parcelaId,
+      parcelaCodigo: parcela.parcelaCodigo,
+      linhaInicial: parcela.linhaInicial,
+      linhaFinal: parcela.linhaFinal,
+      configuradaEm: nowIso(),
+      faixasFalha: parcela.faixasFalha || [],
+      siglasResumo: null,
+    });
+    parcelaIdMap.set(parcela.id, novaParcela.id);
+    parcelas.push(novaParcela);
+  }
+
+  for (const rua of ruasOriginais) {
+    const novoParcelaId = parcelaIdMap.get(rua.avaliacaoParcelaId);
+    if (!novoParcelaId) continue;
+    ruas.push(
+      await createEntity('avaliacaoRuas', deviceId, {
+        avaliacaoId,
+        parcelaId: rua.parcelaId,
+        dataAvaliacao,
+        avaliacaoParcelaId: novoParcelaId,
+        ruaNumero: rua.ruaNumero,
+        linhaInicial: rua.linhaInicial,
+        linhaFinal: rua.linhaFinal,
+        alinhamentoTipo: rua.alinhamentoTipo,
+        sentidoRuas: rua.sentidoRuas,
+        equipeId: rua.equipeId,
+        equipeNome: rua.equipeNome,
+        tipoFalha: null,
+      }),
+    );
+  }
+
+  return { parcelas, ruas };
 };
 
 const materializarPlanejamentoAvaliacao = async ({
@@ -265,6 +359,10 @@ const materializarPlanejamentoAvaliacao = async ({
 
 export const criarAvaliacao = async (input: NovaAvaliacaoInput) => {
   const device = await getOrCreateDevice();
+  const colaboradores = await repository.list('colaboradores');
+  const colaboradoresMap = new Map(
+    colaboradores.map((item) => [item.id, item]),
+  );
   const avaliacao = await createEntity('avaliacoes', device.id, {
     usuarioId: input.usuarioId,
     dispositivoId: input.dispositivoId,
@@ -272,6 +370,8 @@ export const criarAvaliacao = async (input: NovaAvaliacaoInput) => {
     dataColheita: input.dataColheita || todayIso(),
     observacoes: input.observacoes,
     status: 'in_progress',
+    tipo: input.tipo || 'normal',
+    avaliacaoOriginalId: input.avaliacaoOriginalId || null,
     totalRegistros: 0,
     mediaParcela: 0,
     mediaCachos3: 0,
@@ -286,6 +386,7 @@ export const criarAvaliacao = async (input: NovaAvaliacaoInput) => {
     deviceId: device.id,
     responsavelId: input.usuarioId,
     participanteIds: input.participanteIds,
+    colaboradoresMap,
   });
   const { parcelas, ruas } = await materializarPlanejamentoAvaliacao({
     avaliacaoId: avaliacao.id,
@@ -295,6 +396,82 @@ export const criarAvaliacao = async (input: NovaAvaliacaoInput) => {
     planejamentoEquipes: input.planejamentoEquipes,
     alinhamentoTipo: input.alinhamentoTipo,
     sentidoRuas: input.sentidoRuas,
+  });
+
+  const responsavel = colaboradoresMap.get(input.usuarioId);
+  await criarLogAvaliacao({
+    avaliacaoId: avaliacao.id,
+    colaboradorId: input.usuarioId,
+    acao: 'avaliacao_iniciada',
+    descricao: `Avaliação iniciada por ${responsavel?.primeiroNome || 'colaborador'}.`,
+  });
+
+  return {
+    avaliacao,
+    participantes,
+    parcelas,
+    ruas,
+  };
+};
+
+export const criarRetoqueAvaliacao = async (input: {
+  avaliacaoOriginalId: string;
+  responsavelId: string;
+  participanteIds: string[];
+}) => {
+  const device = await getOrCreateDevice();
+  const [avaliacaoOriginal, colaboradores] = await Promise.all([
+    repository.get('avaliacoes', input.avaliacaoOriginalId),
+    repository.list('colaboradores'),
+  ]);
+
+  if (!avaliacaoOriginal) {
+    throw new Error('Avaliação original não encontrada.');
+  }
+
+  const colaboradoresMap = new Map(
+    colaboradores.map((item) => [item.id, item]),
+  );
+
+  const avaliacao = await createEntity('avaliacoes', device.id, {
+    usuarioId: input.responsavelId,
+    dispositivoId: avaliacaoOriginal.dispositivoId,
+    dataAvaliacao: todayIso(),
+    dataColheita: avaliacaoOriginal.dataColheita || todayIso(),
+    observacoes: '',
+    status: 'in_progress',
+    tipo: 'retoque',
+    avaliacaoOriginalId: avaliacaoOriginal.id,
+    totalRegistros: 0,
+    mediaParcela: 0,
+    mediaCachos3: 0,
+    origemDado: 'local',
+    alinhamentoTipo: avaliacaoOriginal.alinhamentoTipo || inferirAlinhamentoTipoPorLinha(1),
+    ordemColeta: ORDEM_COLETA_FIXA,
+    modoCalculo: avaliacaoOriginal.modoCalculo || 'manual',
+  });
+
+  const participantes = await criarParticipantesAvaliacao({
+    avaliacaoId: avaliacao.id,
+    deviceId: device.id,
+    responsavelId: input.responsavelId,
+    participanteIds: input.participanteIds,
+    colaboradoresMap,
+  });
+
+  const { parcelas, ruas } = await clonarPlanejamentoParaRetoque({
+    avaliacaoId: avaliacao.id,
+    avaliacaoOriginalId: avaliacaoOriginal.id,
+    deviceId: device.id,
+    dataAvaliacao: avaliacao.dataAvaliacao,
+  });
+
+  const responsavel = colaboradoresMap.get(input.responsavelId);
+  await criarLogAvaliacao({
+    avaliacaoId: avaliacao.id,
+    colaboradorId: input.responsavelId,
+    acao: 'retoque_iniciado',
+    descricao: `Retoque iniciado por ${responsavel?.primeiroNome || 'colaborador'}.`,
   });
 
   return {
@@ -310,6 +487,10 @@ export const atualizarAvaliacaoConfiguracao = async (
 ) => {
   const device = await getOrCreateDevice();
   const dataAvaliacaoAtualizada = todayIso();
+  const colaboradores = await repository.list('colaboradores');
+  const colaboradoresMap = new Map(
+    colaboradores.map((item) => [item.id, item]),
+  );
   const [avaliacao, participantesAtuais, parcelasAtuais, ruasAtuais, registrosAtuais] =
     await Promise.all([
       repository.get('avaliacoes', input.avaliacaoId),
@@ -379,6 +560,7 @@ export const atualizarAvaliacaoConfiguracao = async (
     deviceId: device.id,
     responsavelId,
     participanteIds: input.participanteIds,
+    colaboradoresMap,
   });
   const { parcelas, ruas } = await materializarPlanejamentoAvaliacao({
     avaliacaoId: avaliacao.id,
@@ -507,6 +689,8 @@ export const obterAvaliacaoDetalhada = async (
     ruas,
     registros,
     participantes,
+    logs,
+    retoques,
     colaboradoresBase,
     parcelasCatalogo,
   ] = await Promise.all([
@@ -524,6 +708,14 @@ export const obterAvaliacaoDetalhada = async (
     ),
     repository.filter(
       'avaliacaoColaboradores',
+      (item) => item.avaliacaoId === avaliacaoId && !item.deletadoEm,
+    ),
+    repository.filter(
+      'avaliacaoLogs',
+      (item) => item.avaliacaoId === avaliacaoId && !item.deletadoEm,
+    ),
+    repository.filter(
+      'avaliacaoRetoques',
       (item) => item.avaliacaoId === avaliacaoId && !item.deletadoEm,
     ),
     repository.list('colaboradores'),
@@ -576,6 +768,8 @@ export const obterAvaliacaoDetalhada = async (
       ...item,
       colaborador: colaboradoresMap.get(item.colaboradorId) || null,
     })),
+    logs: logs.sort((a, b) => a.criadoEm.localeCompare(b.criadoEm)),
+    retoque: retoques[0] || null,
     parcelasCatalogo: parcelasMap,
   };
 };
@@ -798,12 +992,27 @@ export const excluirAvaliacaoEmAndamento = async (avaliacaoId: string) => {
 };
 
 export const finalizarAvaliacao = async (avaliacaoId: string) => {
-  const [avaliacao, configs] = await Promise.all([
+  const [avaliacao, configs, participantes, retoques] = await Promise.all([
     repository.get('avaliacoes', avaliacaoId),
     repository.list('configuracoes'),
+    repository.filter(
+      'avaliacaoColaboradores',
+      (item) => item.avaliacaoId === avaliacaoId && !item.deletadoEm,
+    ),
+    repository.filter(
+      'avaliacaoRetoques',
+      (item) => item.avaliacaoId === avaliacaoId && !item.deletadoEm,
+    ),
   ]);
 
   if (!avaliacao) return null;
+  const responsavel = participantes.find((item) => item.papel === 'responsavel');
+  if (!responsavel) {
+    throw new Error('Defina um responsável antes de finalizar a avaliação.');
+  }
+  if (avaliacao.tipo === 'retoque' && !retoques[0]) {
+    throw new Error('Informe os dados do retoque antes de finalizar.');
+  }
 
   const config = configs[0];
   const limiteCocos = config?.limiteCocosChao ?? 19;
@@ -821,7 +1030,77 @@ export const finalizarAvaliacao = async (avaliacaoId: string) => {
   };
 
   await saveEntity('avaliacoes', next);
+
+  await criarLogAvaliacao({
+    avaliacaoId,
+    colaboradorId: responsavel.colaboradorId,
+    acao: 'avaliacao_finalizada',
+    descricao:
+      next.status === 'refazer'
+        ? 'Avaliação finalizada com retoque.'
+        : 'Avaliação finalizada com status OK.',
+  });
+
   return next;
+};
+
+export const registrarRetoque = async (input: {
+  avaliacaoId: string;
+  quantidadeBags: number;
+  quantidadeCargas: number;
+  dataRetoque: string;
+  observacao: string;
+  responsavelId: string;
+}) => {
+  const device = await getOrCreateDevice();
+  const [avaliacao, colaboradores] = await Promise.all([
+    repository.get('avaliacoes', input.avaliacaoId),
+    repository.list('colaboradores'),
+  ]);
+  if (!avaliacao || avaliacao.tipo !== 'retoque' || !avaliacao.avaliacaoOriginalId) {
+    throw new Error('Retoque não disponível para esta avaliação.');
+  }
+
+  const responsavel = colaboradores.find((item) => item.id === input.responsavelId);
+  const existente = await repository.filter(
+    'avaliacaoRetoques',
+    (item) => item.avaliacaoId === input.avaliacaoId && !item.deletadoEm,
+  );
+
+  const payload = {
+    avaliacaoId: input.avaliacaoId,
+    avaliacaoOriginalId: avaliacao.avaliacaoOriginalId,
+    responsavelId: input.responsavelId,
+    responsavelNome: responsavel?.nome || '',
+    responsavelMatricula: responsavel?.matricula || '',
+    quantidadeBags: input.quantidadeBags,
+    quantidadeCargas: input.quantidadeCargas,
+    dataRetoque: input.dataRetoque,
+    observacao: input.observacao,
+  };
+
+  let record: AvaliacaoRetoque;
+  if (existente[0]) {
+    record = {
+      ...existente[0],
+      ...payload,
+      atualizadoEm: nowIso(),
+      syncStatus: 'pending_sync',
+      versao: existente[0].versao + 1,
+    };
+    await saveEntity('avaliacaoRetoques', record);
+  } else {
+    record = await createEntity('avaliacaoRetoques', device.id, payload);
+  }
+
+  await criarLogAvaliacao({
+    avaliacaoId: input.avaliacaoId,
+    colaboradorId: input.responsavelId,
+    acao: 'retoque_finalizado',
+    descricao: `Retoque finalizado por ${responsavel?.primeiroNome || 'colaborador'}.`,
+  });
+
+  return record;
 };
 
 export const listarHistorico = async (

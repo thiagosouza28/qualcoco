@@ -13,6 +13,7 @@ import {
   Palmtree, 
   Layout, 
   Users2,
+  UserCheck,
   UserPlus,
   Trash2,
 } from 'lucide-react';
@@ -783,6 +784,12 @@ export function TelaNovaAvaliacao() {
       if (!dataColheita) {
         throw new Error('Selecione a data da colheita antes de iniciar.');
       }
+      if (!responsavelId) {
+        throw new Error('Defina um responsável principal antes de iniciar.');
+      }
+      if (temMaisPessoas === true && participanteIds.length === 0) {
+        throw new Error('Selecione ao menos um ajudante para continuar.');
+      }
 
       const payload = {
         usuarioId: responsavelId || usuarioAtual?.id || '',
@@ -958,6 +965,33 @@ export function TelaNovaAvaliacao() {
                   />
                 </div>
 
+                <div className="stack-sm rounded-[20px] border border-[var(--qc-border)] bg-white p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <UserCheck className="h-4 w-4 text-[var(--qc-primary)]" />
+                      <p className="text-sm font-black uppercase tracking-[0.18em] text-[var(--qc-secondary)]">
+                        Responsável principal
+                      </p>
+                    </div>
+                    <Badge className="border-none bg-[var(--qc-primary)] text-white">
+                      Principal
+                    </Badge>
+                  </div>
+                  <div className="mt-3 flex items-center gap-3 rounded-[16px] bg-[var(--qc-tertiary)] px-3 py-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--qc-primary)] text-white">
+                      <UserCheck className="h-4 w-4" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-black text-[var(--qc-primary)]">
+                        {responsavelAtual?.primeiroNome || 'Responsável'}
+                      </span>
+                      <span className="text-xs font-semibold text-[var(--qc-text-muted)]">
+                        {responsavelAtual?.matricula || 'Matrícula não informada'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="stack-sm">
                   <p className="text-sm font-bold uppercase tracking-widest text-[var(--qc-secondary)]">PERGUNTA</p>
                   <p className="text-lg font-bold leading-tight text-[var(--qc-text)]">
@@ -1006,6 +1040,27 @@ export function TelaNovaAvaliacao() {
                         CADASTRAR NOVO
                       </Link>
                     </div>
+
+                    {participanteIds.length === 0 ? (
+                      <p className="text-xs font-semibold text-[var(--qc-danger)]">
+                        Selecione pelo menos um ajudante para continuar.
+                      </p>
+                    ) : null}
+
+                    {participanteIds.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {colaboradores
+                          .filter((item) => participanteIds.includes(item.id))
+                          .map((colaborador) => (
+                            <Badge
+                              key={colaborador.id}
+                              className="border-none bg-[var(--qc-primary)] text-white"
+                            >
+                              {colaborador.primeiroNome}
+                            </Badge>
+                          ))}
+                      </div>
+                    ) : null}
 
                     <div className="grid grid-cols-2 gap-3">
                       {colaboradores

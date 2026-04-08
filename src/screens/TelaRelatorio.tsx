@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { repository } from '@/core/repositories';
 import { useCampoApp } from '@/core/AppProvider';
 import { listarIdsAvaliacoesAcessiveis } from '@/core/evaluations';
-import type { SiglaResumoParcela } from '@/core/types';
+import type { AvaliacaoRetoque, SiglaResumoParcela } from '@/core/types';
 import {
   limparMarcacoesLegadasColeta,
   obterApresentacaoEstadoColetaRua,
@@ -373,6 +373,11 @@ export function TelaRelatorio() {
     queryFn: () => repository.list('avaliacaoColaboradores'),
   });
 
+  const { data: avaliacaoRetoques = [] } = useQuery({
+    queryKey: ['relatorio', 'avaliacaoRetoques'],
+    queryFn: () => repository.list('avaliacaoRetoques'),
+  });
+
   const { data: registros = [] } = useQuery({
     queryKey: ['relatorio', 'registros'],
     queryFn: () => repository.list('registrosColeta'),
@@ -530,8 +535,15 @@ export function TelaRelatorio() {
       const allAvaliacaoParcelas = await repository.list('avaliacaoParcelas');
       const allAvaliacaoRuas = await repository.list('avaliacaoRuas');
       const allRegistros = await repository.list('registrosColeta');
+      const allRetoques = await repository.list('avaliacaoRetoques');
 
       const colabMap = new Map(allColaboradores.map((item) => [item.id, item]));
+      const avaliacaoMap = new Map(avaliacoes.map((item) => [item.id, item]));
+      const retoqueByAvaliacaoId = new Map(
+        allRetoques
+          .filter((item) => !item.deletadoEm)
+          .map((item) => [item.avaliacaoId, item] as [string, AvaliacaoRetoque]),
+      );
       const parcelaCodigoMap = new Map(
         allAvaliacaoParcelas.map((item) => [item.id, item.parcelaCodigo]),
       );
@@ -560,15 +572,21 @@ export function TelaRelatorio() {
           (item) => item.avaliacaoId === avaliacao.id && !item.deletadoEm,
         );
         const conclusaoParcelaEquipe = new Map<string, boolean>();
+        const resolveNomeColaborador = (item: (typeof avColabs)[number]) =>
+          colabMap.get(item.colaboradorId)?.primeiroNome ||
+          item.colaboradorPrimeiroNome ||
+          item.colaboradorNome ||
+          '';
+
         const responsaveis = avColabs
           .filter((item) => item.papel === 'responsavel')
           .flatMap((item) => {
-            const nome = colabMap.get(item.colaboradorId)?.primeiroNome;
+            const nome = resolveNomeColaborador(item);
             return nome ? [nome] : [];
           });
         const participantes = avColabs
           .flatMap((item) => {
-            const nome = colabMap.get(item.colaboradorId)?.primeiroNome;
+            const nome = resolveNomeColaborador(item);
             return nome ? [nome] : [];
           });
         const responsaveisLista = Array.from(
@@ -605,7 +623,33 @@ export function TelaRelatorio() {
           const dataColheita = avaliacao.dataColheita || dataRelatorio;
           const referente = montarReferenteRelatorio(dataColheita);
           const observacoesRegistro = registro?.observacoes || avaliacao.observacoes || '';
-          const observacao = montarObservacaoRelatorio(observacoesRegistro);
+          const observacaoBase = montarObservacaoRelatorio(observacoesRegistro);
+          const retoque = retoqueByAvaliacaoId.get(avaliacao.id);
+          const avaliacaoOriginal = avaliacao.avaliacaoOriginalId
+            ? avaliacaoMap.get(avaliacao.avaliacaoOriginalId)
+            : null;
+          const observacaoExtra: string[] = [];
+          if (avaliacao.tipo === 'retoque' && retoque) {
+            const bags = Number(retoque.quantidadeBags || 0);
+            const cargas = Number(retoque.quantidadeCargas || 0);
+            const dataRetoque = retoque.dataRetoque
+              ? `Data retoque: ${retoque.dataRetoque}`
+              : '';
+            observacaoExtra.push(
+              `Retoque: ${bags} bags / ${cargas} cargas`,
+              dataRetoque,
+            );
+          }
+          if (avaliacao.tipo === 'retoque' && avaliacaoOriginal) {
+            const diffMedia = (avaliacao.mediaParcela || 0) - (avaliacaoOriginal.mediaParcela || 0);
+            if (Number.isFinite(diffMedia)) {
+              observacaoExtra.push(`Diferença média: ${diffMedia.toFixed(2)}`);
+            }
+          }
+          const observacao = [observacaoBase, ...observacaoExtra]
+            .map((item) => String(item || '').trim())
+            .filter(Boolean)
+            .join('\n');
           const apresentacaoColeta = obterApresentacaoEstadoColetaRua({
             quantidade: registro.quantidade,
             quantidadeCachos3: registro.quantidadeCachos3,
