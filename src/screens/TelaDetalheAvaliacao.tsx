@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ClipboardList, History, Users, Wrench } from 'lucide-react';
+import { AccessDeniedCard } from '@/components/AccessDeniedCard';
 import { LayoutMobile } from '@/components/LayoutMobile';
 import { useCampoApp } from '@/core/AppProvider';
 import {
@@ -20,9 +21,11 @@ import { getEvaluationStatusMeta } from '@/core/evaluationStatus';
 import {
   canMarkRetoque,
   canStartRetoque,
+  canViewHistory,
   filtrarEquipesVisiveis,
   normalizePapelAvaliacao,
 } from '@/core/permissions';
+import { useRolePermissions } from '@/core/useRolePermissions';
 
 const formatDateTime = (value?: string | null) => {
   if (!value) return '-';
@@ -43,6 +46,7 @@ export function TelaDetalheAvaliacao() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { usuarioAtual } = useCampoApp();
+  const { permissionMatrix } = useRolePermissions(usuarioAtual?.perfil);
   const [showMarcarModal, setShowMarcarModal] = useState(false);
   const [showRetoqueModal, setShowRetoqueModal] = useState(false);
   const [motivoRetoque, setMotivoRetoque] = useState('');
@@ -76,6 +80,18 @@ export function TelaDetalheAvaliacao() {
   const retoquesRelacionados = data?.retoquesRelacionados || [];
   const retoqueEmAndamento =
     retoquesRelacionados.find((item) => item.avaliacao.status === 'in_progress') || null;
+
+  if (!canViewHistory(usuarioAtual?.perfil, permissionMatrix)) {
+    return (
+      <LayoutMobile
+        title="Detalhe da avaliacao"
+        subtitle="Acesso restrito"
+        onBack={() => navigate('/dashboard')}
+      >
+        <AccessDeniedCard description="A consulta detalhada da avaliacao so aparece quando o administrador libera historico para o seu perfil." />
+      </LayoutMobile>
+    );
+  }
 
   const marcarMutation = useMutation({
     mutationFn: async () =>
@@ -379,13 +395,16 @@ export function TelaDetalheAvaliacao() {
                 Continuar avaliação
               </Button>
             ) : null}
-            {data?.avaliacao?.status === 'refazer' && canMarkRetoque(usuarioAtual?.perfil) ? (
+            {data?.avaliacao?.status === 'refazer' &&
+            canMarkRetoque(usuarioAtual?.perfil, permissionMatrix) ? (
               <Button onClick={() => setShowMarcarModal(true)}>
                 <Wrench className="h-4 w-4" />
                 Marcar para retoque
               </Button>
             ) : null}
-            {data?.avaliacao?.status === 'em_retoque' && !retoqueEmAndamento && canStartRetoque(usuarioAtual?.perfil) ? (
+            {data?.avaliacao?.status === 'em_retoque' &&
+            !retoqueEmAndamento &&
+            canStartRetoque(usuarioAtual?.perfil, permissionMatrix) ? (
               <Button onClick={() => setShowRetoqueModal(true)}>
                 <Users className="h-4 w-4" />
                 Iniciar retoque

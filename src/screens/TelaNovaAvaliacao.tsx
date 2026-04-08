@@ -17,6 +17,7 @@ import {
   UserPlus,
   Trash2,
 } from 'lucide-react';
+import { AccessDeniedCard } from '@/components/AccessDeniedCard';
 import { LayoutMobile } from '@/components/LayoutMobile';
 import { useCampoApp } from '@/core/AppProvider';
 import { listarColaboradoresAtivos } from '@/core/auth';
@@ -27,7 +28,7 @@ import {
   obterAvaliacaoDetalhada,
 } from '@/core/evaluations';
 import { clamp } from '@/core/plots';
-import { filtrarEquipesVisiveis } from '@/core/permissions';
+import { canStartEvaluation, filtrarEquipesVisiveis } from '@/core/permissions';
 import { repository } from '@/core/repositories';
 import { ListaParcelas } from '@/components/ListaParcelas';
 import { Button } from '@/components/ui/button';
@@ -37,6 +38,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { todayIso } from '@/core/date';
+import { useRolePermissions } from '@/core/useRolePermissions';
 import { cn } from '@/utils';
 import type {
   FaixaFalhaParcela,
@@ -187,6 +189,7 @@ export function TelaNovaAvaliacao() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { usuarioAtual, dispositivo } = useCampoApp();
+  const { permissionMatrix } = useRolePermissions(usuarioAtual?.perfil);
   const isEditMode = Boolean(editingId);
   const initializedEditRef = useRef<string | null>(null);
   const dataAvaliacaoEdicao = todayIso();
@@ -910,6 +913,18 @@ export function TelaNovaAvaliacao() {
       </div>
     );
   };
+
+  if (!canStartEvaluation(usuarioAtual?.perfil, permissionMatrix)) {
+    return (
+      <LayoutMobile
+        title={isEditMode ? 'Editar avaliacao' : 'Avaliacao'}
+        subtitle="Acesso restrito"
+        onBack={() => navigate('/dashboard')}
+      >
+        <AccessDeniedCard description="A abertura e configuracao da avaliacao so aparecem quando essa funcao esta liberada para o seu perfil pelo administrador." />
+      </LayoutMobile>
+    );
+  }
 
   return (
     <LayoutMobile

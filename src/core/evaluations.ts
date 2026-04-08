@@ -2,8 +2,11 @@ import { nowIso, todayIso } from '@/core/date';
 import { getOrCreateDevice } from '@/core/device';
 import { planejarParcelasAvaliacao } from '@/core/evaluationPlanning';
 import {
+  canStartEvaluation,
+  canStartRetoque,
   canMarkRetoque,
   getAccessContext,
+  obterPermissoesPerfisConfiguradas,
   normalizePapelAvaliacao,
   normalizePerfilUsuario,
 } from '@/core/permissions';
@@ -484,6 +487,12 @@ export const criarAvaliacao = async (input: NovaAvaliacaoInput) => {
     colaboradores.map((item) => [item.id, item]),
   );
   const responsavel = colaboradoresMap.get(input.usuarioId) || null;
+  const permissionMatrix = await obterPermissoesPerfisConfiguradas();
+
+  if (!canStartEvaluation(responsavel?.perfil, permissionMatrix)) {
+    throw new Error('Seu perfil não possui liberação para iniciar avaliações.');
+  }
+
   const equipePrincipal = resolveEquipePrincipal({
     equipeId: input.equipeId,
     equipeNome: input.equipeNome,
@@ -580,6 +589,12 @@ export const criarRetoqueAvaliacao = async (input: {
     colaboradores.map((item) => [item.id, item]),
   );
   const responsavel = colaboradoresMap.get(input.responsavelId) || null;
+  const permissionMatrix = await obterPermissoesPerfisConfiguradas();
+
+  if (!canStartRetoque(responsavel?.perfil, permissionMatrix)) {
+    throw new Error('Seu perfil não possui liberação para iniciar retoques.');
+  }
+
   const equipePrincipal = resolveEquipePrincipal({
     equipeId: input.equipeId || avaliacaoOriginal.equipeId,
     equipeNome: input.equipeNome || avaliacaoOriginal.equipeNome,
@@ -1427,9 +1442,10 @@ export const marcarAvaliacaoParaRetoque = async (input: {
   usuarioId: string;
   motivo?: string;
 }) => {
-  const [avaliacao, usuario] = await Promise.all([
+  const [avaliacao, usuario, permissionMatrix] = await Promise.all([
     repository.get('avaliacoes', input.avaliacaoId),
     repository.get('colaboradores', input.usuarioId),
+    obterPermissoesPerfisConfiguradas(),
   ]);
 
   if (!avaliacao || avaliacao.deletadoEm) {
@@ -1440,7 +1456,7 @@ export const marcarAvaliacaoParaRetoque = async (input: {
     throw new Error('A avaliação de retoque não pode ser remarcada.');
   }
 
-  if (!canMarkRetoque(usuario?.perfil)) {
+  if (!canMarkRetoque(usuario?.perfil, permissionMatrix)) {
     throw new Error('Seu perfil não pode marcar a parcela para retoque.');
   }
 

@@ -323,6 +323,7 @@ const remoteFieldsByStore: Partial<Record<StoreName, string[]>> = {
     'localId',
     'limiteCocosChao',
     'limiteCachos3Cocos',
+    'permissoesPerfis',
     'criadoEm',
     'atualizadoEm',
     'deletadoEm',

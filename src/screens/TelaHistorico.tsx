@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Calendar as CalendarIcon } from 'lucide-react';
+import { AccessDeniedCard } from '@/components/AccessDeniedCard';
 import { LayoutMobile } from '@/components/LayoutMobile';
 import { CardHistorico } from '@/components/CardHistorico';
 import { Button } from '@/components/ui/button';
@@ -18,8 +19,9 @@ import { listarColaboradoresAtivos } from '@/core/auth';
 import { useCampoApp } from '@/core/AppProvider';
 import { excluirAvaliacaoCompleta, listarHistorico } from '@/core/evaluations';
 import { normalizeDateKey, todayIso } from '@/core/date';
-import { canManageUsers } from '@/core/permissions';
+import { canManageUsers, canViewHistory } from '@/core/permissions';
 import { repository } from '@/core/repositories';
+import { useRolePermissions } from '@/core/useRolePermissions';
 
 const HISTORY_PAGE_SIZE = 20;
 
@@ -27,6 +29,7 @@ export function TelaHistorico() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { usuarioAtual } = useCampoApp();
+  const { permissionMatrix } = useRolePermissions(usuarioAtual?.perfil);
   const [dataFilter, setDataFilter] = useState(todayIso());
   const [colaboradorId, setColaboradorId] = useState('all');
   const [parcelaId, setParcelaId] = useState('all');
@@ -172,6 +175,18 @@ export function TelaHistorico() {
       right.localeCompare(left),
     );
   }, [historicoVisivel]);
+
+  if (!canViewHistory(usuarioAtual?.perfil, permissionMatrix)) {
+    return (
+      <LayoutMobile
+        title="Historico"
+        subtitle="Acesso restrito"
+        onBack={() => navigate('/dashboard')}
+      >
+        <AccessDeniedCard description="O historico so aparece quando essa consulta esta liberada para o seu perfil pelo administrador." />
+      </LayoutMobile>
+    );
+  }
 
   return (
     <LayoutMobile

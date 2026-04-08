@@ -24,6 +24,25 @@ export type PerfilUsuario =
   | 'fiscal'
   | 'fiscal_chefe'
   | 'administrador';
+export type PerfilConfiguravel = Exclude<PerfilUsuario, 'administrador'>;
+export type AcaoPermissaoPerfil =
+  | 'verHistorico'
+  | 'verRelatorios'
+  | 'verSincronizacao'
+  | 'iniciarAvaliacao'
+  | 'editarAvaliacaoConcluida'
+  | 'iniciarRetoque'
+  | 'marcarRetoque'
+  | 'visaoTotal'
+  | 'editarLimitesOperacionais';
+export type PermissoesPerfil = Record<AcaoPermissaoPerfil, boolean>;
+export type MatrizPermissoesPerfis = Record<
+  PerfilConfiguravel,
+  PermissoesPerfil
+>;
+export type MatrizPermissoesPerfisParcial = Partial<
+  Record<PerfilConfiguravel, Partial<PermissoesPerfil>>
+>;
 export type PapelAvaliacao =
   | 'responsavel'
   | 'participante'
@@ -230,6 +249,7 @@ export interface TentativaLogin extends BaseEntity {
 export interface Configuracao extends BaseEntity {
   limiteCocosChao: number;
   limiteCachos3Cocos: number;
+  permissoesPerfis?: MatrizPermissoesPerfisParcial | null;
 }
 
 export type SentidoRuas = 'inicio' | 'fim';

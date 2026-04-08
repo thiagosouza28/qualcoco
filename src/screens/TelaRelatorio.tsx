@@ -7,6 +7,7 @@ import { Capacitor } from '@capacitor/core';
 import { Directory, Filesystem } from '@capacitor/filesystem';
 import { FileOpener } from '@capacitor-community/file-opener';
 import { Share } from '@capacitor/share';
+import { AccessDeniedCard } from '@/components/AccessDeniedCard';
 import { LayoutMobile } from '@/components/LayoutMobile';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -15,6 +16,8 @@ import { repository } from '@/core/repositories';
 import { useCampoApp } from '@/core/AppProvider';
 import { listarIdsAvaliacoesAcessiveis } from '@/core/evaluations';
 import type { AvaliacaoRetoque, SiglaResumoParcela } from '@/core/types';
+import { canViewReports } from '@/core/permissions';
+import { useRolePermissions } from '@/core/useRolePermissions';
 import {
   limparMarcacoesLegadasColeta,
   obterApresentacaoEstadoColetaRua,
@@ -334,6 +337,7 @@ export function TelaRelatorio() {
   const location = useLocation();
   const routeState = location.state as { dataFiltro?: string } | null;
   const { usuarioAtual } = useCampoApp();
+  const { permissionMatrix } = useRolePermissions(usuarioAtual?.perfil);
   const [dataFiltro, setDataFiltro] = useState(todayIso());
   const [gerando, setGerando] = useState(false);
   const [espacoEntreEquipes, setEspacoEntreEquipes] = useState(
@@ -554,6 +558,18 @@ export function TelaRelatorio() {
   const diaSemana = useMemo(() => {
     return getDiaSemanaRelatorio(dataFiltro);
   }, [dataFiltro]);
+
+  if (!canViewReports(usuarioAtual?.perfil, permissionMatrix)) {
+    return (
+      <LayoutMobile
+        title="Relatorio"
+        subtitle="Acesso restrito"
+        onBack={() => navigate('/dashboard')}
+      >
+        <AccessDeniedCard description="Os relatorios consolidados so aparecem quando essa consulta esta liberada para o seu perfil pelo administrador." />
+      </LayoutMobile>
+    );
+  }
 
   const handleGerarPdf = async () => {
     setGerando(true);

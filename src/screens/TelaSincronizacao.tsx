@@ -13,6 +13,7 @@ import {
   Trash2,
   Upload,
 } from 'lucide-react';
+import { AccessDeniedCard } from '@/components/AccessDeniedCard';
 import { LayoutMobile } from '@/components/LayoutMobile';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -26,6 +27,8 @@ import {
 } from '@/core/sync';
 import { repository } from '@/core/repositories';
 import { useCampoApp } from '@/core/AppProvider';
+import { canViewSync } from '@/core/permissions';
+import { useRolePermissions } from '@/core/useRolePermissions';
 import { cn } from '@/utils';
 import { formatDateTimeLabel } from '@/core/date';
 
@@ -76,8 +79,15 @@ export function TelaSincronizacao() {
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const queryClient = useQueryClient();
-  const { sincronizarAgora, sincronizando, pendenciasSync, online, syncProgress } =
-    useCampoApp();
+  const {
+    sincronizarAgora,
+    sincronizando,
+    pendenciasSync,
+    online,
+    syncProgress,
+    usuarioAtual,
+  } = useCampoApp();
+  const { permissionMatrix } = useRolePermissions(usuarioAtual?.perfil);
   const [ultimoResultadoSync, setUltimoResultadoSync] =
     useState<SyncExecutionResult | null>(null);
   const [limpandoHistorico, setLimpandoHistorico] = useState(false);
@@ -112,6 +122,18 @@ export function TelaSincronizacao() {
   const ultimaSyncLabel = diagnostico?.lastSyncAt
     ? formatDateTimeLabel(diagnostico.lastSyncAt)
     : 'Nunca';
+
+  if (!canViewSync(usuarioAtual?.perfil, permissionMatrix)) {
+    return (
+      <LayoutMobile
+        title="Sincronizacao"
+        subtitle="Acesso restrito"
+        onBack={() => navigate('/dashboard')}
+      >
+        <AccessDeniedCard description="A tela de sincronizacao so aparece quando essa operacao esta liberada para o seu perfil pelo administrador." />
+      </LayoutMobile>
+    );
+  }
 
   const importarArquivo = async (file?: File | null) => {
     if (!file) return;

@@ -176,6 +176,20 @@ create table dispositivos (
   origem_dispositivo_id text not null
 );
 
+create table configuracoes (
+  local_id text primary key,
+  id text not null unique,
+  limite_cocos_chao numeric not null default 19,
+  limite_cachos_3_cocos numeric not null default 19,
+  permissoes_perfis text not null default '{}',
+  criado_em text not null,
+  atualizado_em text not null,
+  deletado_em text,
+  sync_status text not null,
+  versao integer not null default 1,
+  origem_dispositivo_id text not null
+);
+
 create table tentativas_login (
   local_id text primary key,
   id text not null unique,

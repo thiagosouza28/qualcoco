@@ -10,6 +10,7 @@ import {
   PencilLine,
   X,
 } from 'lucide-react';
+import { AccessDeniedCard } from '@/components/AccessDeniedCard';
 import { LayoutMobile } from '@/components/LayoutMobile';
 import { CounterInput } from '@/components/CounterInput';
 import { useCampoApp } from '@/core/AppProvider';
@@ -22,7 +23,11 @@ import {
 } from '@/core/evaluations';
 import { saveEntity } from '@/core/repositories';
 import { nowIso } from '@/core/date';
-import { normalizePapelAvaliacao } from '@/core/permissions';
+import {
+  canStartEvaluation,
+  canStartRetoque,
+  normalizePapelAvaliacao,
+} from '@/core/permissions';
 import { inferirAlinhamentoTipoPorLinha } from '@/core/plots';
 import { STORAGE_KEYS } from '@/core/constants';
 import { Button } from '@/components/ui/button';
@@ -46,6 +51,7 @@ import {
   resolverEstadoColetaRua,
   serializarEstadoColetaRua,
 } from '@/core/registroRua';
+import { useRolePermissions } from '@/core/useRolePermissions';
 import type {
   ModoCalculo,
   SentidoRuas,
@@ -465,6 +471,7 @@ export function TelaRegistroLinhas() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { usuarioAtual } = useCampoApp();
+  const { permissionMatrix } = useRolePermissions(usuarioAtual?.perfil);
 
   const [ruaIndex, setRuaIndex] = useState(0);
   const [quantidade, setQuantidade] = useState(0);
@@ -535,6 +542,12 @@ export function TelaRegistroLinhas() {
       navigate(`/detalhe/${id}`, { replace: true });
     }
   }, [data?.avaliacao?.status, id, isFetched, navigate]);
+
+  const avaliacaoTipoAtual = data?.avaliacao?.tipo || 'normal';
+  const podeEditarFluxoAtual =
+    avaliacaoTipoAtual === 'retoque'
+      ? canStartRetoque(usuarioAtual?.perfil, permissionMatrix)
+      : canStartEvaluation(usuarioAtual?.perfil, permissionMatrix);
 
   const ruas = useMemo(() => data?.ruas || [], [data]);
   const ruaAtual = ruas[ruaIndex] || null;
@@ -1528,6 +1541,18 @@ export function TelaRegistroLinhas() {
     setShowRetoqueModal(false);
     await concluirColeta(finalizandoDestino || 'dashboard');
   };
+
+  if (isFetched && data && !podeEditarFluxoAtual) {
+    return (
+      <LayoutMobile
+        title="Registro"
+        subtitle="Acesso restrito"
+        onBack={() => navigate('/dashboard')}
+      >
+        <AccessDeniedCard description="A edicao deste fluxo de avaliacao foi bloqueada para o seu perfil. Se necessario, o administrador pode liberar essa funcao nas configuracoes." />
+      </LayoutMobile>
+    );
+  }
 
   return (
     <LayoutMobile
