@@ -77,26 +77,14 @@ const getReferenteEquipeLinhasPdf = (value = '') => {
   return ['Referente a', diaReferencia];
 };
 
-const getReferenteEquipeLinhaPdf = ({
+const buildObservacaoEquipePdf = ({
   referente,
-  rowIndex,
-  totalRows,
+  responsaveis = [],
 }) => {
   const [titulo, diaReferencia] = getReferenteEquipeLinhasPdf(referente);
+  const nomesResponsaveis = formatResponsaveisPdf(responsaveis);
 
-  if (totalRows <= 1) {
-    return [titulo, diaReferencia].filter(Boolean).join('\n');
-  }
-
-  if (rowIndex === 0) {
-    return titulo;
-  }
-
-  if (rowIndex === 1) {
-    return diaReferencia;
-  }
-
-  return '';
+  return `${titulo}\n${diaReferencia}\n\n\n\n${nomesResponsaveis}`;
 };
 
 const buildSubtitleText = (dataTitulo, referenteLabel) => {
@@ -142,25 +130,17 @@ const createPdfRows = (page) => {
         index < entry.rows.length - 1 ? entry.rows[index + 1]?.parcela : null;
       const isUltimaLinhaParcela =
         index === entry.rows.length - 1 || proximaParcela !== row.parcela;
-      const observacaoLinhas = [];
-      const referenteLinha = getReferenteEquipeLinhaPdf({
-        referente: row.referente,
-        rowIndex: index,
-        totalRows: entry.rows.length,
-      });
+      const responsavelLinhas = [];
 
-      if (referenteLinha) {
-        observacaoLinhas.push(referenteLinha);
-      }
       if (row.observacao) {
-        observacaoLinhas.push(formatObservacaoColunaPdf(row.observacao));
+        responsavelLinhas.push(formatObservacaoColunaPdf(row.observacao));
       }
       if (
         isUltimaLinhaParcela &&
         row.parcelaCompleta !== false &&
         row.siglaResumoParcela
       ) {
-        observacaoLinhas.push(String(row.siglaResumoParcela).trim());
+        responsavelLinhas.push(String(row.siglaResumoParcela).trim());
       }
 
       const pdfRow = {
@@ -173,14 +153,14 @@ const createPdfRows = (page) => {
         rua: row.rua || '',
         cachoPl: row.cachoPl || '',
         cocosDeixados: row.cocosDeixados || '',
-        responsavel: observacaoLinhas.length > 0
-          ? observacaoLinhas.join('\n')
+        responsavel: responsavelLinhas.length > 0
+          ? responsavelLinhas.join('\n')
           : '',
         observacao: isPrimeiraLinhaEquipe
-          ? (entry.responsaveis || [])
-              .map((item) => String(item || '').trim())
-              .filter(Boolean)
-              .join(', ')
+          ? buildObservacaoEquipePdf({
+              referente: row.referente,
+              responsaveis: entry.responsaveis || [],
+            })
           : '',
         highlightCacho: row.excedeuCacho,
         highlightCocos: row.excedeuCocos,
@@ -318,7 +298,7 @@ export const createRelatorioPdfBlob = ({
           hook.cell.styles.fontStyle = 'bold';
         }
 
-        if (key === 'responsavel') {
+        if (key === 'responsavel' || key === 'observacao') {
           const rawText = Array.isArray(hook.cell.text)
             ? hook.cell.text.join(' ')
             : String(hook.cell.text || '');

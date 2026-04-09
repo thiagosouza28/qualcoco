@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -75,11 +75,17 @@ export function CadastroColaborador() {
     enabled: isEditMode,
   });
 
-  const { data: equipeIdsUsuarioAtual = [] } = useQuery({
+  const {
+    data: equipeIdsUsuarioAtual = [],
+    isFetched: equipeIdsUsuarioAtualCarregado,
+  } = useQuery({
     queryKey: ['colaboradores', usuarioAtual?.id, 'equipes'],
     queryFn: () => listarEquipeIdsDoUsuario(usuarioAtual?.id || ''),
     enabled: Boolean(usuarioAtual?.id),
   });
+  const novoFormSeedRef = useRef<string | null>(null);
+  const editFormSeedRef = useRef<string | null>(null);
+  const editEquipeSeedRef = useRef<string | null>(null);
 
   const [nome, setNome] = useState('');
   const [primeiroNome, setPrimeiroNome] = useState('');
@@ -91,22 +97,53 @@ export function CadastroColaborador() {
   const [erro, setErro] = useState('');
 
   useEffect(() => {
+    novoFormSeedRef.current = null;
+    editFormSeedRef.current = null;
+    editEquipeSeedRef.current = null;
+
+    if (!isEditMode) {
+      const initial = createEmptyFormState();
+      setNome(initial.nome);
+      setPrimeiroNome(initial.primeiroNome);
+      setMatricula(initial.matricula);
+      setPin(initial.pin);
+      setPerfil(initial.perfil);
+      setAtivo(initial.ativo);
+      setEquipeIds([]);
+    }
+  }, [colaboradorId, isEditMode, quickHelperMode, usuarioAtual?.id]);
+
+  useEffect(() => {
     if (isEditMode) {
       return;
     }
 
-    const initial = createEmptyFormState();
-    setNome(initial.nome);
-    setPrimeiroNome(initial.primeiroNome);
-    setMatricula(initial.matricula);
-    setPin(initial.pin);
-    setPerfil(initial.perfil);
-    setAtivo(initial.ativo);
+    const seedKey = `novo:${quickHelperMode ? 'quick' : 'padrao'}:${usuarioAtual?.id || 'anon'}`;
+    if (novoFormSeedRef.current === seedKey) {
+      return;
+    }
+
+    if (quickHelperMode && usuarioAtual?.id && !equipeIdsUsuarioAtualCarregado) {
+      return;
+    }
+
     setEquipeIds(quickHelperMode ? equipeIdsUsuarioAtual : []);
-  }, [equipeIdsUsuarioAtual, isEditMode, quickHelperMode]);
+    novoFormSeedRef.current = seedKey;
+  }, [
+    equipeIdsUsuarioAtual,
+    equipeIdsUsuarioAtualCarregado,
+    isEditMode,
+    quickHelperMode,
+    usuarioAtual?.id,
+  ]);
 
   useEffect(() => {
     if (!isEditMode || !colaborador) {
+      return;
+    }
+
+    const seedKey = `edicao:${colaborador.id}:${colaborador.atualizadoEm}`;
+    if (editFormSeedRef.current === seedKey) {
       return;
     }
 
@@ -116,6 +153,7 @@ export function CadastroColaborador() {
     setPin('');
     setPerfil(normalizePerfilUsuario(colaborador.perfil));
     setAtivo(colaborador.ativo);
+    editFormSeedRef.current = seedKey;
   }, [colaborador, isEditMode]);
 
   useEffect(() => {
@@ -123,8 +161,14 @@ export function CadastroColaborador() {
       return;
     }
 
+    const seedKey = `equipes:${colaboradorId}:${equipeIdsUsuario.join(',')}`;
+    if (editEquipeSeedRef.current === seedKey) {
+      return;
+    }
+
     setEquipeIds(equipeIdsUsuario);
-  }, [equipeIdsUsuario, isEditMode]);
+    editEquipeSeedRef.current = seedKey;
+  }, [colaboradorId, equipeIdsUsuario, isEditMode]);
 
   useEffect(() => {
     if (!erro) return;
@@ -179,7 +223,20 @@ export function CadastroColaborador() {
       });
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries();
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['usuarios'] }),
+        queryClient.invalidateQueries({ queryKey: ['colaboradores'] }),
+        queryClient.invalidateQueries({ queryKey: ['colaboradores', 'todos'] }),
+        queryClient.invalidateQueries({ queryKey: ['colaboradores', colaboradorId] }),
+        queryClient.invalidateQueries({
+          queryKey: ['colaboradores', colaboradorId, 'equipes'],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ['colaboradores', usuarioAtual?.id, 'equipes'],
+        }),
+        queryClient.invalidateQueries({ queryKey: ['usuarioEquipes'] }),
+        queryClient.invalidateQueries({ queryKey: ['equipes'] }),
+      ]);
       navigate(returnTo);
     },
     onError: (caught) => {
