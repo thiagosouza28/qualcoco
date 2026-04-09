@@ -17,6 +17,14 @@ import type { Colaborador, PerfilUsuario, SessaoCampo } from '@/core/types';
 
 const normalizeIdentifier = (value: string) => value.trim().toLowerCase();
 const normalizeMatricula = (value: string) => value.trim().toLowerCase();
+const normalizeEquipeIds = (equipeIds: string[] = []) =>
+  Array.from(
+    new Set(
+      equipeIds
+        .map((item) => String(item || '').trim())
+        .filter(Boolean),
+    ),
+  );
 const derivePrimeiroNome = (nome: string, primeiroNome?: string) =>
   String(primeiroNome || '')
     .trim()
@@ -130,18 +138,49 @@ export const listarEquipeIdsDoUsuario = async (usuarioId?: string) => {
   return Array.from(new Set(vinculos.map((item) => item.equipeId))).filter(Boolean);
 };
 
+const validarCadastroUsuario = (input: {
+  nome: string;
+  matricula: string;
+  pin?: string;
+  perfil?: PerfilUsuario;
+  equipeIds?: string[];
+  edicao?: boolean;
+}) => {
+  if (!input.nome.trim()) {
+    throw new Error('Informe o nome completo.');
+  }
+
+  if (!input.matricula.trim()) {
+    throw new Error('Informe a matrícula.');
+  }
+
+  if (!input.edicao || input.pin) {
+    if (!validarPin(String(input.pin || ''))) {
+      throw new Error('O PIN precisa ter 4 ou 6 dígitos numéricos.');
+    }
+  }
+
+  const perfilNormalizado = normalizePerfilUsuario(input.perfil);
+  const equipeIds = normalizeEquipeIds(input.equipeIds);
+  const exigeEquipe =
+    perfilNormalizado === 'colaborador' || perfilNormalizado === 'fiscal';
+
+  if (exigeEquipe && equipeIds.length === 0) {
+    throw new Error('Selecione ao menos uma equipe para este perfil.');
+  }
+
+  return {
+    perfilNormalizado,
+    equipeIds,
+  };
+};
+
 const salvarVinculosUsuarioEquipes = async (
   usuarioId: string,
   equipeIds: string[] = [],
 ) => {
   const device = await getOrCreateDevice();
-  const normalizedIds = Array.from(
-    new Set(
-      equipeIds
-        .map((item) => String(item || '').trim())
-        .filter(Boolean),
-    ),
-  );
+  const normalizedIds = normalizeEquipeIds(equipeIds);
   const atuais = await repository.filter(
     'usuarioEquipes',
     (item) => item.usuarioId === usuarioId && !item.deletadoEm,
@@ -214,21 +253,16 @@ export const cadastrarColaborador = async (input: {
   perfil?: PerfilUsuario;
   equipeIds?: string[];
 }) => {
-  if (!validarPin(input.pin)) {
-    throw new Error('O PIN precisa ter 4 ou 6 dígitos numéricos.');
-  }
-
-  if (!input.nome.trim()) {
-    throw new Error('Informe o nome completo.');
-  }
-
-  if (!input.matricula.trim()) {
-    throw new Error('Informe a matrícula.');
-  }
+  const { perfilNormalizado, equipeIds } = validarCadastroUsuario({
+    ...input,
+    edicao: false,
+  });
 
   const existing = await repository.filter(
     'colaboradores',
-    (item) => normalizeMatricula(item.matricula) === normalizeMatricula(input.matricula),
+    (item) =>
+      !item.deletadoEm &&
+      normalizeMatricula(item.matricula) === normalizeMatricula(input.matricula),
   );
 
   if (existing.length > 0) {
@@ -244,10 +278,10 @@ export const cadastrarColaborador = async (input: {
     pinHash: hash,
     pinSalt: salt,
     ativo: input.ativo ?? true,
-    perfil: normalizePerfilUsuario(input.perfil),
+    perfil: perfilNormalizado,
   });
 
-  await salvarVinculosUsuarioEquipes(colaborador.id, input.equipeIds);
+  await salvarVinculosUsuarioEquipes(colaborador.id, equipeIds);
   return colaborador;
 };
 
@@ -263,19 +297,18 @@ export const atualizarColaborador = async (
     equipeIds?: string[];
   },
 ) => {
-  if (!input.nome.trim()) {
-    throw new Error('Informe o nome completo.');
-  }
-
-  if (!input.matricula.trim()) {
-    throw new Error('Informe a matrícula.');
-  }
+  const { perfilNormalizado, equipeIds } = validarCadastroUsuario({
+    ...input,
+    edicao: true,
+    pin: input.pin || undefined,
+  });
 
   if (normalizeMatricula(input.matricula) !== normalizeMatricula(colaborador.matricula)) {
     const existing = await repository.filter(
       'colaboradores',
       (item) =>
         item.id !== colaborador.id &&
+        !item.deletadoEm &&
         normalizeMatricula(item.matricula) === normalizeMatricula(input.matricula),
     );
 
@@ -290,7 +323,7 @@ export const atualizarColaborador = async (
     primeiroNome: derivePrimeiroNome(input.nome, input.primeiroNome),
     matricula: input.matricula.trim(),
     ativo: input.ativo,
-    perfil: normalizePerfilUsuario(input.perfil || colaborador.perfil),
+    perfil: perfilNormalizado,
   };
 
   if (input.pin) {
@@ -313,9 +346,7 @@ export const atualizarColaborador = async (
     versao: next.versao + 1,
   });
 
-  if (input.equipeIds) {
-    await salvarVinculosUsuarioEquipes(colaborador.id, input.equipeIds);
-  }
+  await salvarVinculosUsuarioEquipes(colaborador.id, equipeIds);
 
   return next;
 };

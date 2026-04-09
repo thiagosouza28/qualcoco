@@ -161,6 +161,8 @@ const remoteFieldsByStore: Partial<Record<StoreName, string[]>> = {
     'marcadoRetoquePorNome',
     'marcadoRetoqueEm',
     'motivoRetoque',
+    'retoqueDesignadoParaId',
+    'retoqueDesignadoParaNome',
     'totalRegistros',
     'mediaParcela',
     'mediaCachos3',

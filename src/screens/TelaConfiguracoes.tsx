@@ -346,6 +346,18 @@ export function TelaConfiguracoes() {
               <Button
                 variant="outline"
                 className="h-11 w-full rounded-[18px] font-bold"
+                onClick={() =>
+                  navigate('/colaboradores/cadastro?returnTo=%2Fconfiguracoes')
+                }
+              >
+                Cadastrar usuario
+              </Button>
+            ) : null}
+
+            {canManageUsers(usuarioAtual?.perfil) ? (
+              <Button
+                variant="outline"
+                className="h-11 w-full rounded-[18px] font-bold"
                 onClick={() => navigate('/colaboradores')}
               >
                 Gerenciar usuarios

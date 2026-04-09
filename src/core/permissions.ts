@@ -261,6 +261,37 @@ export const canStartRetoque = (
   matrix?: MatrizPermissoesPerfis,
 ) => hasPermission(perfil, 'iniciarRetoque', matrix);
 
+export const canOperateAssignedRetoque = (input: {
+  perfil?: string | null;
+  usuarioId?: string | null;
+  responsavelId?: string | null;
+  designadoParaId?: string | null;
+  matrix?: MatrizPermissoesPerfis;
+}) => {
+  if (!canStartRetoque(input.perfil, input.matrix)) {
+    return false;
+  }
+
+  if (isAdministrador(input.perfil) || isFiscalChefe(input.perfil)) {
+    return true;
+  }
+
+  const usuarioId = String(input.usuarioId || '').trim();
+  if (!usuarioId) {
+    return false;
+  }
+
+  const alvoId = String(
+    input.responsavelId || input.designadoParaId || '',
+  ).trim();
+
+  if (!alvoId) {
+    return true;
+  }
+
+  return usuarioId === alvoId;
+};
+
 export const getUsuarioPerfil = async (usuarioId?: string) => {
   if (!usuarioId) return 'colaborador' as PerfilUsuario;
   const usuario = await repository.get('colaboradores', usuarioId);

@@ -16,7 +16,7 @@ import { repository } from '@/core/repositories';
 import { useCampoApp } from '@/core/AppProvider';
 import { listarIdsAvaliacoesAcessiveis } from '@/core/evaluations';
 import type { AvaliacaoRetoque, SiglaResumoParcela } from '@/core/types';
-import { canViewReports } from '@/core/permissions';
+import { canViewReports, normalizePapelAvaliacao } from '@/core/permissions';
 import { useRolePermissions } from '@/core/useRolePermissions';
 import {
   limparMarcacoesLegadasColeta,
@@ -468,7 +468,7 @@ export function TelaRelatorio() {
       Record<string, string[]>
     >((acc, item) => {
       if (item.deletadoEm) return acc;
-      if (item.papel !== 'responsavel') return acc;
+      if (normalizePapelAvaliacao(item.papel) !== 'responsavel_principal') return acc;
 
       const nome =
         item.colaboradorPrimeiroNome ||
@@ -627,7 +627,7 @@ export function TelaRelatorio() {
           '';
 
         const responsaveis = avColabs
-          .filter((item) => item.papel === 'responsavel')
+          .filter((item) => normalizePapelAvaliacao(item.papel) === 'responsavel_principal')
           .flatMap((item) => {
             const nome = resolveNomeColaborador(item);
             return nome ? [nome] : [];
@@ -677,6 +677,12 @@ export function TelaRelatorio() {
             ? avaliacaoMap.get(avaliacao.avaliacaoOriginalId)
             : null;
           const observacaoExtra: string[] = [];
+          if (avaliacao.marcadoRetoquePorNome) {
+            observacaoExtra.push(`Fiscal responsável: ${avaliacao.marcadoRetoquePorNome}`);
+          }
+          if (avaliacao.retoqueDesignadoParaNome) {
+            observacaoExtra.push(`Executor designado: ${avaliacao.retoqueDesignadoParaNome}`);
+          }
           if (avaliacao.tipo === 'retoque' && retoque) {
             const bags = Number(retoque.quantidadeBags || 0);
             const cargas = Number(retoque.quantidadeCargas || 0);

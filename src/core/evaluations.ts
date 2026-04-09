@@ -2,6 +2,7 @@ import { nowIso, todayIso } from '@/core/date';
 import { getOrCreateDevice } from '@/core/device';
 import { planejarParcelasAvaliacao } from '@/core/evaluationPlanning';
 import {
+  canOperateAssignedRetoque,
   canStartEvaluation,
   canStartRetoque,
   canMarkRetoque,
@@ -438,6 +439,21 @@ const resolveEquipePrincipal = ({
   };
 };
 
+const validarExecutorRetoque = (
+  colaborador: Colaborador | null,
+  label = 'colaborador designado para o retoque',
+) => {
+  if (!colaborador || colaborador.deletadoEm || !colaborador.ativo) {
+    throw new Error(`Selecione um ${label} válido e ativo.`);
+  }
+
+  if (normalizePerfilUsuario(colaborador.perfil) !== 'colaborador') {
+    throw new Error(`O ${label} precisa estar cadastrado com perfil de colaborador.`);
+  }
+
+  return colaborador;
+};
+
 const registrarLogsParticipantes = async ({
   avaliacaoId,
   responsavelId,
@@ -520,6 +536,8 @@ export const criarAvaliacao = async (input: NovaAvaliacaoInput) => {
     marcadoRetoquePorNome: '',
     marcadoRetoqueEm: null,
     motivoRetoque: '',
+    retoqueDesignadoParaId: null,
+    retoqueDesignadoParaNome: '',
     totalRegistros: 0,
     mediaParcela: 0,
     mediaCachos3: 0,
@@ -570,6 +588,7 @@ export const criarAvaliacao = async (input: NovaAvaliacaoInput) => {
 
 export const criarRetoqueAvaliacao = async (input: {
   avaliacaoOriginalId: string;
+  iniciadoPorId: string;
   responsavelId: string;
   participanteIds: string[];
   equipeId?: string | null;
@@ -588,11 +607,33 @@ export const criarRetoqueAvaliacao = async (input: {
   const colaboradoresMap = new Map(
     colaboradores.map((item) => [item.id, item]),
   );
-  const responsavel = colaboradoresMap.get(input.responsavelId) || null;
+  const iniciadoPor = colaboradoresMap.get(input.iniciadoPorId) || null;
+  const responsavelId =
+    avaliacaoOriginal.retoqueDesignadoParaId ||
+    input.responsavelId ||
+    input.iniciadoPorId;
+  const responsavel = validarExecutorRetoque(
+    colaboradoresMap.get(responsavelId) || null,
+    'executor do retoque',
+  );
   const permissionMatrix = await obterPermissoesPerfisConfiguradas();
 
-  if (!canStartRetoque(responsavel?.perfil, permissionMatrix)) {
+  if (!canStartRetoque(iniciadoPor?.perfil, permissionMatrix)) {
     throw new Error('Seu perfil não possui liberação para iniciar retoques.');
+  }
+
+  if (
+    !canOperateAssignedRetoque({
+      perfil: iniciadoPor?.perfil,
+      usuarioId: input.iniciadoPorId,
+      responsavelId,
+      designadoParaId: avaliacaoOriginal.retoqueDesignadoParaId,
+      matrix: permissionMatrix,
+    })
+  ) {
+    throw new Error(
+      'Este retoque foi designado para outro colaborador. Apenas o designado, o fiscal chefe ou o administrador podem iniciar este fluxo.',
+    );
   }
 
   const equipePrincipal = resolveEquipePrincipal({
@@ -602,7 +643,7 @@ export const criarRetoqueAvaliacao = async (input: {
   const inicioEm = nowIso();
 
   const avaliacao = await createEntity('avaliacoes', device.id, {
-    usuarioId: input.responsavelId,
+    usuarioId: responsavelId,
     dispositivoId: avaliacaoOriginal.dispositivoId,
     dataAvaliacao: todayIso(),
     dataColheita: avaliacaoOriginal.dataColheita || todayIso(),
@@ -612,7 +653,7 @@ export const criarRetoqueAvaliacao = async (input: {
     avaliacaoOriginalId: avaliacaoOriginal.id,
     equipeId: equipePrincipal.equipeId,
     equipeNome: equipePrincipal.equipeNome,
-    responsavelPrincipalId: input.responsavelId,
+    responsavelPrincipalId: responsavelId,
     responsavelPrincipalNome: responsavel?.nome || '',
     inicioEm,
     fimEm: null,
@@ -622,6 +663,8 @@ export const criarRetoqueAvaliacao = async (input: {
     marcadoRetoquePorNome: avaliacaoOriginal.marcadoRetoquePorNome || '',
     marcadoRetoqueEm: avaliacaoOriginal.marcadoRetoqueEm || null,
     motivoRetoque: avaliacaoOriginal.motivoRetoque || '',
+    retoqueDesignadoParaId: responsavelId,
+    retoqueDesignadoParaNome: responsavel?.nome || '',
     totalRegistros: 0,
     mediaParcela: 0,
     mediaCachos3: 0,
@@ -634,7 +677,7 @@ export const criarRetoqueAvaliacao = async (input: {
   const participantes = await criarParticipantesAvaliacao({
     avaliacaoId: avaliacao.id,
     deviceId: device.id,
-    responsavelId: input.responsavelId,
+    responsavelId,
     participanteIds: input.participanteIds,
     colaboradoresMap,
   });
@@ -648,20 +691,20 @@ export const criarRetoqueAvaliacao = async (input: {
 
   await criarLogAvaliacao({
     avaliacaoId: avaliacao.id,
-    colaboradorId: input.responsavelId,
+    colaboradorId: input.iniciadoPorId,
     acao: 'retoque_iniciado',
-    descricao: `Retoque iniciado por ${responsavel?.nome || 'Usuário'} em ${inicioEm}.`,
+    descricao: `Retoque aberto por ${iniciadoPor?.nome || 'Usuário'} para execução de ${responsavel?.nome || 'Usuário'} em ${inicioEm}.`,
   });
   await registrarLogsParticipantes({
     avaliacaoId: avaliacao.id,
-    responsavelId: input.responsavelId,
+    responsavelId,
     participanteIds: input.participanteIds,
     colaboradoresMap,
   });
   await createEntity('avaliacaoRetoques', device.id, {
     avaliacaoId: avaliacao.id,
     avaliacaoOriginalId: avaliacaoOriginal.id,
-    responsavelId: input.responsavelId,
+    responsavelId,
     responsavelNome: responsavel?.nome || '',
     responsavelMatricula: responsavel?.matricula || '',
     equipeId: equipePrincipal.equipeId,
@@ -683,15 +726,17 @@ export const criarRetoqueAvaliacao = async (input: {
   await saveEntity('avaliacoes', {
     ...avaliacaoOriginal,
     status: 'em_retoque',
+    retoqueDesignadoParaId: responsavelId,
+    retoqueDesignadoParaNome: responsavel?.nome || '',
     atualizadoEm: nowIso(),
     syncStatus: 'pending_sync',
     versao: avaliacaoOriginal.versao + 1,
   });
   await criarLogAvaliacao({
     avaliacaoId: avaliacaoOriginal.id,
-    colaboradorId: input.responsavelId,
+    colaboradorId: input.iniciadoPorId,
     acao: 'retoque_aberto',
-    descricao: `Retoque iniciado na avaliação original. Equipe do retoque: ${equipePrincipal.equipeNome || 'Não informada'}.`,
+    descricao: `Retoque iniciado na avaliação original por ${iniciadoPor?.nome || 'Usuário'}. Executor designado: ${responsavel?.nome || 'Usuário'}. Equipe do retoque: ${equipePrincipal.equipeNome || 'Não informada'}.`,
   });
 
   return {
@@ -1440,11 +1485,13 @@ export const finalizarAvaliacao = async (
 export const marcarAvaliacaoParaRetoque = async (input: {
   avaliacaoId: string;
   usuarioId: string;
+  designadoParaId: string;
   motivo?: string;
 }) => {
-  const [avaliacao, usuario, permissionMatrix] = await Promise.all([
+  const [avaliacao, usuario, colaboradores, permissionMatrix] = await Promise.all([
     repository.get('avaliacoes', input.avaliacaoId),
     repository.get('colaboradores', input.usuarioId),
+    repository.list('colaboradores'),
     obterPermissoesPerfisConfiguradas(),
   ]);
 
@@ -1460,6 +1507,11 @@ export const marcarAvaliacaoParaRetoque = async (input: {
     throw new Error('Seu perfil não pode marcar a parcela para retoque.');
   }
 
+  const designadoPara = validarExecutorRetoque(
+    colaboradores.find((item) => item.id === input.designadoParaId) || null,
+    'colaborador designado para o retoque',
+  );
+
   const next: Avaliacao = {
     ...avaliacao,
     status: 'em_retoque',
@@ -1467,6 +1519,8 @@ export const marcarAvaliacaoParaRetoque = async (input: {
     marcadoRetoquePorNome: usuario?.nome || '',
     marcadoRetoqueEm: nowIso(),
     motivoRetoque: String(input.motivo || '').trim(),
+    retoqueDesignadoParaId: designadoPara.id,
+    retoqueDesignadoParaNome: designadoPara.nome,
     atualizadoEm: nowIso(),
     syncStatus: 'pending_sync',
     versao: avaliacao.versao + 1,
@@ -1480,6 +1534,12 @@ export const marcarAvaliacaoParaRetoque = async (input: {
     descricao: next.motivoRetoque
       ? `Parcela enviada para retoque por ${usuario?.nome || 'Usuário'}. Motivo: ${next.motivoRetoque}.`
       : `Parcela enviada para retoque por ${usuario?.nome || 'Usuário'}.`,
+  });
+  await criarLogAvaliacao({
+    avaliacaoId: input.avaliacaoId,
+    colaboradorId: input.usuarioId,
+    acao: 'retoque_designado',
+    descricao: `Fiscal responsável ${usuario?.nome || 'Usuário'} designou ${designadoPara.nome} para executar o retoque.`,
   });
 
   return next;

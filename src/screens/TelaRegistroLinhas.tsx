@@ -24,8 +24,8 @@ import {
 import { saveEntity } from '@/core/repositories';
 import { nowIso } from '@/core/date';
 import {
+  canOperateAssignedRetoque,
   canStartEvaluation,
-  canStartRetoque,
   normalizePapelAvaliacao,
 } from '@/core/permissions';
 import { inferirAlinhamentoTipoPorLinha } from '@/core/plots';
@@ -546,7 +546,14 @@ export function TelaRegistroLinhas() {
   const avaliacaoTipoAtual = data?.avaliacao?.tipo || 'normal';
   const podeEditarFluxoAtual =
     avaliacaoTipoAtual === 'retoque'
-      ? canStartRetoque(usuarioAtual?.perfil, permissionMatrix)
+      ? canOperateAssignedRetoque({
+          perfil: usuarioAtual?.perfil,
+          usuarioId: usuarioAtual?.id,
+          responsavelId:
+            data?.avaliacao?.responsavelPrincipalId || data?.avaliacao?.usuarioId,
+          designadoParaId: data?.avaliacao?.retoqueDesignadoParaId,
+          matrix: permissionMatrix,
+        })
       : canStartEvaluation(usuarioAtual?.perfil, permissionMatrix);
 
   const ruas = useMemo(() => data?.ruas || [], [data]);

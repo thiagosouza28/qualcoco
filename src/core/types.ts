@@ -126,6 +126,8 @@ export interface Avaliacao extends BaseEntity {
   marcadoRetoquePorNome?: string;
   marcadoRetoqueEm?: string | null;
   motivoRetoque?: string;
+  retoqueDesignadoParaId?: string | null;
+  retoqueDesignadoParaNome?: string;
   totalRegistros: number;
   mediaParcela: number;
   mediaCachos3: number;

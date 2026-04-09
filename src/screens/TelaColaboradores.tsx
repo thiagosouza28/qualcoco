@@ -129,6 +129,22 @@ export function TelaColaboradores() {
           </CardContent>
         </Card>
 
+        <Card className="surface-card">
+          <CardContent className="flex items-center justify-between gap-3 p-4">
+            <div>
+              <p className="text-sm font-black tracking-tight text-[var(--qc-text)]">
+                Cadastro de usuario
+              </p>
+              <p className="text-sm text-[var(--qc-text-muted)]">
+                Crie colaborador, fiscal, fiscal chefe ou administrador.
+              </p>
+            </div>
+            <Button asChild>
+              <Link to="/colaboradores/cadastro">Cadastrar</Link>
+            </Button>
+          </CardContent>
+        </Card>
+
         {usuarios.map((colaborador) => {
           const perfil = normalizePerfilUsuario(colaborador.perfil);
           const equipesUsuario = equipesPorUsuario[colaborador.id] || [];

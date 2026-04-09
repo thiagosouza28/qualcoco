@@ -100,13 +100,22 @@ export function CadastroColaborador() {
     () => equipes.filter((item) => item.ativa && !item.deletadoEm),
     [equipes],
   );
+  const perfilNormalizado = normalizePerfilUsuario(perfil);
+  const exigeEquipe =
+    perfilNormalizado === 'colaborador' || perfilNormalizado === 'fiscal';
+  const podeSalvar =
+    nome.trim().length > 0 &&
+    matricula.trim().length > 0 &&
+    (Boolean(colaborador) || pin.length === 4 || pin.length === 6) &&
+    (!exigeEquipe || equipeIds.length > 0);
+
+  useEffect(() => {
+    if (!erro) return;
+    setErro('');
+  }, [ativo, equipeIds, erro, matricula, nome, perfil, pin, primeiroNome]);
 
   const mutation = useMutation({
     mutationFn: async () => {
-      const perfilNormalizado = normalizePerfilUsuario(perfil);
-      const exigeEquipe =
-        perfilNormalizado === 'colaborador' || perfilNormalizado === 'fiscal';
-
       if (!nome.trim() || !matricula.trim()) {
         throw new Error('Preencha nome completo e matrícula.');
       }
@@ -148,6 +157,15 @@ export function CadastroColaborador() {
     },
   });
 
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (mutation.isPending) {
+      return;
+    }
+
+    mutation.mutate();
+  };
+
   if (!podeGerenciar) {
     return (
       <LayoutMobile
@@ -174,7 +192,7 @@ export function CadastroColaborador() {
       subtitle="Cadastro profissional para operação de campo"
       onBack={() => navigate(returnTo)}
     >
-      <div className="stack-lg">
+      <form className="stack-lg" onSubmit={handleSubmit}>
         <Card className="surface-card">
           <CardContent className="stack-md p-5">
             <div className="input-block">
@@ -269,7 +287,7 @@ export function CadastroColaborador() {
                   Equipes vinculadas
                 </p>
                 <p className="text-sm text-[var(--qc-text-muted)]">
-                  Para colaborador e fiscal, ao menos uma equipe deve ser selecionada.
+                  Para colaborador e fiscal, ao menos uma equipe deve ser selecionada. Para fiscal chefe e administrador, o vínculo é opcional.
                 </p>
               </div>
               <Badge variant="slate">{equipeIds.length} selecionada(s)</Badge>
@@ -315,15 +333,21 @@ export function CadastroColaborador() {
 
         {erro ? <p className="text-sm text-red-600">{erro}</p> : null}
 
+        {!colaborador && exigeEquipe && equipeIds.length === 0 ? (
+          <p className="text-sm text-amber-700">
+            Selecione ao menos uma equipe antes de salvar este usuário.
+          </p>
+        ) : null}
+
         <Button
+          type="submit"
           size="lg"
           className="w-full"
-          disabled={!nome || !matricula || (!colaborador && !pin) || mutation.isPending}
-          onClick={() => mutation.mutate()}
+          disabled={!podeSalvar || mutation.isPending}
         >
           {mutation.isPending ? 'Salvando usuário' : 'Salvar usuário'}
         </Button>
-      </div>
+      </form>
     </LayoutMobile>
   );
 }

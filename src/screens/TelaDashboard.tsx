@@ -27,9 +27,9 @@ import {
 } from '@/core/evaluations';
 import { useCampoApp } from '@/core/AppProvider';
 import {
+  canOperateAssignedRetoque,
   canManageTeams,
   canStartEvaluation,
-  canStartRetoque,
 } from '@/core/permissions';
 import { useRolePermissions } from '@/core/useRolePermissions';
 
@@ -301,7 +301,14 @@ export function TelaDashboard() {
               {avaliacoesEmAndamento.map((avaliacao) => {
                 const podeContinuar =
                   avaliacao.tipo === 'retoque'
-                    ? canStartRetoque(usuarioAtual?.perfil, permissionMatrix)
+                    ? canOperateAssignedRetoque({
+                        perfil: usuarioAtual?.perfil,
+                        usuarioId: usuarioAtual?.id,
+                        responsavelId:
+                          avaliacao.responsavelPrincipalId || avaliacao.usuarioId,
+                        designadoParaId: avaliacao.retoqueDesignadoParaId,
+                        matrix: permissionMatrix,
+                      })
                     : canStartEvaluation(usuarioAtual?.perfil, permissionMatrix);
 
                 return (

@@ -39,11 +39,16 @@ Colecoes principais:
 
 - `colaboradores`: `nome`, `primeiro_nome`, `matricula`, `pin_hash`, `pin_salt`, `ativo`, `perfil`, `auth_user_id`, `auth_email`
 - `usuario_equipes`: `usuario_id`, `equipe_id`
-- `avaliacoes`: dados da avaliacao original ou de retoque, com `tipo`, `avaliacao_original_id`, `equipe_id`, `responsavel_principal_id`, `inicio_em`, `fim_em`, `status`
+- `avaliacoes`: dados da avaliacao original ou de retoque, com `tipo`, `avaliacao_original_id`, `equipe_id`, `responsavel_principal_id`, `inicio_em`, `fim_em`, `status`, `marcado_retoque_por_id`, `marcado_retoque_por_nome`, `retoque_designado_para_id` e `retoque_designado_para_nome`
 - `avaliacao_colaboradores`: participantes da avaliacao com `papel`
 - `avaliacao_retoques`: equipe e resultado do retoque, incluindo `quantidade_bags` e `quantidade_cargas`
 - `avaliacao_logs`: trilha de auditoria por avaliacao/parcela
 - `configuracoes`: documento global `default` com limites operacionais e liberacoes por perfil
+
+No fluxo de retoque:
+
+- `marcado_retoque_por_id` e `marcado_retoque_por_nome` registram o fiscal responsavel que enviou a parcela para retoque
+- `retoque_designado_para_id` e `retoque_designado_para_nome` registram o colaborador ativo designado para executar o retoque
 
 ## Configuracoes globais
 

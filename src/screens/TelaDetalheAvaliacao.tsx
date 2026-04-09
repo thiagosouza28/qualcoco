@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ClipboardList, History, Users, Wrench } from 'lucide-react';
 import { AccessDeniedCard } from '@/components/AccessDeniedCard';
 import { LayoutMobile } from '@/components/LayoutMobile';
 import { useCampoApp } from '@/core/AppProvider';
+import { listarColaboradoresAtivos } from '@/core/auth';
 import {
   criarRetoqueAvaliacao,
   marcarAvaliacaoParaRetoque,
@@ -14,16 +15,16 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { getEvaluationStatusMeta } from '@/core/evaluationStatus';
 import {
+  canOperateAssignedRetoque,
   canMarkRetoque,
-  canStartRetoque,
   canViewHistory,
   filtrarEquipesVisiveis,
   normalizePapelAvaliacao,
+  normalizePerfilUsuario,
 } from '@/core/permissions';
 import { useRolePermissions } from '@/core/useRolePermissions';
 
@@ -50,6 +51,7 @@ export function TelaDetalheAvaliacao() {
   const [showMarcarModal, setShowMarcarModal] = useState(false);
   const [showRetoqueModal, setShowRetoqueModal] = useState(false);
   const [motivoRetoque, setMotivoRetoque] = useState('');
+  const [retoqueExecutorId, setRetoqueExecutorId] = useState('');
   const [retoqueResponsavelId, setRetoqueResponsavelId] = useState('');
   const [retoqueEquipeId, setRetoqueEquipeId] = useState('');
   const [retoqueParticipantes, setRetoqueParticipantes] = useState<string[]>([]);
@@ -67,6 +69,12 @@ export function TelaDetalheAvaliacao() {
     enabled: Boolean(usuarioAtual),
   });
 
+  const { data: colaboradoresAtivos = [] } = useQuery({
+    queryKey: ['colaboradores', 'ativos', 'retoque'],
+    queryFn: listarColaboradoresAtivos,
+    enabled: Boolean(usuarioAtual),
+  });
+
   const participantes = data?.participantes || [];
   const responsavelPrincipal =
     participantes.find(
@@ -80,29 +88,64 @@ export function TelaDetalheAvaliacao() {
   const retoquesRelacionados = data?.retoquesRelacionados || [];
   const retoqueEmAndamento =
     retoquesRelacionados.find((item) => item.avaliacao.status === 'in_progress') || null;
+  const fiscalResponsavelNome = data?.avaliacao?.marcadoRetoquePorNome || '';
+  const colaboradoresDisponiveisRetoque = colaboradoresAtivos.filter(
+    (item) => item.ativo && !item.deletadoEm,
+  );
+  const colaboradoresExecutoresRetoque = colaboradoresDisponiveisRetoque.filter(
+    (item) => normalizePerfilUsuario(item.perfil) === 'colaborador',
+  );
+  const executorDesignado =
+    colaboradoresExecutoresRetoque.find(
+      (item) => item.id === data?.avaliacao?.retoqueDesignadoParaId,
+    ) || null;
+  const podeIniciarRetoque = canOperateAssignedRetoque({
+    perfil: usuarioAtual?.perfil,
+    usuarioId: usuarioAtual?.id,
+    responsavelId: data?.avaliacao?.responsavelPrincipalId,
+    designadoParaId: data?.avaliacao?.retoqueDesignadoParaId,
+    matrix: permissionMatrix,
+  });
+  const nomeExecutorDesignado =
+    executorDesignado?.nome || data?.avaliacao?.retoqueDesignadoParaNome || '';
 
-  if (!canViewHistory(usuarioAtual?.perfil, permissionMatrix)) {
-    return (
-      <LayoutMobile
-        title="Detalhe da avaliacao"
-        subtitle="Acesso restrito"
-        onBack={() => navigate('/dashboard')}
-      >
-        <AccessDeniedCard description="A consulta detalhada da avaliacao so aparece quando o administrador libera historico para o seu perfil." />
-      </LayoutMobile>
+  useEffect(() => {
+    if (!showMarcarModal) return;
+    setRetoqueExecutorId(data?.avaliacao?.retoqueDesignadoParaId || '');
+  }, [data?.avaliacao?.retoqueDesignadoParaId, showMarcarModal]);
+
+  useEffect(() => {
+    if (!showRetoqueModal) return;
+    setRetoqueResponsavelId(
+      data?.avaliacao?.retoqueDesignadoParaId || usuarioAtual?.id || '',
     );
-  }
+    setRetoqueEquipeId(data?.avaliacao?.equipeId || '');
+    setRetoqueParticipantes([]);
+    setRetoqueAcompanhado(false);
+  }, [
+    data?.avaliacao?.equipeId,
+    data?.avaliacao?.retoqueDesignadoParaId,
+    showRetoqueModal,
+    usuarioAtual?.id,
+  ]);
 
   const marcarMutation = useMutation({
-    mutationFn: async () =>
-      marcarAvaliacaoParaRetoque({
+    mutationFn: async () => {
+      if (!retoqueExecutorId) {
+        throw new Error('Selecione quem executara o retoque.');
+      }
+
+      return marcarAvaliacaoParaRetoque({
         avaliacaoId: id,
         usuarioId: usuarioAtual?.id || '',
+        designadoParaId: retoqueExecutorId,
         motivo: motivoRetoque,
-      }),
+      });
+    },
     onSuccess: async () => {
       setShowMarcarModal(false);
       setMotivoRetoque('');
+      setRetoqueExecutorId('');
       await queryClient.invalidateQueries();
     },
     onError: (error) => {
@@ -120,9 +163,20 @@ export function TelaDetalheAvaliacao() {
         throw new Error('Defina a equipe responsável pelo retoque.');
       }
 
+      const responsavelId =
+        data?.avaliacao?.retoqueDesignadoParaId ||
+        retoqueResponsavelId ||
+        usuarioAtual?.id ||
+        '';
+
+      if (!responsavelId) {
+        throw new Error('Defina quem executara o retoque.');
+      }
+
       return criarRetoqueAvaliacao({
         avaliacaoOriginalId: id,
-        responsavelId: retoqueResponsavelId || usuarioAtual?.id || '',
+        iniciadoPorId: usuarioAtual?.id || '',
+        responsavelId,
         participanteIds: retoqueAcompanhado ? retoqueParticipantes : [],
         equipeId: retoqueEquipeId || data?.avaliacao?.equipeId || null,
         equipeNome:
@@ -141,6 +195,18 @@ export function TelaDetalheAvaliacao() {
       alert(error instanceof Error ? error.message : 'Não foi possível iniciar o retoque.');
     },
   });
+
+  if (!canViewHistory(usuarioAtual?.perfil, permissionMatrix)) {
+    return (
+      <LayoutMobile
+        title="Detalhe da avaliacao"
+        subtitle="Acesso restrito"
+        onBack={() => navigate('/dashboard')}
+      >
+        <AccessDeniedCard description="A consulta detalhada da avaliacao so aparece quando o administrador libera historico para o seu perfil." />
+      </LayoutMobile>
+    );
+  }
 
   if (isFetched && !data) {
     return (
@@ -172,6 +238,28 @@ export function TelaDetalheAvaliacao() {
             <DialogHeader>
               <DialogTitle>Marcar parcela para retoque</DialogTitle>
             </DialogHeader>
+            <div className="mb-3 rounded-[18px] border border-[rgba(93,98,78,0.16)] bg-[rgba(244,245,240,0.92)] px-4 py-3">
+              <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
+                Fiscal responsavel
+              </p>
+              <p className="mt-1 text-sm font-semibold text-[var(--qc-text)]">
+                {usuarioAtual?.nome || 'Nao informado'}
+              </p>
+            </div>
+
+            <Select value={retoqueExecutorId} onValueChange={setRetoqueExecutorId}>
+              <SelectTrigger className="mb-3">
+                <SelectValue placeholder="Selecione quem executara o retoque" />
+              </SelectTrigger>
+              <SelectContent>
+                {colaboradoresExecutoresRetoque.map((colaborador) => (
+                  <SelectItem key={colaborador.id} value={colaborador.id}>
+                    {colaborador.nome} • {colaborador.matricula}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
             <Textarea
               rows={4}
               placeholder="Motivo ou observação do envio para retoque"
@@ -213,24 +301,43 @@ export function TelaDetalheAvaliacao() {
                 </SelectContent>
               </Select>
 
-              <Select
-                value={retoqueResponsavelId || usuarioAtual?.id || ''}
-                onValueChange={setRetoqueResponsavelId}
-              >
+              {fiscalResponsavelNome ? (
+                <div className="rounded-[18px] border border-[rgba(93,98,78,0.16)] bg-[rgba(244,245,240,0.92)] px-4 py-3">
+                  <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
+                    Fiscal responsável
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-[var(--qc-text)]">
+                    {fiscalResponsavelNome}
+                  </p>
+                </div>
+              ) : null}
+
+              {nomeExecutorDesignado ? (
+                <div className="rounded-[18px] border border-[rgba(0,107,68,0.14)] bg-[rgba(0,107,68,0.07)] px-4 py-3">
+                  <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
+                    Colaborador designado para o retoque
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-[var(--qc-text)]">
+                    {nomeExecutorDesignado}
+                  </p>
+                </div>
+              ) : (
+                <Select
+                  value={retoqueResponsavelId || usuarioAtual?.id || ''}
+                  onValueChange={setRetoqueResponsavelId}
+                >
                 <SelectTrigger>
-                  <SelectValue placeholder="Responsável principal do retoque" />
+                  <SelectValue placeholder="Colaborador executor do retoque" />
                 </SelectTrigger>
                 <SelectContent>
-                  {participantes
-                    .map((item) => item.colaborador)
-                    .filter(Boolean)
-                    .map((colaborador) => (
-                      <SelectItem key={colaborador!.id} value={colaborador!.id}>
-                        {colaborador!.nome}
-                      </SelectItem>
-                    ))}
+                  {colaboradoresExecutoresRetoque.map((colaborador) => (
+                    <SelectItem key={colaborador.id} value={colaborador.id}>
+                      {colaborador.nome}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <Button
@@ -254,25 +361,28 @@ export function TelaDetalheAvaliacao() {
 
               {retoqueAcompanhado ? (
                 <div className="grid grid-cols-2 gap-2">
-                  {participantes
-                    .map((item) => item.colaborador)
-                    .filter((colaborador) => colaborador && colaborador.id !== retoqueResponsavelId)
+                  {colaboradoresExecutoresRetoque
+                    .filter(
+                      (colaborador) =>
+                        colaborador.id !==
+                        (data?.avaliacao?.retoqueDesignadoParaId || retoqueResponsavelId),
+                    )
                     .map((colaborador) => {
-                      const selecionado = retoqueParticipantes.includes(colaborador!.id);
+                      const selecionado = retoqueParticipantes.includes(colaborador.id);
                       return (
                         <Button
-                          key={colaborador!.id}
+                          key={colaborador.id}
                           type="button"
                           variant={selecionado ? 'default' : 'outline'}
                           onClick={() =>
                             setRetoqueParticipantes((current) =>
                               selecionado
-                                ? current.filter((item) => item !== colaborador!.id)
-                                : [...current, colaborador!.id],
+                                ? current.filter((item) => item !== colaborador.id)
+                                : [...current, colaborador.id],
                             )
                           }
                         >
-                          {colaborador!.primeiroNome}
+                          {colaborador.primeiroNome}
                         </Button>
                       );
                     })}
@@ -340,6 +450,26 @@ export function TelaDetalheAvaliacao() {
                   {ajudantes.length ? ajudantes.join(', ') : 'Sem ajudantes'}
                 </p>
               </div>
+              {fiscalResponsavelNome ? (
+                <div className="rounded-[22px] border border-[var(--qc-border)] bg-white p-4">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
+                    Fiscal responsável
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-[var(--qc-text)]">
+                    {fiscalResponsavelNome}
+                  </p>
+                </div>
+              ) : null}
+              {nomeExecutorDesignado ? (
+                <div className="rounded-[22px] border border-[var(--qc-border)] bg-white p-4">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
+                    Colaborador do retoque
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-[var(--qc-text)]">
+                    {nomeExecutorDesignado}
+                  </p>
+                </div>
+              ) : null}
               <div className="rounded-[22px] border border-[var(--qc-border)] bg-white p-4">
                 <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
                   Data da coleta
@@ -404,7 +534,7 @@ export function TelaDetalheAvaliacao() {
             ) : null}
             {data?.avaliacao?.status === 'em_retoque' &&
             !retoqueEmAndamento &&
-            canStartRetoque(usuarioAtual?.perfil, permissionMatrix) ? (
+            podeIniciarRetoque ? (
               <Button onClick={() => setShowRetoqueModal(true)}>
                 <Users className="h-4 w-4" />
                 Iniciar retoque
@@ -456,6 +586,12 @@ export function TelaDetalheAvaliacao() {
                   .filter((participante) => normalizePapelAvaliacao(participante.papel) === 'ajudante')
                   .map((participante) => participante.colaborador?.primeiroNome || '')
                   .filter(Boolean);
+                const executorRetoque =
+                  item.avaliacao.retoqueDesignadoParaNome ||
+                  detalhe?.responsavelNome ||
+                  responsavel;
+                const fiscalRetoque =
+                  item.avaliacao.marcadoRetoquePorNome || fiscalResponsavelNome || '-';
 
                 return (
                   <div key={item.avaliacao.id} className="rounded-[22px] border border-[var(--qc-border)] bg-white p-4">
@@ -469,6 +605,12 @@ export function TelaDetalheAvaliacao() {
                     </div>
                     <p className="mt-2 text-sm text-[var(--qc-text-muted)]">
                       Responsável: <strong className="text-[var(--qc-text)]">{responsavel}</strong>
+                    </p>
+                    <p className="mt-1 text-sm text-[var(--qc-text-muted)]">
+                      Fiscal responsável: <strong className="text-[var(--qc-text)]">{fiscalRetoque}</strong>
+                    </p>
+                    <p className="mt-1 text-sm text-[var(--qc-text-muted)]">
+                      Executor designado: <strong className="text-[var(--qc-text)]">{executorRetoque}</strong>
                     </p>
                     <p className="mt-1 text-sm text-[var(--qc-text-muted)]">
                       Ajudantes: <strong className="text-[var(--qc-text)]">{ajudantesRetoque.length ? ajudantesRetoque.join(', ') : 'Sem ajudantes'}</strong>
