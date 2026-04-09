@@ -593,19 +593,13 @@ a {
   pointer-events: auto;
 }
 
-.app-bottom-nav__grid--1 {
-  grid-template-columns: minmax(148px, 188px);
+.app-bottom-nav__grid--compact {
+  display: flex;
   justify-content: center;
 }
 
-.app-bottom-nav__grid--2 {
-  grid-template-columns: repeat(2, minmax(122px, 156px));
-  justify-content: center;
-}
-
-.app-bottom-nav__grid--3 {
-  grid-template-columns: repeat(3, minmax(96px, 124px));
-  justify-content: center;
+.app-bottom-nav__grid--compact .app-bottom-nav__item {
+  flex: 0 0 clamp(90px, 27vw, 124px);
 }
 
 .app-bottom-nav__item {
@@ -701,16 +695,8 @@ body.has-sync-status-bar .app-shell--no-header .app-scroll {
     padding: 7px;
   }
 
-  .app-bottom-nav__grid--1 {
-    grid-template-columns: minmax(132px, 172px);
-  }
-
-  .app-bottom-nav__grid--2 {
-    grid-template-columns: repeat(2, minmax(110px, 138px));
-  }
-
-  .app-bottom-nav__grid--3 {
-    grid-template-columns: repeat(3, minmax(86px, 108px));
+  .app-bottom-nav__grid--compact .app-bottom-nav__item {
+    flex-basis: clamp(82px, 26vw, 108px);
   }
 
   .app-bottom-nav__item {
