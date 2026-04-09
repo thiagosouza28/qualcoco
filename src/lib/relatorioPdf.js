@@ -17,6 +17,10 @@ const MARKER_FILL = [187, 247, 208];
 const MARKER_TEXT = [20, 83, 45];
 const BORDER_COLOR = [17, 17, 17];
 const TEXT_COLOR = [17, 17, 17];
+const OBSERVACAO_TOP_ROWS = 2;
+const OBSERVACAO_VERTICAL_MIN_FONT_SIZE = 6.5;
+const OBSERVACAO_VERTICAL_MAX_FONT_SIZE = 11;
+const OBSERVACAO_VERTICAL_PADDING = 2.5;
 
 const TABLE_COLUMNS = [
   { header: 'Data', dataKey: 'data' },
@@ -36,8 +40,8 @@ const TABLE_COLUMN_STYLES = {
   rua: { cellWidth: 20, halign: 'center' },
   cachoPl: { cellWidth: 18, halign: 'center' },
   cocosDeixados: { cellWidth: 26, halign: 'center' },
-  responsavel: { cellWidth: 34, halign: 'center', overflow: 'linebreak' },
-  observacao: { cellWidth: 44, halign: 'center', overflow: 'linebreak' },
+  responsavel: { cellWidth: 56, halign: 'center', overflow: 'linebreak' },
+  observacao: { cellWidth: 22, halign: 'center', overflow: 'linebreak' },
 };
 
 const createBlankPdfRow = () => ({
@@ -49,6 +53,10 @@ const createBlankPdfRow = () => ({
   cocosDeixados: '',
   responsavel: '',
   observacao: '',
+  observacaoSegmentKey: null,
+  observacaoSegmentRowIndex: -1,
+  observacaoSegmentRowCount: 0,
+  observacaoVerticalText: '',
   highlightCacho: false,
   highlightCocos: false,
 });
@@ -56,7 +64,7 @@ const createBlankPdfRow = () => ({
 const formatResponsaveisPdf = (responsaveis = []) => {
   const items = responsaveis.filter(Boolean);
   if (items.length === 0) return '-';
-  return items.join('\n');
+  return items.join(' - ');
 };
 
 const formatObservacaoColunaPdf = (value = '') => {
@@ -77,14 +85,90 @@ const getReferenteEquipeLinhasPdf = (value = '') => {
   return ['Referente a', diaReferencia];
 };
 
-const buildObservacaoEquipePdf = ({
+const buildObservacaoLayoutPdf = ({
   referente,
   responsaveis = [],
+  rowIndex,
+  totalRows,
 }) => {
   const [titulo, diaReferencia] = getReferenteEquipeLinhasPdf(referente);
   const nomesResponsaveis = formatResponsaveisPdf(responsaveis);
 
-  return `${titulo}\n${diaReferencia}\n\n\n\n${nomesResponsaveis}`;
+  if (totalRows <= 1) {
+    return {
+      text: `${titulo}\n${diaReferencia}\n\n${nomesResponsaveis}`,
+      verticalText: '',
+    };
+  }
+
+  if (rowIndex === 0) {
+    return {
+      text: titulo,
+      verticalText: '',
+    };
+  }
+
+  if (rowIndex === 1) {
+    return {
+      text: totalRows === 2 ? `${diaReferencia}\n\n${nomesResponsaveis}` : diaReferencia,
+      verticalText: '',
+    };
+  }
+
+  if (rowIndex === OBSERVACAO_TOP_ROWS) {
+    return {
+      text: '',
+      verticalText: nomesResponsaveis,
+    };
+  }
+
+  return {
+    text: '',
+    verticalText: '',
+  };
+};
+
+const drawVerticalObservacaoPdf = (doc, {
+  cells,
+  text,
+}) => {
+  const printableText = String(text || '').trim() || '-';
+  if (!cells || cells.length === 0) {
+    return;
+  }
+
+  const firstCell = cells[0];
+  const area = {
+    x: firstCell.x,
+    y: firstCell.y,
+    width: firstCell.width,
+    height: cells.reduce((total, cell) => total + cell.height, 0),
+  };
+
+  const maxTextWidth = Math.max(area.height - OBSERVACAO_VERTICAL_PADDING * 2, 10);
+  let fontSize = OBSERVACAO_VERTICAL_MAX_FONT_SIZE;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...TEXT_COLOR);
+
+  while (fontSize > OBSERVACAO_VERTICAL_MIN_FONT_SIZE) {
+    doc.setFontSize(fontSize);
+    if (doc.getTextWidth(printableText) <= maxTextWidth) {
+      break;
+    }
+    fontSize -= 0.5;
+  }
+
+  doc.text(
+    printableText,
+    area.x + area.width / 2,
+    area.y + area.height / 2,
+    {
+      align: 'center',
+      baseline: 'middle',
+      angle: 90,
+    },
+  );
 };
 
 const buildSubtitleText = (dataTitulo, referenteLabel) => {
@@ -143,6 +227,13 @@ const createPdfRows = (page) => {
         responsavelLinhas.push(String(row.siglaResumoParcela).trim());
       }
 
+      const observacaoLayout = buildObservacaoLayoutPdf({
+        referente: row.referente,
+        responsaveis: entry.responsaveis || [],
+        rowIndex: index,
+        totalRows: entry.rows.length,
+      });
+
       const pdfRow = {
         data:
           isPrimeiraLinhaEquipe && row.data
@@ -156,12 +247,11 @@ const createPdfRows = (page) => {
         responsavel: responsavelLinhas.length > 0
           ? responsavelLinhas.join('\n')
           : '',
-        observacao: isPrimeiraLinhaEquipe
-          ? buildObservacaoEquipePdf({
-              referente: row.referente,
-              responsaveis: entry.responsaveis || [],
-            })
-          : '',
+        observacao: observacaoLayout.text,
+        observacaoSegmentKey: entry.key,
+        observacaoSegmentRowIndex: index,
+        observacaoSegmentRowCount: entry.rows.length,
+        observacaoVerticalText: observacaoLayout.verticalText,
         highlightCacho: row.excedeuCacho,
         highlightCocos: row.excedeuCocos,
       };
@@ -234,6 +324,7 @@ export const createRelatorioPdfBlob = ({
     }
 
     const { body, rows: pageRows } = createPdfRows(page);
+    const observacaoSegments = new Map();
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(TITLE_FONT_SIZE);
@@ -308,6 +399,46 @@ export const createRelatorioPdfBlob = ({
           } else if (textLen > 40) {
             hook.cell.styles.fontSize = 7.2;
           }
+        }
+      },
+      didDrawCell: (hook) => {
+        if (hook.section !== 'body') {
+          return;
+        }
+
+        const row = pageRows[hook.row.index];
+        const key = TABLE_COLUMNS[hook.column.index]?.dataKey;
+
+        if (
+          !row ||
+          key !== 'observacao' ||
+          !row.observacaoSegmentKey ||
+          row.observacaoSegmentRowCount <= OBSERVACAO_TOP_ROWS ||
+          row.observacaoSegmentRowIndex < OBSERVACAO_TOP_ROWS
+        ) {
+          return;
+        }
+
+        const segment = observacaoSegments.get(row.observacaoSegmentKey) || {
+          text: '',
+          cells: [],
+        };
+
+        if (row.observacaoVerticalText) {
+          segment.text = row.observacaoVerticalText;
+        }
+
+        segment.cells.push({
+          x: hook.cell.x,
+          y: hook.cell.y,
+          width: hook.cell.width,
+          height: hook.cell.height,
+        });
+        observacaoSegments.set(row.observacaoSegmentKey, segment);
+
+        if (row.observacaoSegmentRowIndex === row.observacaoSegmentRowCount - 1) {
+          drawVerticalObservacaoPdf(doc, segment);
+          observacaoSegments.delete(row.observacaoSegmentKey);
         }
       },
     });
