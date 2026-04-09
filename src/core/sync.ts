@@ -1195,6 +1195,7 @@ const pullCollaboradoresForWebAccess = async (
         'pin_hash',
         'pin_salt',
         'ativo',
+        'perfil',
         'auth_user_id',
         'auth_email',
         'criado_em',
@@ -2064,8 +2065,11 @@ export const sincronizarAcessosWeb = async ({
 
   try {
     const currentLocalColaboradores = await listAll<Colaborador>('colaboradores');
+    const possuiPerfilPendente = currentLocalColaboradores.some(
+      (item) => !item.deletadoEm && !String(item.perfil || '').trim(),
+    );
     const lastSyncAt =
-      currentLocalColaboradores.length > 0
+      currentLocalColaboradores.length > 0 && !possuiPerfilPendente
         ? getLastWebAccessSyncAt() || undefined
         : undefined;
     const rows = await pullCollaboradoresForWebAccess(lastSyncAt, ({ pageNumber, rowsLoaded }) => {

@@ -96,9 +96,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       currentCloudSessionPromise,
     ]);
 
+    let hydratedUser = currentUser || null;
+
+    if (
+      currentSession &&
+      hydratedUser &&
+      !hydratedUser.deletadoEm &&
+      !String(hydratedUser.perfil || '').trim() &&
+      isCloudConfigured
+    ) {
+      try {
+        await ensureCloudDeviceSession(device);
+        await sincronizarAcessosWeb();
+        hydratedUser =
+          (await getById<Colaborador>(
+            'colaboradores',
+            currentSession.colaboradorId,
+          )) || hydratedUser;
+      } catch (error) {
+        console.warn(
+          '[App] Falha ao recuperar o perfil do usuário na carga inicial.',
+          error,
+        );
+      }
+    }
+
     setDispositivo(device);
     setSession(currentSession);
-    setUsuarioAtual(currentUser || null);
+    setUsuarioAtual(hydratedUser);
     setCloudSessionReady(Boolean(currentCloudSession));
     setBootstrapped(true);
 
@@ -269,13 +294,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return result;
       },
       {
-        refreshMode: 'queries-only',
-        queryKeys: [
-          ['login', 'colaboradores'],
-          ['usuarios', 'ativos'],
-          ['colaboradores', 'ativos'],
-          ['colaboradores', 'todos'],
-        ],
+        refreshMode: 'full',
       },
     );
   }, [iniciarSincronizacao]);
