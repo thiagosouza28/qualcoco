@@ -49,10 +49,14 @@ export function AppBottomNav() {
 
     return permissions[item.permissionKey];
   });
+  const centeredClass =
+    visibleItems.length <= 3
+      ? `app-bottom-nav__grid--${visibleItems.length}`
+      : null;
 
   return (
     <nav className="app-bottom-nav" aria-label="Navegacao principal">
-      <div className="app-bottom-nav__grid">
+      <div className={cn('app-bottom-nav__grid', centeredClass)}>
         {visibleItems.map((item) => {
           const Icon = item.icon;
           const active = item.match(pathname);
