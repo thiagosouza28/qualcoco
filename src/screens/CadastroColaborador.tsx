@@ -15,13 +15,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 
 const PERFIS = [
   { value: 'colaborador', label: 'Colaborador' },
@@ -296,22 +289,20 @@ export function CadastroColaborador() {
             <div className="grid grid-cols-2 gap-3">
               <div className="input-block">
                 <label>Perfil</label>
-                <Select
+                <select
+                  className="h-12 w-full rounded-2xl border border-[var(--qc-border)] bg-[var(--qc-surface-muted)] px-4 text-sm text-[var(--qc-text)] shadow-sm outline-none transition focus:border-[var(--qc-primary)] focus:bg-[var(--qc-surface)] focus:ring-4 focus:ring-[rgba(210,231,211,0.85)]"
                   value={perfil}
-                  onValueChange={setPerfil}
+                  onChange={(event: React.ChangeEvent<HTMLSelectElement>) =>
+                    setPerfil(event.target.value)
+                  }
                   disabled={perfilTravado}
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o perfil" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PERFIS.map((item) => (
-                      <SelectItem key={item.value} value={item.value}>
-                        {item.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  {PERFIS.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="input-block">
