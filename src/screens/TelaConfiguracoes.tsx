@@ -104,21 +104,21 @@ export function TelaConfiguracoes() {
       ]);
 
       if (!online) {
-        alert('Ajustes salvos no aparelho. A sincronizacao sera feita quando a internet voltar.');
+        alert('Ajustes salvos no aparelho. A sincronização será feita quando a internet voltar.');
         return;
       }
 
       try {
         const result = await sincronizarAgora();
         if (result?.erro) {
-          alert(`Ajustes salvos, mas a sincronizacao teve aviso: ${result.erro}`);
+          alert(`Ajustes salvos, mas a sincronização teve aviso: ${result.erro}`);
           return;
         }
 
         alert('Ajustes salvos e sincronizados com sucesso.');
       } catch (error) {
         alert(
-          `Ajustes salvos, mas a sincronizacao falhou: ${
+          `Ajustes salvos, mas a sincronização falhou: ${
             error instanceof Error ? error.message : 'erro desconhecido'
           }`,
         );
@@ -139,17 +139,17 @@ export function TelaConfiguracoes() {
 
     const result = await checkForUpdate();
     if (result.status === 'up-to-date') {
-      alert(`O app ja esta na versao mais recente (${result.currentVersion}).`);
+      alert(`O app já está na versão mais recente (${result.currentVersion}).`);
       return;
     }
 
     if (result.status === 'not-configured') {
-      alert('Canal de atualizacao externa ainda nao configurado.');
+      alert('Canal de atualização externa ainda não configurado.');
       return;
     }
 
     if (result.status === 'error') {
-      alert('Nao foi possivel verificar atualizacao agora. Tente novamente em instantes.');
+      alert('Não foi possível verificar atualização agora. Tente novamente em instantes.');
     }
   };
 
@@ -168,8 +168,8 @@ export function TelaConfiguracoes() {
 
   return (
     <LayoutMobile
-      title="Configuracoes"
-      subtitle="Funcoes, limites e acessos do aplicativo"
+      title="Configurações"
+      subtitle="Funções, limites e acessos do aplicativo"
       onBack={() => navigate('/dashboard')}
       contentClassName="overflow-x-hidden"
       showBottomNav
@@ -178,7 +178,7 @@ export function TelaConfiguracoes() {
         {podeEditarLimites ? (
           <>
             <CounterInput
-              label="Limite - Cocos no Chao"
+              label="Limite - Cocos no Chão"
               value={limiteCocos}
               onChange={setLimiteCocos}
               color="amber"
@@ -200,7 +200,7 @@ export function TelaConfiguracoes() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-[18px] border border-[var(--qc-border)] bg-[var(--qc-surface-muted)] p-3">
                   <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[var(--qc-secondary)]">
-                    Cocos no chao
+                    Cocos no chão
                   </p>
                   <p className="mt-1 text-xl font-black text-[var(--qc-text)]">
                     {limiteCocos}
@@ -216,7 +216,7 @@ export function TelaConfiguracoes() {
                 </div>
               </div>
               <p className="text-sm leading-relaxed text-[var(--qc-text-muted)]">
-                Esses limites estao visiveis para consulta, mas a alteracao so aparece quando o administrador libera essa funcao para o seu perfil.
+                Esses limites estão visíveis para consulta, mas a alteração só aparece quando o administrador libera essa função para o seu perfil.
               </p>
             </CardContent>
           </Card>
@@ -225,10 +225,10 @@ export function TelaConfiguracoes() {
         <Card className="surface-card border-none shadow-sm">
           <CardContent className="p-4">
             <p className="break-words text-sm leading-relaxed text-[var(--qc-text-muted)]">
-              Se a media ultrapassar qualquer limite configurado, a parcela sera
+              Se a média ultrapassar qualquer limite configurado, a parcela será
               marcada como <span className="font-bold text-[var(--qc-danger)]">Retoque</span>.
-              Os mesmos limites tambem destacam em verde as celulas do relatorio
-              quando uma metrica ultrapassa o valor configurado.
+              Os mesmos limites também destacam em verde as células do relatório
+              quando uma métrica ultrapassa o valor configurado.
             </p>
           </CardContent>
         </Card>
@@ -238,26 +238,26 @@ export function TelaConfiguracoes() {
             <CardContent className="space-y-4 p-4">
               <div className="space-y-1.5">
                 <p className="text-sm font-semibold text-[var(--qc-text)]">
-                  Atualizacao do aplicativo
+                  Atualização do aplicativo
                 </p>
                 <p className="text-sm leading-relaxed text-[var(--qc-text-muted)]">
-                  Versao instalada:{' '}
+                  Versão instalada:{' '}
                   <span className="font-semibold text-[var(--qc-text)]">
-                    {currentVersion || 'Carregando versao'}
+                    {currentVersion || 'Carregando versão'}
                   </span>
                 </p>
                 <p className="text-sm leading-relaxed text-[var(--qc-text-muted)]">
                   {updatingApp
                     ? updateProgressPercent != null
-                      ? `Baixando atualizacao internamente (${updateProgressPercent}%)`
-                      : 'Baixando atualizacao internamente'
+                      ? `Baixando atualização internamente (${updateProgressPercent}%)`
+                      : 'Baixando atualização internamente'
                     : installReadyForAvailableUpdate
-                      ? `A atualizacao ${availableUpdate?.latestVersion || ''} ja foi preparada. Toque abaixo para reabrir o instalador do Android.`
+                      ? `A atualização ${availableUpdate?.latestVersion || ''} já foi preparada. Toque abaixo para reabrir o instalador do Android.`
                       : availableUpdate
-                        ? `Nova versao ${availableUpdate.latestVersion} disponivel para instalacao.`
+                        ? `Nova versão ${availableUpdate.latestVersion} disponível para instalação.`
                         : manifestConfigured
-                          ? 'Quando houver nova versao, o app fara o download interno do APK e abrira o instalador do Android.'
-                          : 'Canal de atualizacao externa ainda nao configurado.'}
+                          ? 'Quando houver nova versão, o app fará o download interno do APK e abrirá o instalador do Android.'
+                          : 'Canal de atualização externa ainda não configurado.'}
                 </p>
 
                 {updateMessage ? (
@@ -276,16 +276,16 @@ export function TelaConfiguracoes() {
                 disabled={checkingUpdate || updatingApp || !manifestConfigured}
               >
                 {checkingUpdate
-                  ? 'Verificando atualizacao'
+                  ? 'Verificando atualização'
                   : updatingApp
                     ? updateProgressPercent != null
                       ? `Baixando ${updateProgressPercent}%`
-                      : 'Preparando atualizacao'
+                      : 'Preparando atualização'
                     : installReadyForAvailableUpdate
                       ? 'Abrir instalador novamente'
                       : availableUpdate
                         ? `Atualizar para ${availableUpdate.latestVersion}`
-                        : 'Verificar atualizacao'}
+                        : 'Verificar atualização'}
               </Button>
             </CardContent>
           </Card>
@@ -297,23 +297,23 @@ export function TelaConfiguracoes() {
               <p className="text-sm font-semibold text-[var(--qc-text)]">Meu perfil</p>
               <p className="text-sm leading-relaxed text-[var(--qc-text-muted)]">
                 <span className="font-semibold text-[var(--qc-text)]">
-                  {usuarioAtual?.nome || 'Usuario atual'}
+                  {usuarioAtual?.nome || 'Usuário atual'}
                 </span>
               </p>
               <p className="text-sm leading-relaxed text-[var(--qc-text-muted)]">
                 Perfil: {PERFIL_LABEL[usuarioAtual?.perfil || 'colaborador']}
               </p>
               <p className="text-sm leading-relaxed text-[var(--qc-text-muted)]">
-                Matricula:{' '}
+                Matrícula:{' '}
                 <span className="font-semibold text-[var(--qc-text)]">
-                  {usuarioAtual?.matricula || 'Nao informada'}
+                  {usuarioAtual?.matricula || 'Não informada'}
                 </span>
               </p>
             </div>
 
             <div className="space-y-2">
               <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[var(--qc-secondary)]">
-                Funcoes liberadas para o seu perfil
+                Funções liberadas para o seu perfil
               </p>
               <div className="flex flex-wrap gap-2">
                 {grantedPermissionLabels.length > 0 ? (
@@ -327,7 +327,7 @@ export function TelaConfiguracoes() {
                   ))
                 ) : (
                   <span className="text-sm text-[var(--qc-text-muted)]">
-                    Nenhuma liberacao operacional adicional neste perfil.
+                    Nenhuma liberação operacional adicional neste perfil.
                   </span>
                 )}
               </div>
@@ -350,7 +350,7 @@ export function TelaConfiguracoes() {
                   navigate('/colaboradores/cadastro?returnTo=%2Fconfiguracoes')
                 }
               >
-                Cadastrar usuario
+                Cadastrar usuário
               </Button>
             ) : null}
 
@@ -360,7 +360,7 @@ export function TelaConfiguracoes() {
                 className="h-11 w-full rounded-[18px] font-bold"
                 onClick={() => navigate('/colaboradores')}
               >
-                Gerenciar usuarios
+                Gerenciar usuários
               </Button>
             ) : null}
 
@@ -381,10 +381,10 @@ export function TelaConfiguracoes() {
             <CardContent className="space-y-4 p-4">
               <div className="space-y-1.5">
                 <p className="text-sm font-semibold text-[var(--qc-text)]">
-                  Liberacao por perfil
+                  Liberação por perfil
                 </p>
                 <p className="text-sm leading-relaxed text-[var(--qc-text-muted)]">
-                  O administrador define quais funcoes cada perfil visualiza e executa. O perfil administrador permanece com acesso total.
+                  O administrador define quais funções cada perfil visualiza e executa. O perfil administrador permanece com acesso total.
                 </p>
               </div>
 
@@ -440,7 +440,7 @@ export function TelaConfiguracoes() {
           <Card className="surface-card border-none shadow-sm">
             <CardContent className="p-4">
               <p className="text-sm leading-relaxed text-[var(--qc-text-muted)]">
-                A liberacao de campos e funcoes por perfil e feita exclusivamente pelo administrador.
+                A liberação de campos e funções por perfil é feita exclusivamente pelo administrador.
               </p>
             </CardContent>
           </Card>
@@ -463,7 +463,7 @@ export function TelaConfiguracoes() {
             className="h-11 w-full rounded-[18px] font-bold"
             onClick={logout}
           >
-            Encerrar sessao
+            Encerrar sessão
           </Button>
         </div>
       </div>

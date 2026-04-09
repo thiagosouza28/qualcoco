@@ -132,7 +132,7 @@ export function TelaDetalheAvaliacao() {
   const marcarMutation = useMutation({
     mutationFn: async () => {
       if (!retoqueExecutorId) {
-        throw new Error('Selecione quem executara o retoque.');
+        throw new Error('Selecione quem executará o retoque.');
       }
 
       return marcarAvaliacaoParaRetoque({
@@ -170,7 +170,7 @@ export function TelaDetalheAvaliacao() {
         '';
 
       if (!responsavelId) {
-        throw new Error('Defina quem executara o retoque.');
+        throw new Error('Defina quem executará o retoque.');
       }
 
       return criarRetoqueAvaliacao({
@@ -199,11 +199,11 @@ export function TelaDetalheAvaliacao() {
   if (!canViewHistory(usuarioAtual?.perfil, permissionMatrix)) {
     return (
       <LayoutMobile
-        title="Detalhe da avaliacao"
+        title="Detalhe da avaliação"
         subtitle="Acesso restrito"
         onBack={() => navigate('/dashboard')}
       >
-        <AccessDeniedCard description="A consulta detalhada da avaliacao so aparece quando o administrador libera historico para o seu perfil." />
+        <AccessDeniedCard description="A consulta detalhada da avaliação só aparece quando o administrador libera histórico para o seu perfil." />
       </LayoutMobile>
     );
   }
@@ -240,16 +240,16 @@ export function TelaDetalheAvaliacao() {
             </DialogHeader>
             <div className="mb-3 rounded-[18px] border border-[rgba(93,98,78,0.16)] bg-[rgba(244,245,240,0.92)] px-4 py-3">
               <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
-                Fiscal responsavel
+                Fiscal responsável
               </p>
               <p className="mt-1 text-sm font-semibold text-[var(--qc-text)]">
-                {usuarioAtual?.nome || 'Nao informado'}
+                {usuarioAtual?.nome || 'Não informado'}
               </p>
             </div>
 
             <Select value={retoqueExecutorId} onValueChange={setRetoqueExecutorId}>
               <SelectTrigger className="mb-3">
-                <SelectValue placeholder="Selecione quem executara o retoque" />
+                <SelectValue placeholder="Selecione quem executará o retoque" />
               </SelectTrigger>
               <SelectContent>
                 {colaboradoresExecutoresRetoque.map((colaborador) => (

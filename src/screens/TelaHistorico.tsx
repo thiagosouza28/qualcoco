@@ -179,11 +179,11 @@ export function TelaHistorico() {
   if (!canViewHistory(usuarioAtual?.perfil, permissionMatrix)) {
     return (
       <LayoutMobile
-        title="Historico"
+        title="Histórico"
         subtitle="Acesso restrito"
         onBack={() => navigate('/dashboard')}
       >
-        <AccessDeniedCard description="O historico so aparece quando essa consulta esta liberada para o seu perfil pelo administrador." />
+        <AccessDeniedCard description="O histórico só aparece quando essa consulta está liberada para o seu perfil pelo administrador." />
       </LayoutMobile>
     );
   }

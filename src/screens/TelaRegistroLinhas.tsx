@@ -1556,7 +1556,7 @@ export function TelaRegistroLinhas() {
         subtitle="Acesso restrito"
         onBack={() => navigate('/dashboard')}
       >
-        <AccessDeniedCard description="A edicao deste fluxo de avaliacao foi bloqueada para o seu perfil. Se necessario, o administrador pode liberar essa funcao nas configuracoes." />
+        <AccessDeniedCard description="A edição deste fluxo de avaliação foi bloqueada para o seu perfil. Se necessário, o administrador pode liberar essa função nas configurações." />
       </LayoutMobile>
     );
   }

@@ -35,14 +35,14 @@ import { useRolePermissions } from '@/core/useRolePermissions';
 
 const quickActionCatalog = [
   {
-    label: 'Relatorios',
-    subtitle: 'Consolidado diario e metricas de campo.',
+    label: 'Relatórios',
+    subtitle: 'Consolidado diário e métricas de campo.',
     icon: BarChart3,
     to: '/relatorios',
     permissionKey: 'verRelatorios',
   },
   {
-    label: 'Historico',
+    label: 'Histórico',
     subtitle: 'Registros recentes e auditorias passadas.',
     icon: History,
     to: '/historico',
@@ -56,14 +56,14 @@ const quickActionCatalog = [
     adminOnly: true,
   },
   {
-    label: 'Configuracoes',
-    subtitle: 'Definicao de limites e regras de negocio.',
+    label: 'Configurações',
+    subtitle: 'Definição de limites e regras de negócio.',
     icon: Settings,
     to: '/configuracoes',
   },
   {
-    label: 'Sincronizacao',
-    subtitle: 'Conexao com a nuvem e envio dos dados.',
+    label: 'Sincronização',
+    subtitle: 'Conexão com a nuvem e envio dos dados.',
     icon: Cloud,
     to: '/sincronizacao',
     permissionKey: 'verSincronizacao',
@@ -154,9 +154,9 @@ export function TelaDashboard() {
   const statusOperacional = sincronizando
     ? 'Sincronizando dados do dispositivo.'
     : pendenciasSync > 0
-      ? `${pendenciasSync} operacao(oes) aguardando sincronizacao.`
+      ? `${pendenciasSync} operação(ões) aguardando sincronização.`
       : online
-        ? 'Operacao online e pronta para uso.'
+        ? 'Operação online e pronta para uso.'
         : 'Modo offline ativo no dispositivo.';
 
   return (
@@ -198,7 +198,7 @@ export function TelaDashboard() {
                 </span>
                 <div>
                   <h2 className="text-[clamp(1.8rem,8vw,2.2rem)] font-black tracking-[-0.06em] text-white">
-                    Visao Geral
+                    Visão Geral
                   </h2>
                   <p className="mt-2 max-w-[17rem] text-[0.9rem] font-medium leading-relaxed text-white/76">
                     {statusOperacional}
@@ -228,7 +228,7 @@ export function TelaDashboard() {
                 <CirclePlus className="h-6 w-6 sm:h-7 sm:w-7" />
               </span>
               <span className="min-w-0 text-[clamp(1.45rem,7vw,2rem)] font-black tracking-[-0.05em] leading-none">
-                Nova Avaliacao
+                Nova Avaliação
               </span>
             </div>
 
@@ -237,14 +237,14 @@ export function TelaDashboard() {
         ) : (
           <AccessDeniedCard
             title="Coleta bloqueada para este perfil"
-            description="A abertura de novas avaliacoes so aparece quando o administrador libera essa funcao para o seu perfil."
+            description="A abertura de novas avaliações só aparece quando o administrador libera essa função para o seu perfil."
           />
         )}
 
         <section className="stack-md">
           <div className="px-2">
             <p className="text-[1.05rem] font-black uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
-              Acoes Rapidas
+              Ações Rápidas
             </p>
           </div>
 
@@ -281,7 +281,7 @@ export function TelaDashboard() {
         <section className="stack-md">
           <div className="px-2">
             <p className="text-[1.05rem] font-black uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
-              Avaliacoes em Andamento
+              Avaliações em Andamento
             </p>
           </div>
 
@@ -292,7 +292,7 @@ export function TelaDashboard() {
                   <ClipboardList className="h-9 w-9 text-[var(--qc-secondary)]" />
                 </div>
                 <p className="max-w-[18rem] text-[1.2rem] font-medium leading-relaxed text-[var(--qc-text)]">
-                  Nenhuma avaliacao iniciada nesta jornada
+                  Nenhuma avaliação iniciada nesta jornada
                 </p>
               </CardContent>
             </Card>
@@ -325,7 +325,7 @@ export function TelaDashboard() {
                           <p className="mt-2 text-sm font-semibold text-[var(--qc-secondary)]">
                             {avaliacao.totalParcelas > 0
                               ? `${avaliacao.totalParcelas} parcela${avaliacao.totalParcelas === 1 ? '' : 's'}`
-                              : 'Parcela nao definida'}
+                              : 'Parcela não definida'}
                           </p>
                           <p className="mt-1 text-sm font-medium text-[var(--qc-text-muted)]">
                             {avaliacao.totalRegistros} rua(s) registradas
@@ -360,7 +360,7 @@ export function TelaDashboard() {
                             className="h-11 rounded-2xl border-[rgba(197,58,53,0.28)] bg-[rgba(197,58,53,0.04)] px-2 font-bold text-[var(--qc-danger)] text-sm"
                             disabled={deleteMutation.isPending}
                             onClick={() => {
-                              if (confirm('Excluir esta avaliacao em andamento?')) {
+                              if (confirm('Excluir esta avaliação em andamento?')) {
                                 deleteMutation.mutate(avaliacao.id);
                               }
                             }}
@@ -371,7 +371,7 @@ export function TelaDashboard() {
                         </div>
                       ) : (
                         <p className="mt-4 text-sm font-medium text-[var(--qc-text-muted)]">
-                          Esta avaliacao continua visivel, mas a edicao foi bloqueada para o seu perfil.
+                          Esta avaliação continua visível, mas a edição foi bloqueada para o seu perfil.
                         </p>
                       )}
                     </CardContent>

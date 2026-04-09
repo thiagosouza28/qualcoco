@@ -1,8 +1,11 @@
-import { Link, useNavigate } from 'react-router-dom';
 import { useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Power, Search, Shield, SquarePen } from 'lucide-react';
-import { atualizarColaborador, buscarUsuariosPorNomeOuMatricula } from '@/core/auth';
+import {
+  atualizarColaborador,
+  buscarUsuariosPorNomeOuMatricula,
+} from '@/core/auth';
 import { useCampoApp } from '@/core/AppProvider';
 import { canManageUsers, normalizePerfilUsuario } from '@/core/permissions';
 import { listarEquipes } from '@/core/teams';
@@ -66,9 +69,11 @@ export function TelaColaboradores() {
     mutationFn: async (id: string) => {
       const colaborador = usuarios.find((item) => item.id === id);
       if (!colaborador) return;
+
       const equipeIds = vinculos
         .filter((item) => !item.deletadoEm && item.usuarioId === id)
         .map((item) => item.equipeId);
+
       await atualizarColaborador(colaborador, {
         nome: colaborador.nome,
         primeiroNome: colaborador.primeiroNome,
@@ -93,7 +98,8 @@ export function TelaColaboradores() {
         <Card className="surface-card">
           <CardContent className="p-5">
             <p className="text-sm text-[var(--qc-text-muted)]">
-              Apenas administradores podem visualizar e gerenciar o cadastro completo de usuários.
+              Apenas administradores podem visualizar e gerenciar o cadastro
+              completo de usuários.
             </p>
           </CardContent>
         </Card>
@@ -108,7 +114,9 @@ export function TelaColaboradores() {
       onBack={() => navigate('/dashboard')}
       action={
         <Button asChild size="sm">
-          <Link to="/colaboradores/cadastro">Novo usuário</Link>
+          <Link to="/colaboradores/cadastro?returnTo=%2Fcolaboradores">
+            Novo usuário
+          </Link>
         </Button>
       }
     >
@@ -133,14 +141,16 @@ export function TelaColaboradores() {
           <CardContent className="flex items-center justify-between gap-3 p-4">
             <div>
               <p className="text-sm font-black tracking-tight text-[var(--qc-text)]">
-                Cadastro de usuario
+                Cadastro de usuário
               </p>
               <p className="text-sm text-[var(--qc-text-muted)]">
                 Crie colaborador, fiscal, fiscal chefe ou administrador.
               </p>
             </div>
             <Button asChild>
-              <Link to="/colaboradores/cadastro">Cadastrar</Link>
+              <Link to="/colaboradores/cadastro?returnTo=%2Fcolaboradores">
+                Cadastrar
+              </Link>
             </Button>
           </CardContent>
         </Card>
@@ -153,7 +163,9 @@ export function TelaColaboradores() {
             <Card key={colaborador.id} className="surface-card">
               <CardContent className="flex items-center justify-between gap-3 p-4">
                 <div className="min-w-0">
-                  <p className="font-semibold text-slate-900">{colaborador.nome}</p>
+                  <p className="font-semibold text-slate-900">
+                    {colaborador.nome}
+                  </p>
                   <p className="text-sm text-slate-500">
                     {colaborador.matricula}
                   </p>
@@ -167,7 +179,10 @@ export function TelaColaboradores() {
                       {PERFIL_LABEL[perfil] || 'Colaborador'}
                     </Badge>
                     {equipesUsuario.map((equipe) => (
-                      <Badge key={`${colaborador.id}-${equipe}`} variant="amber">
+                      <Badge
+                        key={`${colaborador.id}-${equipe}`}
+                        variant="amber"
+                      >
                         {equipe}
                       </Badge>
                     ))}
@@ -176,7 +191,9 @@ export function TelaColaboradores() {
 
                 <div className="flex gap-2">
                   <Button asChild variant="outline" size="icon">
-                    <Link to={`/colaboradores/cadastro?id=${colaborador.id}`}>
+                    <Link
+                      to={`/colaboradores/cadastro?id=${colaborador.id}&returnTo=%2Fcolaboradores`}
+                    >
                       <SquarePen className="h-4 w-4" />
                     </Link>
                   </Button>

@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { atualizarColaborador, cadastrarColaborador, listarEquipeIdsDoUsuario } from '@/core/auth';
+import {
+  atualizarColaborador,
+  cadastrarColaborador,
+  listarEquipeIdsDoUsuario,
+} from '@/core/auth';
 import { useCampoApp } from '@/core/AppProvider';
 import { canManageUsers, normalizePerfilUsuario } from '@/core/permissions';
 import { listarEquipes } from '@/core/teams';
@@ -11,7 +15,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const PERFIS = [
   { value: 'colaborador', label: 'Colaborador' },
@@ -19,6 +29,15 @@ const PERFIS = [
   { value: 'fiscal_chefe', label: 'Fiscal chefe' },
   { value: 'administrador', label: 'Administrador' },
 ] as const;
+
+const createEmptyFormState = () => ({
+  nome: '',
+  primeiroNome: '',
+  matricula: '',
+  pin: '',
+  perfil: 'colaborador',
+  ativo: true,
+});
 
 export function CadastroColaborador() {
   const navigate = useNavigate();
@@ -28,22 +47,28 @@ export function CadastroColaborador() {
   const colaboradorId = params.get('id');
   const quickHelperMode = params.get('quick') === '1';
   const returnTo = params.get('returnTo') || '/colaboradores';
+  const isEditMode = Boolean(colaboradorId);
 
   const { data: todosUsuarios = [] } = useQuery({
     queryKey: ['colaboradores', 'todos'],
     queryFn: () => repository.list('colaboradores'),
   });
 
-  const bootstrapLiberado = todosUsuarios.filter((item) => !item.deletadoEm).length === 0;
+  const bootstrapLiberado =
+    todosUsuarios.filter((item) => !item.deletadoEm).length === 0;
   const podeGerenciar =
     bootstrapLiberado ||
     canManageUsers(usuarioAtual?.perfil) ||
-    (quickHelperMode && Boolean(usuarioAtual) && !colaboradorId);
+    (quickHelperMode && Boolean(usuarioAtual) && !isEditMode);
 
-  const { data: colaborador } = useQuery({
+  const {
+    data: colaborador,
+    isPending: carregandoColaborador,
+    isFetched: colaboradorCarregado,
+  } = useQuery({
     queryKey: ['colaboradores', colaboradorId],
     queryFn: () => repository.get('colaboradores', colaboradorId || ''),
-    enabled: Boolean(colaboradorId),
+    enabled: isEditMode,
   });
 
   const { data: equipes = [] } = useQuery({
@@ -54,8 +79,9 @@ export function CadastroColaborador() {
   const { data: equipeIdsUsuario = [] } = useQuery({
     queryKey: ['colaboradores', colaboradorId, 'equipes'],
     queryFn: () => listarEquipeIdsDoUsuario(colaboradorId || ''),
-    enabled: Boolean(colaboradorId),
+    enabled: isEditMode,
   });
+
   const { data: equipeIdsUsuarioAtual = [] } = useQuery({
     queryKey: ['colaboradores', usuarioAtual?.id, 'equipes'],
     queryFn: () => listarEquipeIdsDoUsuario(usuarioAtual?.id || ''),
@@ -72,29 +98,45 @@ export function CadastroColaborador() {
   const [erro, setErro] = useState('');
 
   useEffect(() => {
-    if (!colaborador) return;
-    setNome(colaborador.nome);
-    setPrimeiroNome(colaborador.primeiroNome);
-    setMatricula(colaborador.matricula);
+    if (isEditMode) {
+      return;
+    }
+
+    const initial = createEmptyFormState();
+    setNome(initial.nome);
+    setPrimeiroNome(initial.primeiroNome);
+    setMatricula(initial.matricula);
+    setPin(initial.pin);
+    setPerfil(initial.perfil);
+    setAtivo(initial.ativo);
+    setEquipeIds(quickHelperMode ? equipeIdsUsuarioAtual : []);
+  }, [equipeIdsUsuarioAtual, isEditMode, quickHelperMode]);
+
+  useEffect(() => {
+    if (!isEditMode || !colaborador) {
+      return;
+    }
+
+    setNome(colaborador.nome || '');
+    setPrimeiroNome(colaborador.primeiroNome || '');
+    setMatricula(colaborador.matricula || '');
+    setPin('');
     setPerfil(normalizePerfilUsuario(colaborador.perfil));
     setAtivo(colaborador.ativo);
-  }, [colaborador]);
+  }, [colaborador, isEditMode]);
 
   useEffect(() => {
+    if (!isEditMode) {
+      return;
+    }
+
     setEquipeIds(equipeIdsUsuario);
-  }, [equipeIdsUsuario]);
+  }, [equipeIdsUsuario, isEditMode]);
 
   useEffect(() => {
-    if (!quickHelperMode || colaborador) return;
-    if (equipeIds.length > 0) return;
-    setEquipeIds(equipeIdsUsuarioAtual);
-  }, [colaborador, equipeIds.length, equipeIdsUsuarioAtual, quickHelperMode]);
-
-  useEffect(() => {
-    if (!quickHelperMode || colaborador) return;
-    setPerfil('colaborador');
-    setAtivo(true);
-  }, [colaborador, quickHelperMode]);
+    if (!erro) return;
+    setErro('');
+  }, [ativo, equipeIds, erro, matricula, nome, perfil, pin, primeiroNome]);
 
   const equipesAtivas = useMemo(
     () => equipes.filter((item) => item.ativa && !item.deletadoEm),
@@ -104,46 +146,43 @@ export function CadastroColaborador() {
   const exigeEquipe =
     perfilNormalizado === 'colaborador' || perfilNormalizado === 'fiscal';
   const podeSalvar =
+    !carregandoColaborador &&
     nome.trim().length > 0 &&
     matricula.trim().length > 0 &&
-    (Boolean(colaborador) || pin.length === 4 || pin.length === 6) &&
+    (isEditMode || pin.length === 4 || pin.length === 6) &&
     (!exigeEquipe || equipeIds.length > 0);
-
-  useEffect(() => {
-    if (!erro) return;
-    setErro('');
-  }, [ativo, equipeIds, erro, matricula, nome, perfil, pin, primeiroNome]);
 
   const mutation = useMutation({
     mutationFn: async () => {
-      if (!nome.trim() || !matricula.trim()) {
+      const payload = {
+        nome: nome.trim(),
+        primeiroNome: primeiroNome.trim(),
+        matricula: matricula.trim(),
+        ativo,
+        pin: pin || undefined,
+        perfil: perfilNormalizado,
+        equipeIds,
+      };
+
+      if (!payload.nome || !payload.matricula) {
         throw new Error('Preencha nome completo e matrícula.');
       }
 
-      if (exigeEquipe && equipeIds.length === 0) {
+      if (exigeEquipe && payload.equipeIds.length === 0) {
         throw new Error('Selecione ao menos uma equipe para este perfil.');
       }
 
-      if (colaborador) {
-        return atualizarColaborador(colaborador, {
-          nome,
-          primeiroNome,
-          matricula,
-          ativo,
-          pin: pin || undefined,
-          perfil: perfilNormalizado,
-          equipeIds,
-        });
+      if (isEditMode) {
+        if (!colaborador) {
+          throw new Error('Usuário não encontrado para edição.');
+        }
+
+        return atualizarColaborador(colaborador, payload);
       }
 
       return cadastrarColaborador({
-        nome,
-        primeiroNome,
-        matricula,
-        pin,
-        ativo,
-        perfil: perfilNormalizado,
-        equipeIds,
+        ...payload,
+        pin: pin,
       });
     },
     onSuccess: async () => {
@@ -176,7 +215,8 @@ export function CadastroColaborador() {
         <Card className="surface-card">
           <CardContent className="p-5">
             <p className="text-sm text-[var(--qc-text-muted)]">
-              Apenas administradores podem cadastrar, editar ou inativar usuários.
+              Apenas administradores podem cadastrar, editar ou inativar
+              usuários.
             </p>
           </CardContent>
         </Card>
@@ -184,11 +224,37 @@ export function CadastroColaborador() {
     );
   }
 
-  const perfilTravado = quickHelperMode && !canManageUsers(usuarioAtual?.perfil);
+  if (isEditMode && colaboradorCarregado && !colaborador) {
+    return (
+      <LayoutMobile
+        title="Editar usuário"
+        subtitle="Registro indisponível"
+        onBack={() => navigate(returnTo)}
+      >
+        <Card className="surface-card">
+          <CardContent className="p-5">
+            <p className="text-sm text-[var(--qc-text-muted)]">
+              O usuário informado não foi encontrado ou não está mais
+              disponível.
+            </p>
+          </CardContent>
+        </Card>
+      </LayoutMobile>
+    );
+  }
+
+  const perfilTravado =
+    quickHelperMode && !canManageUsers(usuarioAtual?.perfil);
 
   return (
     <LayoutMobile
-      title={colaborador ? 'Editar usuário' : quickHelperMode ? 'Novo ajudante' : 'Novo usuário'}
+      title={
+        isEditMode
+          ? 'Editar usuário'
+          : quickHelperMode
+            ? 'Novo ajudante'
+            : 'Novo usuário'
+      }
       subtitle="Cadastro profissional para operação de campo"
       onBack={() => navigate(returnTo)}
     >
@@ -197,15 +263,22 @@ export function CadastroColaborador() {
           <CardContent className="stack-md p-5">
             <div className="input-block">
               <label>Nome completo</label>
-              <Input value={nome} onChange={(event: React.ChangeEvent<HTMLInputElement>) => setNome(event.target.value)} />
+              <Input
+                value={nome}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                  setNome(event.target.value)
+                }
+              />
             </div>
 
             <div className="input-block">
               <label>Primeiro nome</label>
               <Input
                 value={primeiroNome}
-                placeholder="Opcional, se vazio será extraído do nome"
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) => setPrimeiroNome(event.target.value)}
+                placeholder="Opcional. Se vazio, será extraído do nome."
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                  setPrimeiroNome(event.target.value)
+                }
               />
             </div>
 
@@ -223,7 +296,11 @@ export function CadastroColaborador() {
             <div className="grid grid-cols-2 gap-3">
               <div className="input-block">
                 <label>Perfil</label>
-                <Select value={perfil} onValueChange={setPerfil} disabled={perfilTravado}>
+                <Select
+                  value={perfil}
+                  onValueChange={setPerfil}
+                  disabled={perfilTravado}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o perfil" />
                   </SelectTrigger>
@@ -263,7 +340,7 @@ export function CadastroColaborador() {
             </div>
 
             <div className="input-block">
-              <label>{colaborador ? 'Novo PIN (opcional)' : 'PIN'}</label>
+              <label>{isEditMode ? 'Novo PIN (opcional)' : 'PIN'}</label>
               <Input
                 type="tel"
                 value={pin}
@@ -271,6 +348,7 @@ export function CadastroColaborador() {
                 pattern="[0-9]*"
                 autoComplete="off"
                 maxLength={6}
+                placeholder={isEditMode ? 'Mantenha vazio para não alterar' : '4 ou 6 dígitos'}
                 onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                   setPin(event.target.value.replace(/\D/g, ''))
                 }
@@ -287,7 +365,9 @@ export function CadastroColaborador() {
                   Equipes vinculadas
                 </p>
                 <p className="text-sm text-[var(--qc-text-muted)]">
-                  Para colaborador e fiscal, ao menos uma equipe deve ser selecionada. Para fiscal chefe e administrador, o vínculo é opcional.
+                  Para colaborador e fiscal, ao menos uma equipe deve ser
+                  selecionada. Para fiscal chefe e administrador, o vínculo é
+                  opcional.
                 </p>
               </div>
               <Badge variant="slate">{equipeIds.length} selecionada(s)</Badge>
@@ -333,7 +413,7 @@ export function CadastroColaborador() {
 
         {erro ? <p className="text-sm text-red-600">{erro}</p> : null}
 
-        {!colaborador && exigeEquipe && equipeIds.length === 0 ? (
+        {!isEditMode && exigeEquipe && equipeIds.length === 0 ? (
           <p className="text-sm text-amber-700">
             Selecione ao menos uma equipe antes de salvar este usuário.
           </p>
@@ -345,7 +425,11 @@ export function CadastroColaborador() {
           className="w-full"
           disabled={!podeSalvar || mutation.isPending}
         >
-          {mutation.isPending ? 'Salvando usuário' : 'Salvar usuário'}
+          {mutation.isPending
+            ? 'Salvando usuário'
+            : isEditMode
+              ? 'Salvar alterações'
+              : 'Salvar usuário'}
         </Button>
       </form>
     </LayoutMobile>
