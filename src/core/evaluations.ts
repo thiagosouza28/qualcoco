@@ -1555,50 +1555,92 @@ export const registrarRetoque = async (input: {
   finalizadoPorId?: string;
 }) => {
   const device = await getOrCreateDevice();
-  const [avaliacao, colaboradores, participantes] = await Promise.all([
+  const [avaliacao, colaboradores, participantes, permissionMatrix] = await Promise.all([
     repository.get('avaliacoes', input.avaliacaoId),
     repository.list('colaboradores'),
     repository.filter(
       'avaliacaoColaboradores',
       (item) => item.avaliacaoId === input.avaliacaoId && !item.deletadoEm,
     ),
+    obterPermissoesPerfisConfiguradas(),
   ]);
-  if (!avaliacao || avaliacao.tipo !== 'retoque' || !avaliacao.avaliacaoOriginalId) {
-    throw new Error('Retoque não disponível para esta avaliação.');
+  if (!avaliacao || avaliacao.deletadoEm) {
+    throw new Error('Avaliação não encontrada para registrar o retoque.');
   }
 
-  const responsavel = colaboradores.find((item) => item.id === input.responsavelId);
+  const isFluxoRetoqueLegado =
+    avaliacao.tipo === 'retoque' && Boolean(avaliacao.avaliacaoOriginalId);
+  if (!isFluxoRetoqueLegado && avaliacao.status !== 'em_retoque') {
+    throw new Error('A avaliacao precisa estar marcada como em retoque antes do fechamento.');
+  }
+
+  const responsavelId = avaliacao.retoqueDesignadoParaId || input.responsavelId;
+  if (!responsavelId) {
+    throw new Error('Defina quem executou o retoque.');
+  }
+
+  const responsavel = validarExecutorRetoque(
+    colaboradores.find((item) => item.id === responsavelId) || null,
+    'executor do retoque',
+  );
+  const finalizadorId = input.finalizadoPorId || responsavelId;
+  const finalizador =
+    colaboradores.find((item) => item.id === finalizadorId) || null;
+
+  if (
+    !canOperateAssignedRetoque({
+      perfil: finalizador?.perfil,
+      usuarioId: finalizadorId,
+      responsavelId,
+      designadoParaId: avaliacao.retoqueDesignadoParaId,
+      matrix: permissionMatrix,
+    })
+  ) {
+    throw new Error(
+      'Este retoque foi designado para outro colaborador. Apenas o designado, o fiscal chefe ou o administrador podem informar sua execucao.',
+    );
+  }
   const existente = await repository.filter(
     'avaliacaoRetoques',
-    (item) => item.avaliacaoId === input.avaliacaoId && !item.deletadoEm,
+    (item) =>
+      !item.deletadoEm &&
+      (item.avaliacaoId === input.avaliacaoId ||
+        (!isFluxoRetoqueLegado &&
+          item.avaliacaoOriginalId === input.avaliacaoId)),
   );
+  const ajudantes = isFluxoRetoqueLegado
+    ? participantes.filter(
+        (item) => normalizePapelAvaliacao(item.papel) === 'ajudante',
+      )
+    : [];
+  const agora = nowIso();
 
   const payload = {
     avaliacaoId: input.avaliacaoId,
-    avaliacaoOriginalId: avaliacao.avaliacaoOriginalId,
-    responsavelId: input.responsavelId,
+    avaliacaoOriginalId: isFluxoRetoqueLegado
+      ? avaliacao.avaliacaoOriginalId || avaliacao.id
+      : avaliacao.id,
+    responsavelId,
     responsavelNome: responsavel?.nome || '',
     responsavelMatricula: responsavel?.matricula || '',
     equipeId: avaliacao.equipeId || null,
     equipeNome: avaliacao.equipeNome || '',
-    ajudanteIds: participantes
-      .filter((item) => normalizePapelAvaliacao(item.papel) === 'ajudante')
-      .map((item) => item.colaboradorId),
-    ajudanteNomes: participantes
-      .filter((item) => normalizePapelAvaliacao(item.papel) === 'ajudante')
+    ajudanteIds: ajudantes.map((item) => item.colaboradorId),
+    ajudanteNomes: ajudantes
       .map((item) => item.colaboradorNome || item.colaboradorPrimeiroNome || '')
       .filter(Boolean),
-    quantidadeBags: input.quantidadeBags,
-    quantidadeCargas: input.quantidadeCargas,
+    quantidadeBags: Math.max(0, input.quantidadeBags),
+    quantidadeCargas: Math.max(0, input.quantidadeCargas),
     dataRetoque: input.dataRetoque,
-    dataInicio: existente[0]?.dataInicio || avaliacao.inicioEm || nowIso(),
-    dataFim: nowIso(),
+    dataInicio:
+      existente[0]?.dataInicio ||
+      (isFluxoRetoqueLegado
+        ? avaliacao.inicioEm || agora
+        : avaliacao.marcadoRetoqueEm || agora),
+    dataFim: agora,
     observacao: input.observacao,
-    finalizadoPorId: input.finalizadoPorId || input.responsavelId,
-    finalizadoPorNome:
-      colaboradores.find(
-        (item) => item.id === (input.finalizadoPorId || input.responsavelId),
-      )?.nome || '',
+    finalizadoPorId: finalizadorId,
+    finalizadoPorNome: finalizador?.nome || '',
     status: 'finalizado' as const,
   };
 
@@ -1616,18 +1658,34 @@ export const registrarRetoque = async (input: {
     record = await createEntity('avaliacaoRetoques', device.id, payload);
   }
 
+  if (!isFluxoRetoqueLegado) {
+    await saveEntity('avaliacoes', {
+      ...avaliacao,
+      status: 'revisado',
+      atualizadoEm: agora,
+      syncStatus: 'pending_sync',
+      versao: avaliacao.versao + 1,
+    });
+    await criarLogAvaliacao({
+      avaliacaoId: input.avaliacaoId,
+      colaboradorId: finalizadorId,
+      acao: 'retoque_resultado_final',
+      descricao: 'Retoque informado e parcela marcada como revisada.',
+    });
+  }
+
   await criarLogAvaliacao({
     avaliacaoId: input.avaliacaoId,
-    colaboradorId: input.responsavelId,
+    colaboradorId: finalizadorId,
     acao: 'retoque_quantidades_registradas',
-    descricao: `Fechamento do retoque com ${Math.max(0, input.quantidadeBags)} bag(s) e ${Math.max(0, input.quantidadeCargas)} carga(s).`,
+    descricao: `Retoque informado para ${responsavel?.nome || 'Usuário'} com ${Math.max(0, input.quantidadeBags)} bag(s) e ${Math.max(0, input.quantidadeCargas)} carga(s).`,
   });
 
   await criarLogAvaliacao({
     avaliacaoId: input.avaliacaoId,
-    colaboradorId: input.finalizadoPorId || input.responsavelId,
+    colaboradorId: finalizadorId,
     acao: 'retoque_finalizado',
-    descricao: `Retoque finalizado por ${payload.finalizadoPorNome || responsavel?.nome || 'Usuário'}.`,
+    descricao: `Retoque finalizado por ${payload.finalizadoPorNome || responsavel?.nome || 'Usuário'}. Executor registrado: ${responsavel?.nome || 'Usuário'}.`,
   });
 
   return record;

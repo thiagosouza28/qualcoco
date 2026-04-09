@@ -75,6 +75,8 @@ const normalizarSiglasResumoParcela = (
 
 const formatStatusRelatorio = (value: string | null | undefined) => {
   if (value === 'ok') return 'OK';
+  if (value === 'revisado') return 'Revisado';
+  if (value === 'em_retoque') return 'Em retoque';
   if (value === 'refazer') return 'Retoque';
   return 'Em andamento';
 };
@@ -84,7 +86,9 @@ const mergeStatusRelatorio = (
   next: string | null | undefined,
 ) => {
   if (current === 'refazer' || next === 'refazer') return 'refazer';
+  if (current === 'em_retoque' || next === 'em_retoque') return 'em_retoque';
   if (current === 'in_progress' || next === 'in_progress') return 'in_progress';
+  if (current === 'revisado' || next === 'revisado') return 'revisado';
   return 'ok';
 };
 
@@ -382,11 +386,6 @@ export function TelaRelatorio() {
     queryFn: () => repository.list('colaboradores'),
   });
 
-  const { data: avaliacaoRetoques = [] } = useQuery({
-    queryKey: ['relatorio', 'avaliacaoRetoques'],
-    queryFn: () => repository.list('avaliacaoRetoques'),
-  });
-
   const { data: registros = [] } = useQuery({
     queryKey: ['relatorio', 'registros'],
     queryFn: () => repository.list('registrosColeta'),
@@ -586,7 +585,6 @@ export function TelaRelatorio() {
       const allRetoques = await repository.list('avaliacaoRetoques');
 
       const colabMap = new Map(allColaboradores.map((item) => [item.id, item]));
-      const avaliacaoMap = new Map(avaliacoes.map((item) => [item.id, item]));
       const retoqueByAvaliacaoId = new Map(
         allRetoques
           .filter((item) => !item.deletadoEm)
@@ -672,10 +670,11 @@ export function TelaRelatorio() {
           const referente = montarReferenteRelatorio(dataColheita);
           const observacoesRegistro = registro?.observacoes || avaliacao.observacoes || '';
           const observacaoBase = montarObservacaoRelatorio(observacoesRegistro);
-          const retoque = retoqueByAvaliacaoId.get(avaliacao.id);
-          const avaliacaoOriginal = avaliacao.avaliacaoOriginalId
-            ? avaliacaoMap.get(avaliacao.avaliacaoOriginalId)
-            : null;
+          const retoque =
+            retoqueByAvaliacaoId.get(avaliacao.id) ||
+            (avaliacao.avaliacaoOriginalId
+              ? retoqueByAvaliacaoId.get(avaliacao.avaliacaoOriginalId)
+              : null);
           const observacaoExtra: string[] = [];
           if (avaliacao.marcadoRetoquePorNome) {
             observacaoExtra.push(`Fiscal responsável: ${avaliacao.marcadoRetoquePorNome}`);
@@ -683,7 +682,7 @@ export function TelaRelatorio() {
           if (avaliacao.retoqueDesignadoParaNome) {
             observacaoExtra.push(`Executor designado: ${avaliacao.retoqueDesignadoParaNome}`);
           }
-          if (avaliacao.tipo === 'retoque' && retoque) {
+          if (retoque) {
             const bags = Number(retoque.quantidadeBags || 0);
             const cargas = Number(retoque.quantidadeCargas || 0);
             const dataRetoque = retoque.dataRetoque
@@ -693,11 +692,8 @@ export function TelaRelatorio() {
               `Retoque: ${bags} bags / ${cargas} cargas`,
               dataRetoque,
             );
-          }
-          if (avaliacao.tipo === 'retoque' && avaliacaoOriginal) {
-            const diffMedia = (avaliacao.mediaParcela || 0) - (avaliacaoOriginal.mediaParcela || 0);
-            if (Number.isFinite(diffMedia)) {
-              observacaoExtra.push(`Diferença média: ${diffMedia.toFixed(2)}`);
+            if (retoque.observacao) {
+              observacaoExtra.push(`Obs. retoque: ${retoque.observacao}`);
             }
           }
           const observacao = [observacaoBase, ...observacaoExtra]
