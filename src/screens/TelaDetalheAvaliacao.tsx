@@ -36,6 +36,7 @@ import {
   canOperateAssignedRetoque,
   canMarkRetoque,
   canViewHistory,
+  filtrarEquipesVisiveis,
   normalizePapelAvaliacao,
   normalizePerfilUsuario,
 } from '@/core/permissions';
@@ -79,11 +80,15 @@ export function TelaDetalheAvaliacao() {
   const [showMarcarModal, setShowMarcarModal] = useState(false);
   const [showRetoqueModal, setShowRetoqueModal] = useState(false);
   const [motivoRetoque, setMotivoRetoque] = useState('');
-  const [retoqueExecutorId, setRetoqueExecutorId] = useState('');
+  const [retoqueExecutorIds, setRetoqueExecutorIds] = useState<string[]>([]);
+  const [retoqueEquipeId, setRetoqueEquipeId] = useState('');
   const [retoqueData, setRetoqueData] = useState(todayIso());
   const [retoqueBags, setRetoqueBags] = useState('');
   const [retoqueCargas, setRetoqueCargas] = useState('');
   const [retoqueObservacao, setRetoqueObservacao] = useState('');
+  const retoqueExecutorId = retoqueExecutorIds[0] || '';
+  const setRetoqueExecutorId = (value: string) =>
+    setRetoqueExecutorIds(value ? [value] : []);
 
   const { data, isFetched } = useQuery({
     queryKey: ['avaliacao', id, 'detalhe', usuarioAtual?.id],
@@ -95,6 +100,11 @@ export function TelaDetalheAvaliacao() {
     queryKey: ['colaboradores', 'ativos', 'retoque'],
     queryFn: listarColaboradoresAtivos,
     enabled: Boolean(usuarioAtual),
+  });
+  const { data: equipesVisiveis = [] } = useQuery({
+    queryKey: ['equipes', 'detalhe-retoque', usuarioAtual?.id],
+    queryFn: () => filtrarEquipesVisiveis(usuarioAtual),
+    enabled: Boolean(usuarioAtual?.id),
   });
 
   const participantes = data?.participantes || [];
@@ -115,12 +125,22 @@ export function TelaDetalheAvaliacao() {
       !item.deletadoEm &&
       normalizePerfilUsuario(item.perfil) === 'colaborador',
   );
-  const executorDesignado =
-    colaboradoresExecutoresRetoque.find(
-      (item) => item.id === data?.avaliacao?.retoqueDesignadoParaId,
-    ) || null;
+  const executoresDesignadosIds = (
+    data?.avaliacao?.retoqueDesignadoParaIds ||
+    [data?.avaliacao?.retoqueDesignadoParaId || '']
+  ).filter(Boolean);
+  const nomesExecutoresDesignados = executoresDesignadosIds
+    .map(
+      (usuarioId) =>
+        colaboradoresExecutoresRetoque.find((item) => item.id === usuarioId)?.nome ||
+        data?.avaliacao?.retoqueDesignadoParaNomes?.find(
+          (_item, index) => executoresDesignadosIds[index] === usuarioId,
+        ) ||
+        '',
+    )
+    .filter(Boolean);
   const nomeExecutorDesignado =
-    executorDesignado?.nome ||
+    nomesExecutoresDesignados.join(' - ') ||
     data?.avaliacao?.retoqueDesignadoParaNome ||
     data?.retoque?.responsavelNome ||
     '';
@@ -132,6 +152,7 @@ export function TelaDetalheAvaliacao() {
       data?.retoque?.responsavelId ||
       data?.avaliacao?.responsavelPrincipalId,
     designadoParaId: data?.avaliacao?.retoqueDesignadoParaId,
+    designadoParaIds: data?.avaliacao?.retoqueDesignadoParaIds,
     matrix: permissionMatrix,
   });
 
@@ -195,8 +216,22 @@ export function TelaDetalheAvaliacao() {
 
   useEffect(() => {
     if (!showMarcarModal) return;
-    setRetoqueExecutorId(data?.avaliacao?.retoqueDesignadoParaId || '');
-  }, [data?.avaliacao?.retoqueDesignadoParaId, showMarcarModal]);
+    setRetoqueExecutorIds(
+      (
+        data?.avaliacao?.retoqueDesignadoParaIds ||
+        [data?.avaliacao?.retoqueDesignadoParaId || '']
+      ).filter(Boolean),
+    );
+    setRetoqueEquipeId(
+      data?.avaliacao?.retoqueEquipeId || data?.avaliacao?.equipeId || '',
+    );
+  }, [
+    data?.avaliacao?.equipeId,
+    data?.avaliacao?.retoqueDesignadoParaId,
+    data?.avaliacao?.retoqueDesignadoParaIds,
+    data?.avaliacao?.retoqueEquipeId,
+    showMarcarModal,
+  ]);
 
   useEffect(() => {
     if (!showRetoqueModal) return;
@@ -229,14 +264,16 @@ export function TelaDetalheAvaliacao() {
       return marcarAvaliacaoParaRetoque({
         avaliacaoId: id,
         usuarioId: usuarioAtual?.id || '',
-        designadoParaId: retoqueExecutorId,
+        designadoParaIds: retoqueExecutorIds,
+        equipeId: retoqueEquipeId || null,
         motivo: motivoRetoque,
       });
     },
     onSuccess: async () => {
       setShowMarcarModal(false);
       setMotivoRetoque('');
-      setRetoqueExecutorId('');
+      setRetoqueExecutorIds([]);
+      setRetoqueEquipeId('');
       await queryClient.invalidateQueries();
     },
     onError: (error) => {
@@ -244,6 +281,36 @@ export function TelaDetalheAvaliacao() {
         error instanceof Error
           ? error.message
           : 'Não foi possível marcar a parcela para retoque.',
+      );
+    },
+  });
+
+  const marcarRetoqueFlexMutation = useMutation({
+    mutationFn: async () => {
+      if (retoqueExecutorIds.length === 0) {
+        throw new Error('Selecione ao menos um colaborador para o retoque.');
+      }
+
+      return marcarAvaliacaoParaRetoque({
+        avaliacaoId: id,
+        usuarioId: usuarioAtual?.id || '',
+        designadoParaIds: retoqueExecutorIds,
+        equipeId: retoqueEquipeId || null,
+        motivo: motivoRetoque,
+      });
+    },
+    onSuccess: async () => {
+      setShowMarcarModal(false);
+      setMotivoRetoque('');
+      setRetoqueExecutorIds([]);
+      setRetoqueEquipeId('');
+      await queryClient.invalidateQueries();
+    },
+    onError: (error) => {
+      alert(
+        error instanceof Error
+          ? error.message
+          : 'Nao foi possivel marcar a parcela para retoque.',
       );
     },
   });
@@ -363,6 +430,47 @@ export function TelaDetalheAvaliacao() {
                 ))}
               </SelectContent>
             </Select>
+
+            <Select value={retoqueEquipeId} onValueChange={setRetoqueEquipeId}>
+              <SelectTrigger className="mb-3">
+                <SelectValue placeholder="Selecione a equipe do retoque" />
+              </SelectTrigger>
+              <SelectContent>
+                {equipesVisiveis.map((equipe) => (
+                  <SelectItem key={equipe.id} value={equipe.id}>
+                    {String(equipe.numero).padStart(2, '0')} • {equipe.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <div className="mb-3 stack-sm">
+              <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
+                Colaboradores adicionais
+              </p>
+              <div className="grid gap-2">
+                {colaboradoresExecutoresRetoque.map((colaborador) => {
+                  const ativo = retoqueExecutorIds.includes(colaborador.id);
+                  return (
+                    <Button
+                      key={colaborador.id}
+                      type="button"
+                      variant={ativo ? 'default' : 'outline'}
+                      className="h-11 justify-start rounded-2xl font-bold"
+                      onClick={() =>
+                        setRetoqueExecutorIds((current) =>
+                          current.includes(colaborador.id)
+                            ? current.filter((item) => item !== colaborador.id)
+                            : [...current, colaborador.id],
+                        )
+                      }
+                    >
+                      {colaborador.nome} • {colaborador.matricula}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
 
             <Textarea
               rows={4}

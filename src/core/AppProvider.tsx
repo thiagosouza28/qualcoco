@@ -11,10 +11,12 @@ import {
 } from 'react';
 import {
   autenticarColaborador,
+  atualizarSessaoAtiva,
   encerrarSessaoCloud,
   garantirSessaoCloudColaborador,
   getSessaoAtiva,
   logoutSessao,
+  sincronizarEquipeDiaSessao,
   touchSessao,
 } from '@/core/auth';
 import { getById, initLocalDb } from '@/core/localDb';
@@ -55,6 +57,10 @@ type AppContextShape = {
   sincronizarAgora: () => Promise<SyncExecutionResult | null>;
   sincronizarAcessosWeb: () => Promise<SyncExecutionResult | null>;
   sincronizarPullRemoto: (stores?: StoreName[]) => Promise<SyncExecutionResult | null>;
+  definirEquipeDoDia: (input: {
+    equipeId: string | null;
+    equipeNome?: string | null;
+  }) => void;
 };
 
 const AppContext = createContext<AppContextShape | null>(null);
@@ -121,8 +127,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
+    const nextSession =
+      currentSession && hydratedUser
+        ? await sincronizarEquipeDiaSessao(hydratedUser, currentSession)
+        : currentSession;
+
     setDispositivo(device);
-    setSession(currentSession);
+    setSession(nextSession);
     setUsuarioAtual(hydratedUser);
     setCloudSessionReady(Boolean(currentCloudSession));
     setBootstrapped(true);
@@ -389,6 +400,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [atualizarPendencias, dispositivo, executarSincronizacao, garantirSessaoCloudDispositivo],
   );
 
+  const definirEquipeDoDia = useCallback(
+    (input: { equipeId: string | null; equipeNome?: string | null }) => {
+      const nextSession = atualizarSessaoAtiva({
+        equipeDiaId: input.equipeId || null,
+        equipeDiaNome: String(input.equipeNome || '').trim(),
+      });
+
+      if (nextSession) {
+        setSession(nextSession);
+      }
+    },
+    [],
+  );
+
   const logout = useCallback(() => {
     logoutSessao();
     void encerrarSessaoCloud();
@@ -558,6 +583,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       sincronizarAgora,
       sincronizarAcessosWeb: sincronizarAcessosWebAgora,
       sincronizarPullRemoto,
+      definirEquipeDoDia,
     }),
     [
       bootstrapped,
@@ -575,6 +601,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       sincronizarAcessosWebAgora,
       sincronizarPullRemoto,
       usuarioAtual,
+      definirEquipeDoDia,
     ],
   );
 

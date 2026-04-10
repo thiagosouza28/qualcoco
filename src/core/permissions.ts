@@ -266,6 +266,7 @@ export const canOperateAssignedRetoque = (input: {
   usuarioId?: string | null;
   responsavelId?: string | null;
   designadoParaId?: string | null;
+  designadoParaIds?: string[] | null;
   matrix?: MatrizPermissoesPerfis;
 }) => {
   if (!canStartRetoque(input.perfil, input.matrix)) {
@@ -279,6 +280,17 @@ export const canOperateAssignedRetoque = (input: {
   const usuarioId = String(input.usuarioId || '').trim();
   if (!usuarioId) {
     return false;
+  }
+
+  const designados = Array.from(
+    new Set(
+      (input.designadoParaIds || [])
+        .map((item) => String(item || '').trim())
+        .filter(Boolean),
+    ),
+  );
+  if (designados.length > 0) {
+    return designados.includes(usuarioId);
   }
 
   const alvoId = String(

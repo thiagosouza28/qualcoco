@@ -10,6 +10,7 @@ import {
   touchEntity,
 } from '@/core/localDb';
 import type {
+  AtribuicaoRetoque,
   Avaliacao,
   AvaliacaoColaborador,
   AvaliacaoParcela,
@@ -18,9 +19,11 @@ import type {
   AvaliacaoLog,
   BaseEntity,
   Colaborador,
+  Notificacao,
   Dispositivo,
   Equipe,
   Parcela,
+  ParcelaPlanejada,
   RegistroColeta,
   StoreName,
   SyncLog,
@@ -35,6 +38,9 @@ type EntityByStore = {
   colaboradores: Colaborador;
   usuarioEquipes: UsuarioEquipe;
   parcelas: Parcela;
+  parcelasPlanejadas: ParcelaPlanejada;
+  notificacoes: Notificacao;
+  atribuicoesRetoque: AtribuicaoRetoque;
   avaliacoes: Avaliacao;
   avaliacaoColaboradores: AvaliacaoColaborador;
   avaliacaoParcelas: AvaliacaoParcela;
@@ -54,6 +60,9 @@ const syncableStores = new Set<StoreName>([
   'colaboradores',
   'usuarioEquipes',
   'parcelas',
+  'parcelasPlanejadas',
+  'notificacoes',
+  'atribuicoesRetoque',
   'avaliacoes',
   'avaliacaoColaboradores',
   'avaliacaoParcelas',

@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowRight,
   BarChart3,
+  Bell,
   CirclePlus,
   ClipboardList,
   Cloud,
@@ -12,6 +13,7 @@ import {
   Palmtree,
   PencilLine,
   Settings,
+  Trees,
   Trash2,
   Users,
 } from 'lucide-react';
@@ -20,6 +22,13 @@ import { LayoutMobile } from '@/components/LayoutMobile';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   estatisticasDashboard,
   excluirAvaliacaoEmAndamento,
@@ -30,7 +39,11 @@ import {
   canOperateAssignedRetoque,
   canManageTeams,
   canStartEvaluation,
+  filtrarEquipesVisiveis,
+  normalizePerfilUsuario,
 } from '@/core/permissions';
+import { contarNotificacoesNaoLidas } from '@/core/notifications';
+import { listarParcelasPlanejadasVisiveis } from '@/core/plannedParcels';
 import { useRolePermissions } from '@/core/useRolePermissions';
 
 const quickActionCatalog = [
@@ -54,6 +67,12 @@ const quickActionCatalog = [
     icon: Users,
     to: '/equipes',
     adminOnly: true,
+  },
+  {
+    label: 'Parcelas',
+    subtitle: 'Cadastro rapido e fila planejada para o dia.',
+    icon: Trees,
+    to: '/parcelas',
   },
   {
     label: 'Configurações',
@@ -92,9 +111,17 @@ function DashboardStat({
 export function TelaDashboard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { usuarioAtual, online, pendenciasSync, sincronizando, logout } =
-    useCampoApp();
+  const {
+    usuarioAtual,
+    session,
+    online,
+    pendenciasSync,
+    sincronizando,
+    logout,
+    definirEquipeDoDia,
+  } = useCampoApp();
   const { permissionMatrix, permissions } = useRolePermissions(usuarioAtual?.perfil);
+  const perfilNormalizado = normalizePerfilUsuario(usuarioAtual?.perfil);
 
   const { data: stats } = useQuery({
     queryKey: ['dashboard', 'stats', usuarioAtual?.id],
@@ -108,6 +135,29 @@ export function TelaDashboard() {
     queryFn: () => listarAvaliacoesAtivas(usuarioAtual?.id, { limit: 8 }),
     enabled: Boolean(usuarioAtual?.id),
     staleTime: 30_000,
+  });
+  const { data: equipesVisiveis = [] } = useQuery({
+    queryKey: ['dashboard', 'equipes-visiveis', usuarioAtual?.id],
+    queryFn: () => filtrarEquipesVisiveis(usuarioAtual),
+    enabled: Boolean(usuarioAtual?.id),
+    staleTime: 60_000,
+  });
+  const { data: notificacoesNaoLidas = 0 } = useQuery({
+    queryKey: ['notificacoes', 'contador', usuarioAtual?.id],
+    queryFn: () => contarNotificacoesNaoLidas(usuarioAtual?.id),
+    enabled: Boolean(usuarioAtual?.id),
+    staleTime: 15_000,
+  });
+  const { data: parcelasPlanejadas = [] } = useQuery({
+    queryKey: ['dashboard', 'parcelas-planejadas', usuarioAtual?.id, session?.equipeDiaId],
+    queryFn: () =>
+      listarParcelasPlanejadasVisiveis({
+        usuarioId: usuarioAtual?.id,
+        equipeId: session?.equipeDiaId || null,
+        incluirConcluidas: false,
+      }),
+    enabled: Boolean(usuarioAtual?.id),
+    staleTime: 20_000,
   });
 
   const avaliacoesEmAndamento = useMemo(
@@ -132,6 +182,22 @@ export function TelaDashboard() {
       }),
     [permissions, usuarioAtual?.perfil],
   );
+  const parcelasDisponiveis = useMemo(
+    () => parcelasPlanejadas.filter((item) => item.status === 'disponivel'),
+    [parcelasPlanejadas],
+  );
+  const parcelasEmAndamentoPlanejadas = useMemo(
+    () => parcelasPlanejadas.filter((item) => item.status === 'em_andamento'),
+    [parcelasPlanejadas],
+  );
+  const parcelasEmRetoquePlanejadas = useMemo(
+    () => parcelasPlanejadas.filter((item) => item.status === 'em_retoque'),
+    [parcelasPlanejadas],
+  );
+  const equipeDiaLabel =
+    session?.equipeDiaNome ||
+    equipesVisiveis.find((item) => item.id === session?.equipeDiaId)?.nome ||
+    '';
   const podeIniciarAvaliacao = canStartEvaluation(
     usuarioAtual?.perfil,
     permissionMatrix,
@@ -179,14 +245,29 @@ export function TelaDashboard() {
             </div>
           </div>
 
-          <button
-            type="button"
-            aria-label="Encerrar sessao"
-            className="flex h-10 w-10 items-center justify-center rounded-[16px] border border-[var(--qc-border)] bg-white text-[var(--qc-primary)] active:scale-[0.98]"
-            onClick={handleLogout}
-          >
-            <LogOut className="h-6 w-6" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              aria-label="Abrir notificacoes"
+              className="relative flex h-10 w-10 items-center justify-center rounded-[16px] border border-[var(--qc-border)] bg-white text-[var(--qc-primary)] active:scale-[0.98]"
+              onClick={() => navigate('/notificacoes')}
+            >
+              <Bell className="h-5 w-5" />
+              {notificacoesNaoLidas > 0 ? (
+                <span className="absolute -right-1 -top-1 inline-flex min-w-[20px] items-center justify-center rounded-full bg-[var(--qc-primary)] px-1.5 py-0.5 text-[10px] font-black text-white">
+                  {notificacoesNaoLidas > 99 ? '99+' : notificacoesNaoLidas}
+                </span>
+              ) : null}
+            </button>
+            <button
+              type="button"
+              aria-label="Encerrar sessao"
+              className="flex h-10 w-10 items-center justify-center rounded-[16px] border border-[var(--qc-border)] bg-white text-[var(--qc-primary)] active:scale-[0.98]"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-6 w-6" />
+            </button>
+          </div>
         </header>
 
         <Card className="hero-card overflow-hidden border-none text-white">
@@ -240,6 +321,105 @@ export function TelaDashboard() {
             description="A abertura de novas avaliações só aparece quando o administrador libera essa função para o seu perfil."
           />
         )}
+
+        {perfilNormalizado === 'colaborador' ? (
+          <Card className="surface-card border-none shadow-sm">
+            <CardContent className="stack-md p-5">
+              <div>
+                <p className="text-sm font-black uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
+                  Equipe do dia
+                </p>
+                <p className="mt-1 text-sm leading-relaxed text-[var(--qc-text-muted)]">
+                  Escolha a equipe ativa da jornada para visualizar parcelas disponiveis, em andamento e de retoque.
+                </p>
+              </div>
+
+              <Select
+                value={session?.equipeDiaId || ''}
+                onValueChange={(value) => {
+                  const equipe = equipesVisiveis.find((item) => item.id === value) || null;
+                  definirEquipeDoDia({
+                    equipeId: value || null,
+                    equipeNome: equipe?.nome || '',
+                  });
+                }}
+              >
+                <SelectTrigger className="h-12 rounded-[18px]">
+                  <SelectValue placeholder="Selecione a equipe do dia" />
+                </SelectTrigger>
+                <SelectContent>
+                  {equipesVisiveis.map((equipe) => (
+                    <SelectItem key={equipe.id} value={equipe.id}>
+                      {String(equipe.numero).padStart(2, '0')} • {equipe.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {equipeDiaLabel ? (
+                <p className="text-sm font-semibold text-[var(--qc-primary)]">
+                  Equipe ativa: {equipeDiaLabel}
+                </p>
+              ) : null}
+            </CardContent>
+          </Card>
+        ) : null}
+
+        <section className="stack-md">
+          <div className="flex items-center justify-between px-2">
+            <p className="text-[1.05rem] font-black uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
+              Parcelas do dia
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-2xl"
+              onClick={() => navigate('/parcelas')}
+            >
+              <Trees className="h-4 w-4" />
+              Abrir fila
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            <DashboardStat label="Disp." value={parcelasDisponiveis.length} />
+            <DashboardStat label="Andam." value={parcelasEmAndamentoPlanejadas.length} />
+            <DashboardStat label="Retoque" value={parcelasEmRetoquePlanejadas.length} />
+          </div>
+
+          {parcelasDisponiveis.length === 0 ? (
+            <Card className="surface-card border-none shadow-sm">
+              <CardContent className="p-4 text-sm text-[var(--qc-text-muted)]">
+                Nenhuma parcela disponivel para a equipe atual.
+              </CardContent>
+            </Card>
+          ) : (
+            parcelasDisponiveis.slice(0, 4).map((parcela) => (
+              <Card key={parcela.id} className="surface-card border-none shadow-sm">
+                <CardContent className="flex items-center justify-between gap-4 p-4">
+                  <div className="min-w-0">
+                    <p className="text-lg font-black tracking-tight text-[var(--qc-text)]">
+                      {parcela.codigo}
+                    </p>
+                    <p className="mt-1 text-sm text-[var(--qc-text-muted)]">
+                      Equipe {parcela.equipeNome || '--'} • Colheita {parcela.dataColheita}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="rounded-2xl"
+                    onClick={() =>
+                      navigate(`/avaliacoes/nova?parcelaPlanejadaId=${parcela.id}`)
+                    }
+                  >
+                    Iniciar
+                  </Button>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </section>
 
         <section className="stack-md">
           <div className="px-2">
@@ -307,6 +487,7 @@ export function TelaDashboard() {
                         responsavelId:
                           avaliacao.responsavelPrincipalId || avaliacao.usuarioId,
                         designadoParaId: avaliacao.retoqueDesignadoParaId,
+                        designadoParaIds: avaliacao.retoqueDesignadoParaIds,
                         matrix: permissionMatrix,
                       })
                     : canStartEvaluation(usuarioAtual?.perfil, permissionMatrix);

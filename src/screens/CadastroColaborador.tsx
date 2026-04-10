@@ -179,11 +179,12 @@ export function CadastroColaborador() {
     () => equipes.filter((item) => item.ativa && !item.deletadoEm),
     [equipes],
   );
+  const carregandoFormulario = isEditMode && carregandoColaborador;
   const perfilNormalizado = normalizePerfilUsuario(perfil);
   const exigeEquipe =
     perfilNormalizado === 'colaborador' || perfilNormalizado === 'fiscal';
   const podeSalvar =
-    !carregandoColaborador &&
+    !carregandoFormulario &&
     nome.trim().length > 0 &&
     matricula.trim().length > 0 &&
     (isEditMode || pin.length === 4 || pin.length === 6) &&

@@ -537,3 +537,364 @@
 [info] +  Deploy complete! 
 [info] 
 [info] Project Console: https://console.firebase.google.com/project/qualcoco-96f38/overview
+[debug] [2026-04-08T21:34:33.967Z] ----------------------------------------------------------------------
+[debug] [2026-04-08T21:34:33.973Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\thgds\Desktop\qualcoco\node_modules\firebase-tools\lib\bin\firebase.js deploy --only hosting
+[debug] [2026-04-08T21:34:33.974Z] CLI Version:   15.11.0
+[debug] [2026-04-08T21:34:33.974Z] Platform:      win32
+[debug] [2026-04-08T21:34:33.975Z] Node Version:  v24.11.1
+[debug] [2026-04-08T21:34:33.975Z] Time:          Wed Apr 08 2026 18:34:33 GMT-0300 (Horário Padrão de Brasília)
+[debug] [2026-04-08T21:34:33.976Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-04-08T21:34:33.982Z] >>> [apiv2][query] GET https://firebase-public.firebaseio.com/cli.json [none]
+[debug] [2026-04-08T21:34:40.318Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-04-08T21:34:40.320Z] > authorizing via signed-in user (thgdsztls@gmail.com)
+[debug] [2026-04-08T21:34:40.321Z] [iam] checking project qualcoco-96f38 for permissions ["firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2026-04-08T21:34:40.324Z] Checked if tokens are valid: false, expires at: 1774900458257
+[debug] [2026-04-08T21:34:40.325Z] Checked if tokens are valid: false, expires at: 1774900458257
+[debug] [2026-04-08T21:34:40.326Z] > refreshing access token with scopes: []
+[debug] [2026-04-08T21:34:40.329Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-04-08T21:34:40.329Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-04-08T21:34:40.743Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-04-08T21:34:40.744Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-04-08T21:34:40.760Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/qualcoco-96f38:testIamPermissions [none]
+[debug] [2026-04-08T21:34:40.760Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/qualcoco-96f38:testIamPermissions  x-goog-user-project=qualcoco-96f38
+[debug] [2026-04-08T21:34:40.761Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/qualcoco-96f38:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-04-08T21:34:40.839Z] <<< [apiv2][status] GET https://firebase-public.firebaseio.com/cli.json 200
+[debug] [2026-04-08T21:34:40.839Z] <<< [apiv2][body] GET https://firebase-public.firebaseio.com/cli.json {"cloudBuildErrorAfter":1594252800000,"cloudBuildWarnAfter":1590019200000,"defaultNode10After":1594252800000,"minVersion":"3.0.5","node8DeploysDisabledAfter":1613390400000,"node8RuntimeDisabledAfter":1615809600000,"node8WarnAfter":1600128000000}
+[debug] [2026-04-08T21:34:41.828Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/qualcoco-96f38:testIamPermissions 200
+[debug] [2026-04-08T21:34:41.829Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/qualcoco-96f38:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2026-04-08T21:34:41.831Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:41.831Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:41.833Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/qualcoco-96f38 [none]
+[debug] [2026-04-08T21:34:42.409Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/qualcoco-96f38 200
+[debug] [2026-04-08T21:34:42.410Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/qualcoco-96f38 {"projectId":"qualcoco-96f38","projectNumber":"497251186279","displayName":"qualcoco","name":"projects/qualcoco-96f38","resources":{"hostingSite":"qualcoco-96f38"},"state":"ACTIVE","etag":"1_fe0b2d52-a630-48ca-8307-3bf224f4568e"}
+[info] 
+[info] === Deploying to 'qualcoco-96f38'...
+[info] 
+[info] i  deploying hosting 
+[debug] [2026-04-08T21:34:42.427Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:42.428Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:42.429Z] >>> [apiv2][query] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/qualcoco-96f38/versions [none]
+[debug] [2026-04-08T21:34:42.429Z] >>> [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/qualcoco-96f38/versions {"status":"CREATED","labels":{"deployment-tool":"cli-firebase"}}
+[debug] [2026-04-08T21:34:45.083Z] <<< [apiv2][status] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/qualcoco-96f38/versions 200
+[debug] [2026-04-08T21:34:45.083Z] <<< [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/qualcoco-96f38/versions {"name":"projects/497251186279/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3","status":"CREATED","config":{},"labels":{"deployment-tool":"cli-firebase"}}
+[info] i  hosting[qualcoco-96f38]: beginning deploy... 
+[info] i  hosting[qualcoco-96f38]: found 43 files in dist 
+[debug] [2026-04-08T21:34:45.121Z] [hosting] uploading with 200 concurrency
+[debug] [2026-04-08T21:34:45.124Z] [hosting] hash cache [ZGlzdA] not populated
+[debug] [2026-04-08T21:34:45.240Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:45.240Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:45.243Z] [hosting] hash cache [ZGlzdA] stored for 43 files
+[debug] [2026-04-08T21:34:45.244Z] [hosting][hash queue][FINAL] {"max":103,"min":37,"avg":42.76744186046511,"active":0,"complete":43,"success":43,"errored":0,"retried":0,"total":43,"elapsed":119}
+[debug] [2026-04-08T21:34:45.245Z] >>> [apiv2][query] POST https://firebasehosting.googleapis.com/v1beta1/projects/497251186279/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3:populateFiles [none]
+[debug] [2026-04-08T21:34:45.246Z] >>> [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/497251186279/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3:populateFiles {"files":{"/index.html":"7ea7609884f5e3641f6d9e87a176dbba3166ca080ee4c4d12aa8649a825db8cb","/assets/web-DheeTddE.js":"1aec116f91bbc12c43461a0c2d9798b1d1680580f1ecd6bef11a3b97d5bded95","/assets/web-Cj951xdW.js":"66b8606d016647eaefd7cf953b85806ad965678a32e8f9c956b90e2d93daa1f0","/assets/web-BhKUxJxK.js":"553420782f3a6113f0d15fbf8b3e9e13a6fa08ede59b608da95fdd3c1ab45ce8","/assets/web-C8xOwdoB.js":"d8f8a0da7d3a2d6e95d4c981ead12489a2da65eb028eff3634a24190eacfd3e3","/assets/tree-palm-Dv3xORtc.js":"511b78b52ec654feb0516b09ee8286ff87941d6635e4bf6fc598bd6434335de7","/assets/web-BjKL51lK-Ck74Wtkj.js":"a102cca491eebf983e032b752ebdf8c8fcb313c932198fa4e497e93d14383d33","/assets/trash-2-DGgDqGpj.js":"b648d11cee3c7abf4db39fcc51ceec49834360f8aae64815f95f81b55c4f123e","/assets/textarea-y8Ouc8fb.js":"8ede9e37a578a304bba2bc1e8ab106bb15c00918c305c753fbf4b4fde80ceda6","/assets/TelaSelecaoUsuario-BUcE7In9.js":"795913c241ead05715ae521c238c9a7f730762393331ee7b72ecd349b3cd0882","/assets/TelaSincronizacao-Crxivcs5.js":"6eed05183acfcff99775fee5933d054f5713baff87685c88a244a5bf7431d353","/assets/TelaPerfil-DOKqsa-Q.js":"3cfc60168815a7ee26cb53f0e9e8e22848bddc6553f32a34a1ee0de19df611b9","/assets/TelaHistorico-D-qjY84Z.js":"199bb2042f0c1e62e8a800be556e41a4c2c07c03945e3240772ed028d4808eea","/assets/TelaEquipes-gMeI9L1W.js":"bfbe45cadb4f5cde7bb5c21fe21eae226358a81ffa037988ff6d6589a4aa081b","/assets/TelaDashboard-DjZRrl2j.js":"27bad69adcdfdcf282c4b9e59b78a7618c3a299ace472ad3cfa954f747985112","/assets/TelaDetalheAvaliacao-DM2J1m03.js":"d09a28f70557a26a4e8b2f715470d76d0d1f394c602b7f67f5eee5f307050a0e","/assets/TelaRegistroLinhas-C2icf6gu.js":"396e51382d5a38dee8a094ed51def8fd09ee64a4d695b33420c80d7b9fa831ba","/assets/TelaColaboradores-D1xLKF57.js":"b924d5e97f431d24df013872953e0811001f35299e525d37c24bb7ddbdc9f14a","/assets/teams-CJHFfTcc.js":"e10e57bc5623d2a70576692e495ae6a1d48663ec5a48cf057a2832fdb07ed274","/assets/TelaConfiguracoes-DqwOT3bQ.js":"8ae39bb8b3bfb7ee2f4afaca13cdeaa4ff5d7bf1a19968f17f92f76d21d63e9e","/assets/StatusBadge-DZJ727f7.js":"2c4bc8c1b6ca62ea6394619794f119ad8030d4067029c66a1bf9e59a8b519fb6","/assets/TelaNovaAvaliacao-DDryPH2A.js":"82ce7960b9acb483b0fe6526cc56adf99139385f761a30c7bf8836b85810a90d","/assets/select-BZ4LIuQv.js":"c92bcba809998c40af9e622bb13172b82db7b619080ed74506b4dcca7af2c8a5","/assets/plus-C_UCX0ZW.js":"415149879ccc7d95ae9df21bbc55cdaa08a91544b6871a47713ce4e3d8ac9bad","/assets/pencil-line-Co7OPzm9.js":"a965210c40bdc307c1a233d52d91431a8737a60c141bbeb1bf45857b404a47ff","/assets/LayoutMobile-BgyI_VzU.js":"f850068fe32d8b81fad6c61a7cb0559e2d1cbbb34a0e8d5937ae193bb6f14624","/assets/purify.es-BgtpMKW3.js":"dd3986b9edb8a889b15573796f90cdc1848ba2f9e1650a2d2e7d58b9d1c623ee","/assets/query-Fbi1RaMJ.js":"df9d0c15e3b15af1918bad809373fcb52596d3fa696a359a8cc3faa301e87473","/assets/history-CE71DdlU.js":"6d91e2062d8ded2695e08d615a4c4e8305bec291ff93f79062a750e12439acdc","/assets/index-BcmLeqNd.css":"e097e84f006f4381c47f013740681cc4d5a9a0b6b6e132920a0e4df495b66d43","/assets/dialog-DBrib4lM.js":"47e9ba87ba4e22a2258e2dc1cab867327458829fc140fc469fee65e968db1df2","/assets/CounterInput-CSo4hpKa.js":"eaab22cb9affbd59a56e754d56ed93f00f759861ffd55cbab0cc82854dd2f4e5","/assets/circle-check-4oBqSNnG.js":"31cb7449b0151f6799a1affb9f8d2d10b76e8e87428c646c2b44048c77bd3dd7","/assets/chevron-right-CMaXzlPt.js":"0ecc3a24a572a400b41fb57d1666c2d43bcfa53574992ad0bfb767c70e517e83","/assets/calendar-ZKV6xmDB.js":"2ca90ca72030e9c00fbe51b68d9f956b6c879ef42f6a40d498c6277261c8ebff","/assets/evaluations-zdBumISQ.js":"3bfec9a4b92e766853d31d7aa6fc90f9a1bd54e21d9ea44c46013406a36c82c0","/assets/CadastroColaborador-Bm7LlLMh.js":"cc3404cbd568da6da7dd25a8ca3948cc85469a2c6f0fb1d825141b802ae63cb0","/assets/badge-05vq5hea.js":"303264da147f67f980a2ab944d2d8c6e5f1856649198857896c6254a627cf708","/assets/radix-CkYTHX25.js":"78a3cb0f8a0905425ae6761fb9c0c5daea8777d0b6522024a5e4c95410b8bd10","/assets/index.es-BMRVYCuN.js":"4413482fa949ddd8979cb58d6800e53757fc3a5b9bd7ff7c7c6e3b44e93f2b38","/assets/html2canvas.esm-QH1iLAAe.js":"f11fa059b23162cd079f9be9c5b6c29237e7393fcab5d04c6f2b2ac5bd7a38b3","/assets/TelaRelatorio-DleFL_8m.js":"4634d42a645854c4742734c7274f572823962a678d824dd6cb7298570fc20db7","/assets/index-CeUcX0wY.js":"1f4c671bd3a551eeeb48795798ce10b45d9b235431e935da160af2730fa85e07"}}
+[debug] [2026-04-08T21:34:46.086Z] <<< [apiv2][status] POST https://firebasehosting.googleapis.com/v1beta1/projects/497251186279/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3:populateFiles 200
+[debug] [2026-04-08T21:34:46.087Z] <<< [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/497251186279/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3:populateFiles {"uploadRequiredHashes":["8ae39bb8b3bfb7ee2f4afaca13cdeaa4ff5d7bf1a19968f17f92f76d21d63e9e","3cfc60168815a7ee26cb53f0e9e8e22848bddc6553f32a34a1ee0de19df611b9","4634d42a645854c4742734c7274f572823962a678d824dd6cb7298570fc20db7","cc3404cbd568da6da7dd25a8ca3948cc85469a2c6f0fb1d825141b802ae63cb0","a102cca491eebf983e032b752ebdf8c8fcb313c932198fa4e497e93d14383d33","2ca90ca72030e9c00fbe51b68d9f956b6c879ef42f6a40d498c6277261c8ebff","6eed05183acfcff99775fee5933d054f5713baff87685c88a244a5bf7431d353","f11fa059b23162cd079f9be9c5b6c29237e7393fcab5d04c6f2b2ac5bd7a38b3","7ea7609884f5e3641f6d9e87a176dbba3166ca080ee4c4d12aa8649a825db8cb","b924d5e97f431d24df013872953e0811001f35299e525d37c24bb7ddbdc9f14a","795913c241ead05715ae521c238c9a7f730762393331ee7b72ecd349b3cd0882","82ce7960b9acb483b0fe6526cc56adf99139385f761a30c7bf8836b85810a90d","dd3986b9edb8a889b15573796f90cdc1848ba2f9e1650a2d2e7d58b9d1c623ee","2c4bc8c1b6ca62ea6394619794f119ad8030d4067029c66a1bf9e59a8b519fb6","1aec116f91bbc12c43461a0c2d9798b1d1680580f1ecd6bef11a3b97d5bded95","199bb2042f0c1e62e8a800be556e41a4c2c07c03945e3240772ed028d4808eea","27bad69adcdfdcf282c4b9e59b78a7618c3a299ace472ad3cfa954f747985112","f850068fe32d8b81fad6c61a7cb0559e2d1cbbb34a0e8d5937ae193bb6f14624","e10e57bc5623d2a70576692e495ae6a1d48663ec5a48cf057a2832fdb07ed274","303264da147f67f980a2ab944d2d8c6e5f1856649198857896c6254a627cf708","3bfec9a4b92e766853d31d7aa6fc90f9a1bd54e21d9ea44c46013406a36c82c0","47e9ba87ba4e22a2258e2dc1cab867327458829fc140fc469fee65e968db1df2","d8f8a0da7d3a2d6e95d4c981ead12489a2da65eb028eff3634a24190eacfd3e3","c92bcba809998c40af9e622bb13172b82db7b619080ed74506b4dcca7af2c8a5","31cb7449b0151f6799a1affb9f8d2d10b76e8e87428c646c2b44048c77bd3dd7","a965210c40bdc307c1a233d52d91431a8737a60c141bbeb1bf45857b404a47ff","e097e84f006f4381c47f013740681cc4d5a9a0b6b6e132920a0e4df495b66d43","bfbe45cadb4f5cde7bb5c21fe21eae226358a81ffa037988ff6d6589a4aa081b","415149879ccc7d95ae9df21bbc55cdaa08a91544b6871a47713ce4e3d8ac9bad","eaab22cb9affbd59a56e754d56ed93f00f759861ffd55cbab0cc82854dd2f4e5","78a3cb0f8a0905425ae6761fb9c0c5daea8777d0b6522024a5e4c95410b8bd10","396e51382d5a38dee8a094ed51def8fd09ee64a4d695b33420c80d7b9fa831ba","6d91e2062d8ded2695e08d615a4c4e8305bec291ff93f79062a750e12439acdc","511b78b52ec654feb0516b09ee8286ff87941d6635e4bf6fc598bd6434335de7","553420782f3a6113f0d15fbf8b3e9e13a6fa08ede59b608da95fdd3c1ab45ce8","4413482fa949ddd8979cb58d6800e53757fc3a5b9bd7ff7c7c6e3b44e93f2b38","8ede9e37a578a304bba2bc1e8ab106bb15c00918c305c753fbf4b4fde80ceda6","0ecc3a24a572a400b41fb57d1666c2d43bcfa53574992ad0bfb767c70e517e83","1f4c671bd3a551eeeb48795798ce10b45d9b235431e935da160af2730fa85e07","d09a28f70557a26a4e8b2f715470d76d0d1f394c602b7f67f5eee5f307050a0e","df9d0c15e3b15af1918bad809373fcb52596d3fa696a359a8cc3faa301e87473","66b8606d016647eaefd7cf953b85806ad965678a32e8f9c956b90e2d93daa1f0","b648d11cee3c7abf4db39fcc51ceec49834360f8aae64815f95f81b55c4f123e"],"uploadUrl":"https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files"}
+[debug] [2026-04-08T21:34:46.088Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.088Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.089Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.089Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.090Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.091Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.092Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.092Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.093Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.094Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.095Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.095Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.097Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.098Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.099Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.099Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.100Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.101Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.102Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.102Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.103Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.104Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.105Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.105Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.106Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.107Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.108Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.108Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.109Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.110Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.111Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.112Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.114Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.114Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.116Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.116Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.117Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.117Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.118Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.119Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.119Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.120Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.121Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.121Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.122Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.122Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.123Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.123Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.125Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.125Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.126Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.127Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.130Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.130Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.132Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.132Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.133Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.134Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.135Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.135Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.136Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.136Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.137Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.137Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.139Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.139Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.141Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.141Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.142Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.142Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.144Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.145Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.146Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.147Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.148Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.148Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.149Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.149Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.150Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.151Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.152Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.152Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.154Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.154Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.155Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.155Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:46.157Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/8ae39bb8b3bfb7ee2f4afaca13cdeaa4ff5d7bf1a19968f17f92f76d21d63e9e [none]
+[debug] [2026-04-08T21:34:46.157Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/8ae39bb8b3bfb7ee2f4afaca13cdeaa4ff5d7bf1a19968f17f92f76d21d63e9e [stream]
+[debug] [2026-04-08T21:34:46.161Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/3cfc60168815a7ee26cb53f0e9e8e22848bddc6553f32a34a1ee0de19df611b9 [none]
+[debug] [2026-04-08T21:34:46.162Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/3cfc60168815a7ee26cb53f0e9e8e22848bddc6553f32a34a1ee0de19df611b9 [stream]
+[debug] [2026-04-08T21:34:46.165Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/4634d42a645854c4742734c7274f572823962a678d824dd6cb7298570fc20db7 [none]
+[debug] [2026-04-08T21:34:46.166Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/4634d42a645854c4742734c7274f572823962a678d824dd6cb7298570fc20db7 [stream]
+[debug] [2026-04-08T21:34:46.170Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/cc3404cbd568da6da7dd25a8ca3948cc85469a2c6f0fb1d825141b802ae63cb0 [none]
+[debug] [2026-04-08T21:34:46.170Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/cc3404cbd568da6da7dd25a8ca3948cc85469a2c6f0fb1d825141b802ae63cb0 [stream]
+[debug] [2026-04-08T21:34:46.173Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/a102cca491eebf983e032b752ebdf8c8fcb313c932198fa4e497e93d14383d33 [none]
+[debug] [2026-04-08T21:34:46.173Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/a102cca491eebf983e032b752ebdf8c8fcb313c932198fa4e497e93d14383d33 [stream]
+[debug] [2026-04-08T21:34:46.177Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/2ca90ca72030e9c00fbe51b68d9f956b6c879ef42f6a40d498c6277261c8ebff [none]
+[debug] [2026-04-08T21:34:46.177Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/2ca90ca72030e9c00fbe51b68d9f956b6c879ef42f6a40d498c6277261c8ebff [stream]
+[debug] [2026-04-08T21:34:46.179Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/6eed05183acfcff99775fee5933d054f5713baff87685c88a244a5bf7431d353 [none]
+[debug] [2026-04-08T21:34:46.180Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/6eed05183acfcff99775fee5933d054f5713baff87685c88a244a5bf7431d353 [stream]
+[debug] [2026-04-08T21:34:46.182Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/f11fa059b23162cd079f9be9c5b6c29237e7393fcab5d04c6f2b2ac5bd7a38b3 [none]
+[debug] [2026-04-08T21:34:46.183Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/f11fa059b23162cd079f9be9c5b6c29237e7393fcab5d04c6f2b2ac5bd7a38b3 [stream]
+[debug] [2026-04-08T21:34:46.185Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/7ea7609884f5e3641f6d9e87a176dbba3166ca080ee4c4d12aa8649a825db8cb [none]
+[debug] [2026-04-08T21:34:46.185Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/7ea7609884f5e3641f6d9e87a176dbba3166ca080ee4c4d12aa8649a825db8cb [stream]
+[debug] [2026-04-08T21:34:46.187Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/b924d5e97f431d24df013872953e0811001f35299e525d37c24bb7ddbdc9f14a [none]
+[debug] [2026-04-08T21:34:46.188Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/b924d5e97f431d24df013872953e0811001f35299e525d37c24bb7ddbdc9f14a [stream]
+[debug] [2026-04-08T21:34:46.191Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/795913c241ead05715ae521c238c9a7f730762393331ee7b72ecd349b3cd0882 [none]
+[debug] [2026-04-08T21:34:46.191Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/795913c241ead05715ae521c238c9a7f730762393331ee7b72ecd349b3cd0882 [stream]
+[debug] [2026-04-08T21:34:46.195Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/82ce7960b9acb483b0fe6526cc56adf99139385f761a30c7bf8836b85810a90d [none]
+[debug] [2026-04-08T21:34:46.195Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/82ce7960b9acb483b0fe6526cc56adf99139385f761a30c7bf8836b85810a90d [stream]
+[debug] [2026-04-08T21:34:46.198Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/dd3986b9edb8a889b15573796f90cdc1848ba2f9e1650a2d2e7d58b9d1c623ee [none]
+[debug] [2026-04-08T21:34:46.198Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/dd3986b9edb8a889b15573796f90cdc1848ba2f9e1650a2d2e7d58b9d1c623ee [stream]
+[debug] [2026-04-08T21:34:46.201Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/2c4bc8c1b6ca62ea6394619794f119ad8030d4067029c66a1bf9e59a8b519fb6 [none]
+[debug] [2026-04-08T21:34:46.201Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/2c4bc8c1b6ca62ea6394619794f119ad8030d4067029c66a1bf9e59a8b519fb6 [stream]
+[debug] [2026-04-08T21:34:46.203Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/1aec116f91bbc12c43461a0c2d9798b1d1680580f1ecd6bef11a3b97d5bded95 [none]
+[debug] [2026-04-08T21:34:46.203Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/1aec116f91bbc12c43461a0c2d9798b1d1680580f1ecd6bef11a3b97d5bded95 [stream]
+[debug] [2026-04-08T21:34:46.206Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/199bb2042f0c1e62e8a800be556e41a4c2c07c03945e3240772ed028d4808eea [none]
+[debug] [2026-04-08T21:34:46.206Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/199bb2042f0c1e62e8a800be556e41a4c2c07c03945e3240772ed028d4808eea [stream]
+[debug] [2026-04-08T21:34:46.208Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/27bad69adcdfdcf282c4b9e59b78a7618c3a299ace472ad3cfa954f747985112 [none]
+[debug] [2026-04-08T21:34:46.209Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/27bad69adcdfdcf282c4b9e59b78a7618c3a299ace472ad3cfa954f747985112 [stream]
+[debug] [2026-04-08T21:34:46.212Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/f850068fe32d8b81fad6c61a7cb0559e2d1cbbb34a0e8d5937ae193bb6f14624 [none]
+[debug] [2026-04-08T21:34:46.212Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/f850068fe32d8b81fad6c61a7cb0559e2d1cbbb34a0e8d5937ae193bb6f14624 [stream]
+[debug] [2026-04-08T21:34:46.215Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/e10e57bc5623d2a70576692e495ae6a1d48663ec5a48cf057a2832fdb07ed274 [none]
+[debug] [2026-04-08T21:34:46.215Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/e10e57bc5623d2a70576692e495ae6a1d48663ec5a48cf057a2832fdb07ed274 [stream]
+[debug] [2026-04-08T21:34:46.217Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/303264da147f67f980a2ab944d2d8c6e5f1856649198857896c6254a627cf708 [none]
+[debug] [2026-04-08T21:34:46.217Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/303264da147f67f980a2ab944d2d8c6e5f1856649198857896c6254a627cf708 [stream]
+[debug] [2026-04-08T21:34:46.223Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/3bfec9a4b92e766853d31d7aa6fc90f9a1bd54e21d9ea44c46013406a36c82c0 [none]
+[debug] [2026-04-08T21:34:46.224Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/3bfec9a4b92e766853d31d7aa6fc90f9a1bd54e21d9ea44c46013406a36c82c0 [stream]
+[debug] [2026-04-08T21:34:46.228Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/47e9ba87ba4e22a2258e2dc1cab867327458829fc140fc469fee65e968db1df2 [none]
+[debug] [2026-04-08T21:34:46.228Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/47e9ba87ba4e22a2258e2dc1cab867327458829fc140fc469fee65e968db1df2 [stream]
+[debug] [2026-04-08T21:34:46.233Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/d8f8a0da7d3a2d6e95d4c981ead12489a2da65eb028eff3634a24190eacfd3e3 [none]
+[debug] [2026-04-08T21:34:46.233Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/d8f8a0da7d3a2d6e95d4c981ead12489a2da65eb028eff3634a24190eacfd3e3 [stream]
+[debug] [2026-04-08T21:34:46.237Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/c92bcba809998c40af9e622bb13172b82db7b619080ed74506b4dcca7af2c8a5 [none]
+[debug] [2026-04-08T21:34:46.237Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/c92bcba809998c40af9e622bb13172b82db7b619080ed74506b4dcca7af2c8a5 [stream]
+[debug] [2026-04-08T21:34:46.242Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/31cb7449b0151f6799a1affb9f8d2d10b76e8e87428c646c2b44048c77bd3dd7 [none]
+[debug] [2026-04-08T21:34:46.242Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/31cb7449b0151f6799a1affb9f8d2d10b76e8e87428c646c2b44048c77bd3dd7 [stream]
+[debug] [2026-04-08T21:34:46.245Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/a965210c40bdc307c1a233d52d91431a8737a60c141bbeb1bf45857b404a47ff [none]
+[debug] [2026-04-08T21:34:46.245Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/a965210c40bdc307c1a233d52d91431a8737a60c141bbeb1bf45857b404a47ff [stream]
+[debug] [2026-04-08T21:34:46.248Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/e097e84f006f4381c47f013740681cc4d5a9a0b6b6e132920a0e4df495b66d43 [none]
+[debug] [2026-04-08T21:34:46.248Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/e097e84f006f4381c47f013740681cc4d5a9a0b6b6e132920a0e4df495b66d43 [stream]
+[debug] [2026-04-08T21:34:46.251Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/bfbe45cadb4f5cde7bb5c21fe21eae226358a81ffa037988ff6d6589a4aa081b [none]
+[debug] [2026-04-08T21:34:46.251Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/bfbe45cadb4f5cde7bb5c21fe21eae226358a81ffa037988ff6d6589a4aa081b [stream]
+[debug] [2026-04-08T21:34:46.254Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/415149879ccc7d95ae9df21bbc55cdaa08a91544b6871a47713ce4e3d8ac9bad [none]
+[debug] [2026-04-08T21:34:46.255Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/415149879ccc7d95ae9df21bbc55cdaa08a91544b6871a47713ce4e3d8ac9bad [stream]
+[debug] [2026-04-08T21:34:46.258Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/eaab22cb9affbd59a56e754d56ed93f00f759861ffd55cbab0cc82854dd2f4e5 [none]
+[debug] [2026-04-08T21:34:46.258Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/eaab22cb9affbd59a56e754d56ed93f00f759861ffd55cbab0cc82854dd2f4e5 [stream]
+[debug] [2026-04-08T21:34:46.262Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/78a3cb0f8a0905425ae6761fb9c0c5daea8777d0b6522024a5e4c95410b8bd10 [none]
+[debug] [2026-04-08T21:34:46.262Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/78a3cb0f8a0905425ae6761fb9c0c5daea8777d0b6522024a5e4c95410b8bd10 [stream]
+[debug] [2026-04-08T21:34:46.265Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/396e51382d5a38dee8a094ed51def8fd09ee64a4d695b33420c80d7b9fa831ba [none]
+[debug] [2026-04-08T21:34:46.265Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/396e51382d5a38dee8a094ed51def8fd09ee64a4d695b33420c80d7b9fa831ba [stream]
+[debug] [2026-04-08T21:34:46.267Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/6d91e2062d8ded2695e08d615a4c4e8305bec291ff93f79062a750e12439acdc [none]
+[debug] [2026-04-08T21:34:46.267Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/6d91e2062d8ded2695e08d615a4c4e8305bec291ff93f79062a750e12439acdc [stream]
+[debug] [2026-04-08T21:34:46.270Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/511b78b52ec654feb0516b09ee8286ff87941d6635e4bf6fc598bd6434335de7 [none]
+[debug] [2026-04-08T21:34:46.270Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/511b78b52ec654feb0516b09ee8286ff87941d6635e4bf6fc598bd6434335de7 [stream]
+[debug] [2026-04-08T21:34:46.273Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/553420782f3a6113f0d15fbf8b3e9e13a6fa08ede59b608da95fdd3c1ab45ce8 [none]
+[debug] [2026-04-08T21:34:46.274Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/553420782f3a6113f0d15fbf8b3e9e13a6fa08ede59b608da95fdd3c1ab45ce8 [stream]
+[debug] [2026-04-08T21:34:46.277Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/4413482fa949ddd8979cb58d6800e53757fc3a5b9bd7ff7c7c6e3b44e93f2b38 [none]
+[debug] [2026-04-08T21:34:46.278Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/4413482fa949ddd8979cb58d6800e53757fc3a5b9bd7ff7c7c6e3b44e93f2b38 [stream]
+[debug] [2026-04-08T21:34:46.281Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/8ede9e37a578a304bba2bc1e8ab106bb15c00918c305c753fbf4b4fde80ceda6 [none]
+[debug] [2026-04-08T21:34:46.282Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/8ede9e37a578a304bba2bc1e8ab106bb15c00918c305c753fbf4b4fde80ceda6 [stream]
+[debug] [2026-04-08T21:34:46.288Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/0ecc3a24a572a400b41fb57d1666c2d43bcfa53574992ad0bfb767c70e517e83 [none]
+[debug] [2026-04-08T21:34:46.290Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/0ecc3a24a572a400b41fb57d1666c2d43bcfa53574992ad0bfb767c70e517e83 [stream]
+[debug] [2026-04-08T21:34:46.295Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/1f4c671bd3a551eeeb48795798ce10b45d9b235431e935da160af2730fa85e07 [none]
+[debug] [2026-04-08T21:34:46.295Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/1f4c671bd3a551eeeb48795798ce10b45d9b235431e935da160af2730fa85e07 [stream]
+[debug] [2026-04-08T21:34:46.299Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/d09a28f70557a26a4e8b2f715470d76d0d1f394c602b7f67f5eee5f307050a0e [none]
+[debug] [2026-04-08T21:34:46.300Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/d09a28f70557a26a4e8b2f715470d76d0d1f394c602b7f67f5eee5f307050a0e [stream]
+[debug] [2026-04-08T21:34:46.303Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/df9d0c15e3b15af1918bad809373fcb52596d3fa696a359a8cc3faa301e87473 [none]
+[debug] [2026-04-08T21:34:46.303Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/df9d0c15e3b15af1918bad809373fcb52596d3fa696a359a8cc3faa301e87473 [stream]
+[debug] [2026-04-08T21:34:46.306Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/66b8606d016647eaefd7cf953b85806ad965678a32e8f9c956b90e2d93daa1f0 [none]
+[debug] [2026-04-08T21:34:46.307Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/66b8606d016647eaefd7cf953b85806ad965678a32e8f9c956b90e2d93daa1f0 [stream]
+[debug] [2026-04-08T21:34:46.310Z] >>> [apiv2][query] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/b648d11cee3c7abf4db39fcc51ceec49834360f8aae64815f95f81b55c4f123e [none]
+[debug] [2026-04-08T21:34:46.311Z] >>> [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/b648d11cee3c7abf4db39fcc51ceec49834360f8aae64815f95f81b55c4f123e [stream]
+[debug] [2026-04-08T21:34:46.314Z] [hosting][populate queue][FINAL] {"max":917,"min":917,"avg":917,"active":0,"complete":1,"success":1,"errored":0,"retried":0,"total":1,"elapsed":1074}
+[debug] [2026-04-08T21:34:46.314Z] [hosting] uploads queued: 43
+[info] i  hosting: uploading new files [0/43] (0%) 
+[debug] [2026-04-08T21:34:47.728Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/dd3986b9edb8a889b15573796f90cdc1848ba2f9e1650a2d2e7d58b9d1c623ee 200
+[debug] [2026-04-08T21:34:47.729Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/dd3986b9edb8a889b15573796f90cdc1848ba2f9e1650a2d2e7d58b9d1c623ee [stream]
+[debug] [2026-04-08T21:34:47.736Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/f11fa059b23162cd079f9be9c5b6c29237e7393fcab5d04c6f2b2ac5bd7a38b3 200
+[debug] [2026-04-08T21:34:47.737Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/f11fa059b23162cd079f9be9c5b6c29237e7393fcab5d04c6f2b2ac5bd7a38b3 [stream]
+[debug] [2026-04-08T21:34:47.802Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/1aec116f91bbc12c43461a0c2d9798b1d1680580f1ecd6bef11a3b97d5bded95 200
+[debug] [2026-04-08T21:34:47.802Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/1aec116f91bbc12c43461a0c2d9798b1d1680580f1ecd6bef11a3b97d5bded95 [stream]
+[debug] [2026-04-08T21:34:47.814Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/7ea7609884f5e3641f6d9e87a176dbba3166ca080ee4c4d12aa8649a825db8cb 200
+[debug] [2026-04-08T21:34:47.815Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/7ea7609884f5e3641f6d9e87a176dbba3166ca080ee4c4d12aa8649a825db8cb [stream]
+[debug] [2026-04-08T21:34:47.834Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/6d91e2062d8ded2695e08d615a4c4e8305bec291ff93f79062a750e12439acdc 200
+[debug] [2026-04-08T21:34:47.834Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/6d91e2062d8ded2695e08d615a4c4e8305bec291ff93f79062a750e12439acdc [stream]
+[debug] [2026-04-08T21:34:47.874Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/27bad69adcdfdcf282c4b9e59b78a7618c3a299ace472ad3cfa954f747985112 200
+[debug] [2026-04-08T21:34:47.875Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/27bad69adcdfdcf282c4b9e59b78a7618c3a299ace472ad3cfa954f747985112 [stream]
+[debug] [2026-04-08T21:34:47.891Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/cc3404cbd568da6da7dd25a8ca3948cc85469a2c6f0fb1d825141b802ae63cb0 200
+[debug] [2026-04-08T21:34:47.891Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/cc3404cbd568da6da7dd25a8ca3948cc85469a2c6f0fb1d825141b802ae63cb0 [stream]
+[debug] [2026-04-08T21:34:47.892Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/bfbe45cadb4f5cde7bb5c21fe21eae226358a81ffa037988ff6d6589a4aa081b 200
+[debug] [2026-04-08T21:34:47.893Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/bfbe45cadb4f5cde7bb5c21fe21eae226358a81ffa037988ff6d6589a4aa081b [stream]
+[debug] [2026-04-08T21:34:47.894Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/c92bcba809998c40af9e622bb13172b82db7b619080ed74506b4dcca7af2c8a5 200
+[debug] [2026-04-08T21:34:47.894Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/c92bcba809998c40af9e622bb13172b82db7b619080ed74506b4dcca7af2c8a5 [stream]
+[debug] [2026-04-08T21:34:47.899Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/8ae39bb8b3bfb7ee2f4afaca13cdeaa4ff5d7bf1a19968f17f92f76d21d63e9e 200
+[debug] [2026-04-08T21:34:47.901Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/8ae39bb8b3bfb7ee2f4afaca13cdeaa4ff5d7bf1a19968f17f92f76d21d63e9e [stream]
+[debug] [2026-04-08T21:34:47.903Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/2ca90ca72030e9c00fbe51b68d9f956b6c879ef42f6a40d498c6277261c8ebff 200
+[debug] [2026-04-08T21:34:47.907Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/2ca90ca72030e9c00fbe51b68d9f956b6c879ef42f6a40d498c6277261c8ebff [stream]
+[debug] [2026-04-08T21:34:47.909Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/199bb2042f0c1e62e8a800be556e41a4c2c07c03945e3240772ed028d4808eea 200
+[debug] [2026-04-08T21:34:47.909Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/199bb2042f0c1e62e8a800be556e41a4c2c07c03945e3240772ed028d4808eea [stream]
+[debug] [2026-04-08T21:34:47.913Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/a965210c40bdc307c1a233d52d91431a8737a60c141bbeb1bf45857b404a47ff 200
+[debug] [2026-04-08T21:34:47.913Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/a965210c40bdc307c1a233d52d91431a8737a60c141bbeb1bf45857b404a47ff [stream]
+[debug] [2026-04-08T21:34:47.916Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/f850068fe32d8b81fad6c61a7cb0559e2d1cbbb34a0e8d5937ae193bb6f14624 200
+[debug] [2026-04-08T21:34:47.916Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/f850068fe32d8b81fad6c61a7cb0559e2d1cbbb34a0e8d5937ae193bb6f14624 [stream]
+[debug] [2026-04-08T21:34:47.921Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/303264da147f67f980a2ab944d2d8c6e5f1856649198857896c6254a627cf708 200
+[debug] [2026-04-08T21:34:47.921Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/303264da147f67f980a2ab944d2d8c6e5f1856649198857896c6254a627cf708 [stream]
+[debug] [2026-04-08T21:34:47.932Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/0ecc3a24a572a400b41fb57d1666c2d43bcfa53574992ad0bfb767c70e517e83 200
+[debug] [2026-04-08T21:34:47.933Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/0ecc3a24a572a400b41fb57d1666c2d43bcfa53574992ad0bfb767c70e517e83 [stream]
+[debug] [2026-04-08T21:34:47.956Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/3cfc60168815a7ee26cb53f0e9e8e22848bddc6553f32a34a1ee0de19df611b9 200
+[debug] [2026-04-08T21:34:47.957Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/3cfc60168815a7ee26cb53f0e9e8e22848bddc6553f32a34a1ee0de19df611b9 [stream]
+[debug] [2026-04-08T21:34:47.959Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/553420782f3a6113f0d15fbf8b3e9e13a6fa08ede59b608da95fdd3c1ab45ce8 200
+[debug] [2026-04-08T21:34:47.960Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/553420782f3a6113f0d15fbf8b3e9e13a6fa08ede59b608da95fdd3c1ab45ce8 [stream]
+[debug] [2026-04-08T21:34:47.962Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/a102cca491eebf983e032b752ebdf8c8fcb313c932198fa4e497e93d14383d33 200
+[debug] [2026-04-08T21:34:47.963Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/a102cca491eebf983e032b752ebdf8c8fcb313c932198fa4e497e93d14383d33 [stream]
+[debug] [2026-04-08T21:34:47.980Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/4413482fa949ddd8979cb58d6800e53757fc3a5b9bd7ff7c7c6e3b44e93f2b38 200
+[debug] [2026-04-08T21:34:47.981Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/4413482fa949ddd8979cb58d6800e53757fc3a5b9bd7ff7c7c6e3b44e93f2b38 [stream]
+[debug] [2026-04-08T21:34:47.985Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/b648d11cee3c7abf4db39fcc51ceec49834360f8aae64815f95f81b55c4f123e 200
+[debug] [2026-04-08T21:34:47.986Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/b648d11cee3c7abf4db39fcc51ceec49834360f8aae64815f95f81b55c4f123e [stream]
+[debug] [2026-04-08T21:34:48.000Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/31cb7449b0151f6799a1affb9f8d2d10b76e8e87428c646c2b44048c77bd3dd7 200
+[debug] [2026-04-08T21:34:48.000Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/31cb7449b0151f6799a1affb9f8d2d10b76e8e87428c646c2b44048c77bd3dd7 [stream]
+[debug] [2026-04-08T21:34:48.009Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/795913c241ead05715ae521c238c9a7f730762393331ee7b72ecd349b3cd0882 200
+[debug] [2026-04-08T21:34:48.009Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/795913c241ead05715ae521c238c9a7f730762393331ee7b72ecd349b3cd0882 [stream]
+[debug] [2026-04-08T21:34:48.012Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/415149879ccc7d95ae9df21bbc55cdaa08a91544b6871a47713ce4e3d8ac9bad 200
+[debug] [2026-04-08T21:34:48.012Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/415149879ccc7d95ae9df21bbc55cdaa08a91544b6871a47713ce4e3d8ac9bad [stream]
+[debug] [2026-04-08T21:34:48.013Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/47e9ba87ba4e22a2258e2dc1cab867327458829fc140fc469fee65e968db1df2 200
+[debug] [2026-04-08T21:34:48.013Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/47e9ba87ba4e22a2258e2dc1cab867327458829fc140fc469fee65e968db1df2 [stream]
+[debug] [2026-04-08T21:34:48.020Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/d8f8a0da7d3a2d6e95d4c981ead12489a2da65eb028eff3634a24190eacfd3e3 200
+[debug] [2026-04-08T21:34:48.020Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/d8f8a0da7d3a2d6e95d4c981ead12489a2da65eb028eff3634a24190eacfd3e3 [stream]
+[debug] [2026-04-08T21:34:48.023Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/78a3cb0f8a0905425ae6761fb9c0c5daea8777d0b6522024a5e4c95410b8bd10 200
+[debug] [2026-04-08T21:34:48.024Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/78a3cb0f8a0905425ae6761fb9c0c5daea8777d0b6522024a5e4c95410b8bd10 [stream]
+[debug] [2026-04-08T21:34:48.049Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/3bfec9a4b92e766853d31d7aa6fc90f9a1bd54e21d9ea44c46013406a36c82c0 200
+[debug] [2026-04-08T21:34:48.049Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/3bfec9a4b92e766853d31d7aa6fc90f9a1bd54e21d9ea44c46013406a36c82c0 [stream]
+[debug] [2026-04-08T21:34:48.080Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/82ce7960b9acb483b0fe6526cc56adf99139385f761a30c7bf8836b85810a90d 200
+[debug] [2026-04-08T21:34:48.080Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/82ce7960b9acb483b0fe6526cc56adf99139385f761a30c7bf8836b85810a90d [stream]
+[debug] [2026-04-08T21:34:48.084Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/8ede9e37a578a304bba2bc1e8ab106bb15c00918c305c753fbf4b4fde80ceda6 200
+[debug] [2026-04-08T21:34:48.084Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/8ede9e37a578a304bba2bc1e8ab106bb15c00918c305c753fbf4b4fde80ceda6 [stream]
+[debug] [2026-04-08T21:34:48.106Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/df9d0c15e3b15af1918bad809373fcb52596d3fa696a359a8cc3faa301e87473 200
+[debug] [2026-04-08T21:34:48.106Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/df9d0c15e3b15af1918bad809373fcb52596d3fa696a359a8cc3faa301e87473 [stream]
+[debug] [2026-04-08T21:34:48.108Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/2c4bc8c1b6ca62ea6394619794f119ad8030d4067029c66a1bf9e59a8b519fb6 200
+[debug] [2026-04-08T21:34:48.108Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/2c4bc8c1b6ca62ea6394619794f119ad8030d4067029c66a1bf9e59a8b519fb6 [stream]
+[debug] [2026-04-08T21:34:48.116Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/b924d5e97f431d24df013872953e0811001f35299e525d37c24bb7ddbdc9f14a 200
+[debug] [2026-04-08T21:34:48.116Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/b924d5e97f431d24df013872953e0811001f35299e525d37c24bb7ddbdc9f14a [stream]
+[debug] [2026-04-08T21:34:48.155Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/511b78b52ec654feb0516b09ee8286ff87941d6635e4bf6fc598bd6434335de7 200
+[debug] [2026-04-08T21:34:48.156Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/511b78b52ec654feb0516b09ee8286ff87941d6635e4bf6fc598bd6434335de7 [stream]
+[debug] [2026-04-08T21:34:48.158Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/e097e84f006f4381c47f013740681cc4d5a9a0b6b6e132920a0e4df495b66d43 200
+[debug] [2026-04-08T21:34:48.158Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/e097e84f006f4381c47f013740681cc4d5a9a0b6b6e132920a0e4df495b66d43 [stream]
+[debug] [2026-04-08T21:34:48.182Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/e10e57bc5623d2a70576692e495ae6a1d48663ec5a48cf057a2832fdb07ed274 200
+[debug] [2026-04-08T21:34:48.182Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/e10e57bc5623d2a70576692e495ae6a1d48663ec5a48cf057a2832fdb07ed274 [stream]
+[debug] [2026-04-08T21:34:48.188Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/66b8606d016647eaefd7cf953b85806ad965678a32e8f9c956b90e2d93daa1f0 200
+[debug] [2026-04-08T21:34:48.189Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/66b8606d016647eaefd7cf953b85806ad965678a32e8f9c956b90e2d93daa1f0 [stream]
+[debug] [2026-04-08T21:34:48.191Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/6eed05183acfcff99775fee5933d054f5713baff87685c88a244a5bf7431d353 200
+[debug] [2026-04-08T21:34:48.191Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/6eed05183acfcff99775fee5933d054f5713baff87685c88a244a5bf7431d353 [stream]
+[debug] [2026-04-08T21:34:48.198Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/d09a28f70557a26a4e8b2f715470d76d0d1f394c602b7f67f5eee5f307050a0e 200
+[debug] [2026-04-08T21:34:48.198Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/d09a28f70557a26a4e8b2f715470d76d0d1f394c602b7f67f5eee5f307050a0e [stream]
+[debug] [2026-04-08T21:34:48.216Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/eaab22cb9affbd59a56e754d56ed93f00f759861ffd55cbab0cc82854dd2f4e5 200
+[debug] [2026-04-08T21:34:48.216Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/eaab22cb9affbd59a56e754d56ed93f00f759861ffd55cbab0cc82854dd2f4e5 [stream]
+[debug] [2026-04-08T21:34:48.279Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/396e51382d5a38dee8a094ed51def8fd09ee64a4d695b33420c80d7b9fa831ba 200
+[debug] [2026-04-08T21:34:48.280Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/396e51382d5a38dee8a094ed51def8fd09ee64a4d695b33420c80d7b9fa831ba [stream]
+[debug] [2026-04-08T21:34:48.302Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/1f4c671bd3a551eeeb48795798ce10b45d9b235431e935da160af2730fa85e07 200
+[debug] [2026-04-08T21:34:48.303Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/1f4c671bd3a551eeeb48795798ce10b45d9b235431e935da160af2730fa85e07 [stream]
+[debug] [2026-04-08T21:34:48.320Z] <<< [apiv2][status] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/4634d42a645854c4742734c7274f572823962a678d824dd6cb7298570fc20db7 200
+[debug] [2026-04-08T21:34:48.320Z] <<< [apiv2][body] POST https://upload-firebasehosting.googleapis.com/upload/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3/files/4634d42a645854c4742734c7274f572823962a678d824dd6cb7298570fc20db7 [stream]
+[debug] [2026-04-08T21:34:48.320Z] [hosting][upload queue][FINAL] {"max":2230,"min":1623,"avg":1892.1162790697674,"active":0,"complete":43,"success":43,"errored":0,"retried":0,"total":43,"elapsed":2233}
+[info] i  hosting: upload complete 
+[info] +  hosting[qualcoco-96f38]: file upload complete 
+[debug] [2026-04-08T21:34:48.322Z] [hosting] deploy completed after 3235ms
+[debug] [2026-04-08T21:34:48.323Z] [
+  {
+    "config": {
+      "public": "dist",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ],
+      "site": "qualcoco-96f38"
+    },
+    "version": "projects/497251186279/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3"
+  }
+]
+[info] i  hosting[qualcoco-96f38]: finalizing version... 
+[debug] [2026-04-08T21:34:48.327Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:48.328Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:48.329Z] >>> [apiv2][query] PATCH https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3 updateMask=status%2Cconfig
+[debug] [2026-04-08T21:34:48.329Z] >>> [apiv2][body] PATCH https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3 {"status":"FINALIZED","config":{"rewrites":[{"glob":"**","path":"/index.html"}]}}
+[debug] [2026-04-08T21:34:48.942Z] <<< [apiv2][status] PATCH https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3 200
+[debug] [2026-04-08T21:34:48.942Z] <<< [apiv2][body] PATCH https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3 {"name":"projects/497251186279/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3","status":"FINALIZED","config":{"rewrites":[{"glob":"**","path":"/index.html"}]},"labels":{"deployment-tool":"cli-firebase"},"createTime":"2026-04-08T21:34:44.914617Z","createUser":{"email":"thgdsztls@gmail.com"},"finalizeTime":"2026-04-08T21:34:49.849971Z","finalizeUser":{"email":"thgdsztls@gmail.com"}}
+[debug] [2026-04-08T21:34:48.943Z] [hosting] finalized version for qualcoco-96f38:[object Object]
+[info] +  hosting[qualcoco-96f38]: version finalized 
+[info] i  hosting[qualcoco-96f38]: releasing new version... 
+[debug] [2026-04-08T21:34:48.944Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:48.944Z] Checked if tokens are valid: true, expires at: 1775687679744
+[debug] [2026-04-08T21:34:48.945Z] >>> [apiv2][query] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/qualcoco-96f38/channels/live/releases versionName=projects%2F497251186279%2Fsites%2Fqualcoco-96f38%2Fversions%2F371bdd2d8d58d6f3
+[debug] [2026-04-08T21:34:48.945Z] >>> [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/qualcoco-96f38/channels/live/releases {}
+[debug] [2026-04-08T21:34:49.550Z] <<< [apiv2][status] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/qualcoco-96f38/channels/live/releases 200
+[debug] [2026-04-08T21:34:49.551Z] <<< [apiv2][body] POST https://firebasehosting.googleapis.com/v1beta1/projects/-/sites/qualcoco-96f38/channels/live/releases {"name":"projects/497251186279/sites/qualcoco-96f38/channels/live/releases/1775684089787000","version":{"name":"projects/497251186279/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3","status":"FINALIZED","config":{"rewrites":[{"glob":"**","path":"/index.html"}]},"labels":{"deployment-tool":"cli-firebase"},"createTime":"2026-04-08T21:34:44.914617Z","createUser":{"email":"thgdsztls@gmail.com","imageUrl":"https://lh3.googleusercontent.com/a/ACg8ocLPDoxUlUDsMFkd3RQJ2-kD6H3RJivBturWEjTgnwpHxSVePQSD"},"finalizeTime":"2026-04-08T21:34:49.849971Z","finalizeUser":{"email":"thgdsztls@gmail.com","imageUrl":"https://lh3.googleusercontent.com/a/ACg8ocLPDoxUlUDsMFkd3RQJ2-kD6H3RJivBturWEjTgnwpHxSVePQSD"}},"type":"DEPLOY","releaseTime":"2026-04-08T21:34:49.787Z","releaseUser":{"email":"thgdsztls@gmail.com","imageUrl":"https://lh3.googleusercontent.com/a/ACg8ocLPDoxUlUDsMFkd3RQJ2-kD6H3RJivBturWEjTgnwpHxSVePQSD"}}
+[debug] [2026-04-08T21:34:49.551Z] [hosting] release: {"name":"projects/497251186279/sites/qualcoco-96f38/channels/live/releases/1775684089787000","version":{"name":"projects/497251186279/sites/qualcoco-96f38/versions/371bdd2d8d58d6f3","status":"FINALIZED","config":{"rewrites":[{"glob":"**","path":"/index.html"}]},"labels":{"deployment-tool":"cli-firebase"},"createTime":"2026-04-08T21:34:44.914617Z","createUser":{"email":"thgdsztls@gmail.com","imageUrl":"https://lh3.googleusercontent.com/a/ACg8ocLPDoxUlUDsMFkd3RQJ2-kD6H3RJivBturWEjTgnwpHxSVePQSD"},"finalizeTime":"2026-04-08T21:34:49.849971Z","finalizeUser":{"email":"thgdsztls@gmail.com","imageUrl":"https://lh3.googleusercontent.com/a/ACg8ocLPDoxUlUDsMFkd3RQJ2-kD6H3RJivBturWEjTgnwpHxSVePQSD"}},"type":"DEPLOY","releaseTime":"2026-04-08T21:34:49.787Z","releaseUser":{"email":"thgdsztls@gmail.com","imageUrl":"https://lh3.googleusercontent.com/a/ACg8ocLPDoxUlUDsMFkd3RQJ2-kD6H3RJivBturWEjTgnwpHxSVePQSD"}}
+[info] +  hosting[qualcoco-96f38]: release complete 
+[info] 
+[info] +  Deploy complete! 
+[info] 
+[info] Project Console: https://console.firebase.google.com/project/qualcoco-96f38/overview
+[info] Hosting URL: https://qualcoco-96f38.web.app

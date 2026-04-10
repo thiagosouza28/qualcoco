@@ -40,6 +40,51 @@ const persistSession = (session: SessaoCampo) => {
   window.localStorage.setItem(STORAGE_KEYS.sessao, JSON.stringify(session));
 };
 
+const normalizeEquipeDiaPayload = async (
+  colaborador?: Colaborador | null,
+  equipeDiaIdAtual?: string | null,
+) => {
+  const perfil = normalizePerfilUsuario(colaborador?.perfil);
+  const equipeIdAtual = String(equipeDiaIdAtual || '').trim();
+
+  if (perfil !== 'fiscal') {
+    if (!equipeIdAtual) {
+      return {
+        equipeDiaId: null,
+        equipeDiaNome: '',
+      };
+    }
+
+    const equipeAtual = await repository.get('equipes', equipeIdAtual);
+    if (!equipeAtual || equipeAtual.deletadoEm || !equipeAtual.ativa) {
+      return {
+        equipeDiaId: null,
+        equipeDiaNome: '',
+      };
+    }
+
+    return {
+      equipeDiaId: equipeAtual.id,
+      equipeDiaNome: equipeAtual.nome,
+    };
+  }
+
+  const [equipeIds, equipes] = await Promise.all([
+    listarEquipeIdsDoUsuario(colaborador?.id),
+    repository.list('equipes'),
+  ]);
+  const vinculadas = equipes.filter(
+    (item) => !item.deletadoEm && item.ativa && equipeIds.includes(item.id),
+  );
+  const selecionada =
+    vinculadas.find((item) => item.id === equipeIdAtual) || vinculadas[0] || null;
+
+  return {
+    equipeDiaId: selecionada?.id || null,
+    equipeDiaNome: selecionada?.nome || '',
+  };
+};
+
 export const getSessaoAtiva = () => {
   const raw = window.localStorage.getItem(STORAGE_KEYS.sessao);
   if (!raw) return null;
@@ -62,6 +107,40 @@ export const touchSessao = () => {
   if (!session) return null;
 
   const next = { ...session, ultimoAcessoEm: nowIso() };
+  persistSession(next);
+  return next;
+};
+
+export const atualizarSessaoAtiva = (patch: Partial<SessaoCampo>) => {
+  const session = getSessaoAtiva();
+  if (!session) return null;
+
+  const next: SessaoCampo = {
+    ...session,
+    ...patch,
+    ultimoAcessoEm: nowIso(),
+  };
+  persistSession(next);
+  return next;
+};
+
+export const sincronizarEquipeDiaSessao = async (
+  colaborador?: Colaborador | null,
+  sessionSnapshot?: SessaoCampo | null,
+) => {
+  const session = sessionSnapshot || getSessaoAtiva();
+  if (!session || !colaborador || session.colaboradorId !== colaborador.id) {
+    return session || null;
+  }
+
+  const equipeDia = await normalizeEquipeDiaPayload(
+    colaborador,
+    session.equipeDiaId || null,
+  );
+  const next: SessaoCampo = {
+    ...session,
+    ...equipeDia,
+  };
   persistSession(next);
   return next;
 };
@@ -465,11 +544,17 @@ export const autenticarColaborador = async (
     ultimoAcessoEm: nowIso(),
   };
 
-  persistSession(session);
+  const equipeDia = await normalizeEquipeDiaPayload(colaborador, null);
+  const nextSession: SessaoCampo = {
+    ...session,
+    ...equipeDia,
+  };
+
+  persistSession(nextSession);
   salvarUltimoUsuario(cleanIdentifier);
 
   return {
     colaborador,
-    session,
+    session: nextSession,
   };
 };

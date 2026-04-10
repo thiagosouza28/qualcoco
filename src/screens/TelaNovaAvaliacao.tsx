@@ -1,5 +1,5 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRef } from 'react';
 import { useParams } from 'react-router-dom';
@@ -33,16 +33,28 @@ import { repository } from '@/core/repositories';
 import { ListaParcelas } from '@/components/ListaParcelas';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { todayIso } from '@/core/date';
+import {
+  cadastrarParcelaPlanejada,
+  listarParcelasPlanejadasVisiveis,
+} from '@/core/plannedParcels';
 import { useRolePermissions } from '@/core/useRolePermissions';
 import { cn } from '@/utils';
 import type {
   FaixaFalhaParcela,
   ModoCalculo,
+  ParcelaPlanejada,
   OrdemColeta,
   SentidoRuas,
 } from '@/core/types';
@@ -187,11 +199,13 @@ const formatarDataColheita = (value: string) => {
 export function TelaNovaAvaliacao() {
   const { id: editingId = '' } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
-  const { usuarioAtual, dispositivo } = useCampoApp();
+  const { usuarioAtual, dispositivo, session } = useCampoApp();
   const { permissionMatrix } = useRolePermissions(usuarioAtual?.perfil);
   const isEditMode = Boolean(editingId);
   const initializedEditRef = useRef<string | null>(null);
+  const plannedParcelInitRef = useRef<string | null>(null);
   const dataAvaliacaoEdicao = todayIso();
   
   const [step, setStep] = useState<Step>('participantes');
@@ -217,6 +231,14 @@ export function TelaNovaAvaliacao() {
   const [linhaFimEq1, setLinhaFimEq1] = useState('');
   const [linhaInicioEq2, setLinhaInicioEq2] = useState('');
   const [linhaFimEq2, setLinhaFimEq2] = useState('');
+  const [parcelaPlanejadaIds, setParcelaPlanejadaIds] = useState<string[]>([]);
+  const [showCadastrarParcela, setShowCadastrarParcela] = useState(false);
+  const [novaParcelaCodigo, setNovaParcelaCodigo] = useState('');
+  const [novaParcelaEquipeId, setNovaParcelaEquipeId] = useState('');
+  const [novaParcelaLinhaInicial, setNovaParcelaLinhaInicial] = useState('');
+  const [novaParcelaLinhaFinal, setNovaParcelaLinhaFinal] = useState('');
+  const [novaParcelaDataColheita, setNovaParcelaDataColheita] = useState(todayIso());
+  const [novaParcelaObservacao, setNovaParcelaObservacao] = useState('');
 
   const { data: colaboradores = [] } = useQuery({
     queryKey: ['colaboradores', 'ativos'],
@@ -229,6 +251,16 @@ export function TelaNovaAvaliacao() {
   const { data: parcelas = [] } = useQuery({
     queryKey: ['parcelas', 'catalogo'],
     queryFn: () => repository.list('parcelas'),
+  });
+  const { data: parcelasPlanejadas = [] } = useQuery({
+    queryKey: ['parcelas-planejadas', 'nova-avaliacao', usuarioAtual?.id, session?.equipeDiaId],
+    queryFn: () =>
+      listarParcelasPlanejadasVisiveis({
+        usuarioId: usuarioAtual?.id,
+        equipeId: session?.equipeDiaId || null,
+        incluirConcluidas: false,
+      }),
+    enabled: Boolean(usuarioAtual?.id),
   });
   const {
     data: editData,
@@ -265,6 +297,28 @@ export function TelaNovaAvaliacao() {
         )
         .slice(0, 24),
     [buscaParcela, parcelasCatalogo],
+  );
+  const parcelaPlanejadaParam = useMemo(
+    () => new URLSearchParams(location.search).get('parcelaPlanejadaId') || '',
+    [location.search],
+  );
+  const parcelasPlanejadasAtivas = useMemo(
+    () =>
+      parcelasPlanejadas.filter(
+        (item) =>
+          item.status === 'disponivel' || item.status === 'em_andamento',
+      ),
+    [parcelasPlanejadas],
+  );
+  const parcelaPlanejadaPorParcelaId = useMemo(
+    () =>
+      parcelasPlanejadasAtivas.reduce<Map<string, ParcelaPlanejada>>((acc, item) => {
+        if (item.parcelaId && !acc.has(item.parcelaId)) {
+          acc.set(item.parcelaId, item);
+        }
+        return acc;
+      }, new Map()),
+    [parcelasPlanejadasAtivas],
   );
 
   const equipe1 = equipes.find((item) => item.id === equipe1Id) || null;
@@ -437,6 +491,82 @@ export function TelaNovaAvaliacao() {
     setLinhaFimEq2(faixaEquipeSecundaria.fim);
   }, [editData, editingId, isEditMode, responsavelId]);
 
+  useEffect(() => {
+    if (isEditMode || equipe1Id || !session?.equipeDiaId) {
+      return;
+    }
+
+    setEquipe1Id(session.equipeDiaId);
+  }, [equipe1Id, isEditMode, session?.equipeDiaId]);
+
+  useEffect(() => {
+    if (isEditMode || !parcelaPlanejadaParam || plannedParcelInitRef.current === parcelaPlanejadaParam) {
+      return;
+    }
+
+    const parcelaPlanejada =
+      parcelasPlanejadasAtivas.find((item) => item.id === parcelaPlanejadaParam) || null;
+    if (!parcelaPlanejada) {
+      return;
+    }
+
+    const parcelaCatalogo =
+      parcelasCatalogo.find(
+        (item) =>
+          item.id === parcelaPlanejada.parcelaId ||
+          item.codigo === parcelaPlanejada.codigo,
+      ) || null;
+    if (!parcelaCatalogo) {
+      return;
+    }
+
+    plannedParcelInitRef.current = parcelaPlanejadaParam;
+    setDataColheita(parcelaPlanejada.dataColheita || todayIso());
+    if (parcelaPlanejada.equipeId) {
+      setEquipe1Id(parcelaPlanejada.equipeId);
+    }
+    setSelecionadas([parcelaCatalogo.id]);
+    setParcelaPlanejadaIds([parcelaPlanejada.id]);
+    setConfiguracoes((current) => ({
+      ...current,
+      [parcelaCatalogo.id]: {
+        linhaInicial: String(parcelaPlanejada.alinhamentoInicial || ''),
+        linhaFinal: String(parcelaPlanejada.alinhamentoFinal || ''),
+        alinhamentoFalha:
+          current[parcelaCatalogo.id]?.alinhamentoFalha ||
+          parcelaPlanejada.alinhamentoTipo ||
+          alinhamentoTipo,
+        falhasLinhas: current[parcelaCatalogo.id]?.falhasLinhas || '',
+        sentidoRuas: current[parcelaCatalogo.id]?.sentidoRuas || sentidoRuas,
+        ruasEquipe1:
+          current[parcelaCatalogo.id]?.ruasEquipe1 ||
+          String(Math.max(0, totalRuasEq1 || 0)),
+        ruasEquipe2:
+          current[parcelaCatalogo.id]?.ruasEquipe2 ||
+          (duasEquipes ? String(Math.max(0, totalRuasEq2 || 0)) : '0'),
+        alinhamentoTipo:
+          parcelaPlanejada.alinhamentoTipo ||
+          current[parcelaCatalogo.id]?.alinhamentoTipo ||
+          alinhamentoTipo,
+      },
+    }));
+    setBuscaParcela(parcelaPlanejada.codigo);
+    if (parcelaPlanejada.observacao && !observacoes.trim()) {
+      setObservacoes(parcelaPlanejada.observacao);
+    }
+  }, [
+    alinhamentoTipo,
+    duasEquipes,
+    isEditMode,
+    observacoes,
+    parcelaPlanejadaParam,
+    parcelasCatalogo,
+    parcelasPlanejadasAtivas,
+    sentidoRuas,
+    totalRuasEq1,
+    totalRuasEq2,
+  ]);
+
   const criarConfigParcela = (
     currentConfig?: ConfigMap[string],
   ): ConfigMap[string] => ({
@@ -601,6 +731,9 @@ export function TelaNovaAvaliacao() {
 
   const handleRemoveParcela = (parcelaId: string) => {
     setSelecionadas((current) => current.filter((item) => item !== parcelaId));
+    setParcelaPlanejadaIds((current) =>
+      current.filter((item) => parcelaPlanejadaPorParcelaId.get(parcelaId)?.id !== item),
+    );
     setConfiguracoes((current) => {
       const next = { ...current };
       delete next[parcelaId];
@@ -617,9 +750,30 @@ export function TelaNovaAvaliacao() {
     if (selecionadas.length >= 3) return;
 
     setSelecionadas((current) => [...current, parcelaId]);
+    const parcelaPlanejada = parcelaPlanejadaPorParcelaId.get(parcelaId) || null;
+    if (parcelaPlanejada) {
+      setParcelaPlanejadaIds((current) =>
+        current.includes(parcelaPlanejada.id) ? current : [...current, parcelaPlanejada.id],
+      );
+      setDataColheita(parcelaPlanejada.dataColheita || dataColheita);
+      if (parcelaPlanejada.equipeId && !equipe1Id) {
+        setEquipe1Id(parcelaPlanejada.equipeId);
+      }
+    }
     setConfiguracoes((current) => ({
       ...current,
-      [parcelaId]: criarConfigParcela(current[parcelaId]),
+      [parcelaId]: {
+        ...criarConfigParcela(current[parcelaId]),
+        linhaInicial: parcelaPlanejada
+          ? String(parcelaPlanejada.alinhamentoInicial || '')
+          : criarConfigParcela(current[parcelaId]).linhaInicial,
+        linhaFinal: parcelaPlanejada
+          ? String(parcelaPlanejada.alinhamentoFinal || '')
+          : criarConfigParcela(current[parcelaId]).linhaFinal,
+        alinhamentoTipo:
+          parcelaPlanejada?.alinhamentoTipo ||
+          criarConfigParcela(current[parcelaId]).alinhamentoTipo,
+      },
     }));
   };
 
@@ -800,6 +954,7 @@ export function TelaNovaAvaliacao() {
         dataColheita,
         observacoes,
         participanteIds: temMaisPessoas ? participanteIds : [],
+        parcelaPlanejadaIds,
         acompanhado: temMaisPessoas === true,
         equipeId: equipe1Id || null,
         equipeNome: equipe1?.nome || '',
@@ -834,6 +989,69 @@ export function TelaNovaAvaliacao() {
       if (!result) return;
       await queryClient.invalidateQueries();
       navigate(`/avaliacoes/${result.avaliacao.id}`);
+    },
+  });
+
+  const cadastrarParcelaMutation = useMutation({
+    mutationFn: async () => {
+      if (!usuarioAtual?.id) {
+        throw new Error('Usuario indisponivel.');
+      }
+
+      return cadastrarParcelaPlanejada({
+        codigo: novaParcelaCodigo,
+        equipeId: novaParcelaEquipeId || equipe1Id || session?.equipeDiaId || null,
+        alinhamentoInicial: Number(novaParcelaLinhaInicial),
+        alinhamentoFinal: Number(novaParcelaLinhaFinal),
+        dataColheita: novaParcelaDataColheita,
+        observacao: novaParcelaObservacao,
+        criadoPor: usuarioAtual.id,
+        origem: 'colaborador',
+      });
+    },
+    onSuccess: async (parcelaPlanejada) => {
+      await queryClient.invalidateQueries({ queryKey: ['parcelas'] });
+      await queryClient.invalidateQueries({ queryKey: ['parcelas-planejadas'] });
+      setShowCadastrarParcela(false);
+      setBuscaParcela(parcelaPlanejada.codigo);
+      setDataColheita(parcelaPlanejada.dataColheita);
+      if (parcelaPlanejada.equipeId) {
+        setEquipe1Id(parcelaPlanejada.equipeId);
+      }
+      if (parcelaPlanejada.parcelaId) {
+        setSelecionadas((current) =>
+          current.includes(parcelaPlanejada.parcelaId || '')
+            ? current
+            : [...current, parcelaPlanejada.parcelaId || ''],
+        );
+        setParcelaPlanejadaIds((current) =>
+          current.includes(parcelaPlanejada.id)
+            ? current
+            : [...current, parcelaPlanejada.id],
+        );
+        setConfiguracoes((current) => ({
+          ...current,
+          [parcelaPlanejada.parcelaId || '']: {
+            ...criarConfigParcela(current[parcelaPlanejada.parcelaId || '']),
+            linhaInicial: String(parcelaPlanejada.alinhamentoInicial || ''),
+            linhaFinal: String(parcelaPlanejada.alinhamentoFinal || ''),
+            alinhamentoTipo:
+              parcelaPlanejada.alinhamentoTipo ||
+              criarConfigParcela(current[parcelaPlanejada.parcelaId || '']).alinhamentoTipo,
+          },
+        }));
+      }
+      setNovaParcelaCodigo('');
+      setNovaParcelaLinhaInicial('');
+      setNovaParcelaLinhaFinal('');
+      setNovaParcelaObservacao('');
+    },
+    onError: (error) => {
+      alert(
+        error instanceof Error
+          ? error.message
+          : 'Nao foi possivel cadastrar a parcela.',
+      );
     },
   });
 
@@ -956,6 +1174,88 @@ export function TelaNovaAvaliacao() {
 
         {renderProgress()}
 
+        <Dialog open={showCadastrarParcela} onOpenChange={setShowCadastrarParcela}>
+          <DialogContent className="max-w-[460px]">
+            <DialogHeader>
+              <DialogTitle>Cadastrar parcela no fluxo atual</DialogTitle>
+            </DialogHeader>
+            <div className="stack-md">
+              <Input
+                value={novaParcelaCodigo}
+                placeholder="Codigo da parcela"
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                  setNovaParcelaCodigo(formatarBuscaParcela(event.target.value))
+                }
+              />
+              <Select value={novaParcelaEquipeId} onValueChange={setNovaParcelaEquipeId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Equipe da parcela" />
+                </SelectTrigger>
+                <SelectContent>
+                  {equipes.map((equipe) => (
+                    <SelectItem key={equipe.id} value={equipe.id}>
+                      {String(equipe.numero).padStart(2, '0')} • {equipe.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  min="1"
+                  value={novaParcelaLinhaInicial}
+                  placeholder="Alinhamento inicial"
+                  onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                    setNovaParcelaLinhaInicial(event.target.value.replace(/\D/g, '').slice(0, 3))
+                  }
+                />
+                <Input
+                  type="number"
+                  inputMode="numeric"
+                  min="1"
+                  value={novaParcelaLinhaFinal}
+                  placeholder="Alinhamento final"
+                  onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                    setNovaParcelaLinhaFinal(event.target.value.replace(/\D/g, '').slice(0, 3))
+                  }
+                />
+              </div>
+              <Input
+                type="date"
+                value={novaParcelaDataColheita}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                  setNovaParcelaDataColheita(event.target.value)
+                }
+              />
+              <Textarea
+                rows={3}
+                value={novaParcelaObservacao}
+                placeholder="Observacao opcional"
+                onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) =>
+                  setNovaParcelaObservacao(event.target.value)
+                }
+              />
+            </div>
+            <DialogFooter className="gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowCadastrarParcela(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                onClick={() => cadastrarParcelaMutation.mutate()}
+                disabled={cadastrarParcelaMutation.isPending}
+              >
+                {cadastrarParcelaMutation.isPending ? 'Salvando' : 'Salvar parcela'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         {step === 'participantes' && (
           <div className="stack-lg">
             <Card className="surface-card overflow-hidden rounded-[22px] border-none shadow-sm">
@@ -972,12 +1272,15 @@ export function TelaNovaAvaliacao() {
                     </p>
                   </div>
                   <p className="text-sm text-[var(--qc-text-muted)]">
-                    Campo obrigatório para registrar a jornada e contextualizar o relatório.
+                    {parcelaPlanejadaIds.length > 0
+                      ? 'Campo carregado automaticamente a partir da parcela planejada selecionada.'
+                      : 'Campo obrigatório para registrar a jornada e contextualizar o relatório.'}
                   </p>
                   <Input
                     type="date"
                     className="h-12 rounded-2xl bg-white font-bold"
                     value={dataColheita}
+                    disabled={parcelaPlanejadaIds.length > 0}
                     onChange={(event: React.ChangeEvent<HTMLInputElement>) => setDataColheita(event.target.value)}
                     required
                   />
@@ -1158,6 +1461,26 @@ export function TelaNovaAvaliacao() {
                     </div>
                   </div>
 
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm text-[var(--qc-text-muted)]">
+                      Use o fluxo atual para iniciar a avaliacao. Se a parcela ainda nao existir, cadastre aqui sem sair da tela.
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="rounded-[18px] font-bold"
+                      onClick={() => {
+                        setNovaParcelaCodigo(buscaParcela);
+                        setNovaParcelaEquipeId(equipe1Id || session?.equipeDiaId || '');
+                        setNovaParcelaDataColheita(dataColheita || todayIso());
+                        setShowCadastrarParcela(true);
+                      }}
+                    >
+                      <Plus className="h-4 w-4" />
+                      Cadastrar parcela
+                    </Button>
+                  </div>
+
                   <div className="pt-2">
                     <ListaParcelas
                       parcelas={parcelasFiltradas}
@@ -1285,6 +1608,11 @@ export function TelaNovaAvaliacao() {
                           const alinhamentoParcela =
                             config.alinhamentoTipo || alinhamentoTipo;
                           const sentidoParcela = config.sentidoRuas || sentidoRuas;
+                          const parcelaPlanejadaSelecionada =
+                            parcelaPlanejadaPorParcelaId.get(parcela!.id) || null;
+                          const bloqueadaPorPlanejamento = Boolean(
+                            parcelaPlanejadaSelecionada,
+                          );
 
                           return (
                             <div
@@ -1297,13 +1625,20 @@ export function TelaNovaAvaliacao() {
                                     {parcela!.codigo}
                                   </p>
                                   <p className="mt-1 text-xs font-medium text-[var(--qc-text-muted)]">
-                                    Defina início e fim apenas nesta etapa.
+                                    {bloqueadaPorPlanejamento
+                                      ? 'Linhas carregadas do cadastro da parcela do dia.'
+                                      : 'Defina início e fim apenas nesta etapa.'}
                                   </p>
                                 </div>
 
-                                <Badge variant={pronta ? 'emerald' : 'slate'}>
-                                  {pronta ? 'Pronta' : 'Pendente'}
-                                </Badge>
+                                <div className="flex items-center gap-2">
+                                  {bloqueadaPorPlanejamento ? (
+                                    <Badge variant="default">Planejada</Badge>
+                                  ) : null}
+                                  <Badge variant={pronta ? 'emerald' : 'slate'}>
+                                    {pronta ? 'Pronta' : 'Pendente'}
+                                  </Badge>
+                                </div>
                               </div>
 
                               <div className="mt-4 grid grid-cols-2 gap-3">
@@ -1316,6 +1651,7 @@ export function TelaNovaAvaliacao() {
                                     className="h-11 rounded-xl text-center font-bold"
                                     placeholder="01"
                                     value={config.linhaInicial}
+                                    disabled={bloqueadaPorPlanejamento}
                                     onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                                       updateConfigParcela(
                                         parcela!.id,
@@ -1334,6 +1670,7 @@ export function TelaNovaAvaliacao() {
                                     className="h-11 rounded-xl text-center font-bold"
                                     placeholder="80"
                                     value={config.linhaFinal}
+                                    disabled={bloqueadaPorPlanejamento}
                                     onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                                       updateConfigParcela(
                                         parcela!.id,

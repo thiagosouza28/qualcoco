@@ -552,6 +552,7 @@ export function TelaRegistroLinhas() {
           responsavelId:
             data?.avaliacao?.responsavelPrincipalId || data?.avaliacao?.usuarioId,
           designadoParaId: data?.avaliacao?.retoqueDesignadoParaId,
+          designadoParaIds: data?.avaliacao?.retoqueDesignadoParaIds,
           matrix: permissionMatrix,
         })
       : canStartEvaluation(usuarioAtual?.perfil, permissionMatrix);

@@ -3,6 +3,9 @@ export type StoreName =
   | 'colaboradores'
   | 'usuarioEquipes'
   | 'parcelas'
+  | 'parcelasPlanejadas'
+  | 'notificacoes'
+  | 'atribuicoesRetoque'
   | 'avaliacoes'
   | 'avaliacaoColaboradores'
   | 'avaliacaoParcelas'
@@ -99,6 +102,49 @@ export interface Parcela extends BaseEntity {
   ativo: boolean;
 }
 
+export interface ParcelaPlanejada extends BaseEntity {
+  codigo: string;
+  equipeId: string | null;
+  equipeNome: string;
+  alinhamentoInicial: number;
+  alinhamentoFinal: number;
+  alinhamentoTipo?: 'inferior-impar' | 'inferior-par';
+  dataColheita: string;
+  observacao: string;
+  criadoPor: string;
+  criadoPorNome?: string;
+  origem: 'fiscal' | 'colaborador';
+  status: 'disponivel' | 'em_andamento' | 'em_retoque' | 'concluida';
+  parcelaId?: string | null;
+  avaliacaoId?: string | null;
+}
+
+export interface Notificacao extends BaseEntity {
+  usuarioId: string;
+  tipo: 'nova_parcela' | 'possivel_retoque' | 'retoque_atribuido';
+  titulo: string;
+  mensagem: string;
+  referenciaId: string;
+  referenciaTipo?: 'parcela_planejada' | 'avaliacao' | 'atribuicao_retoque';
+  acaoPath?: string | null;
+  acaoLabel?: string | null;
+  equipeId?: string | null;
+  lida: boolean;
+  lidaEm?: string | null;
+}
+
+export interface AtribuicaoRetoque extends BaseEntity {
+  avaliacaoId: string;
+  parcelaId?: string | null;
+  parcelaCodigo?: string;
+  equipeId: string | null;
+  equipeNome?: string;
+  usuarioId: string;
+  usuarioNome?: string;
+  atribuidoPor: string;
+  atribuidoPorNome?: string;
+}
+
 export interface Dispositivo extends BaseEntity {
   nomeDispositivo: string;
   identificadorLocal: string;
@@ -126,8 +172,12 @@ export interface Avaliacao extends BaseEntity {
   marcadoRetoquePorNome?: string;
   marcadoRetoqueEm?: string | null;
   motivoRetoque?: string;
+  retoqueEquipeId?: string | null;
+  retoqueEquipeNome?: string;
   retoqueDesignadoParaId?: string | null;
   retoqueDesignadoParaNome?: string;
+  retoqueDesignadoParaIds?: string[] | null;
+  retoqueDesignadoParaNomes?: string[] | null;
   totalRegistros: number;
   mediaParcela: number;
   mediaCachos3: number;
@@ -268,6 +318,8 @@ export interface SessaoCampo {
   colaboradorId: string;
   ultimoAcessoEm: string;
   iniciadoEm: string;
+  equipeDiaId?: string | null;
+  equipeDiaNome?: string;
 }
 
 export interface ParcelaConfigurada {
@@ -302,6 +354,7 @@ export interface NovaAvaliacaoInput {
   dataColheita: string;
   observacoes: string;
   participanteIds: string[];
+  parcelaPlanejadaIds?: string[];
   acompanhado?: boolean;
   tipo?: 'normal' | 'retoque';
   avaliacaoOriginalId?: string | null;

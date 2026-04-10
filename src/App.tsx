@@ -42,8 +42,14 @@ const TelaRelatorio = lazy(async () => ({
 const TelaConfiguracoes = lazy(async () => ({
   default: (await import('@/screens/TelaConfiguracoes')).TelaConfiguracoes,
 }));
+const TelaNotificacoes = lazy(async () => ({
+  default: (await import('@/screens/TelaNotificacoes')).TelaNotificacoes,
+}));
 const TelaPerfil = lazy(async () => ({
   default: (await import('@/screens/TelaPerfil')).TelaPerfil,
+}));
+const TelaParcelasPlanejadas = lazy(async () => ({
+  default: (await import('@/screens/TelaParcelasPlanejadas')).TelaParcelasPlanejadas,
 }));
 const CadastroColaborador = lazy(async () => ({
   default: (await import('@/screens/CadastroColaborador')).CadastroColaborador,
@@ -73,10 +79,15 @@ const ONLINE_SHARED_PULL_STORES = uniqueStores([
   'equipes',
   'colaboradores',
   'parcelas',
+  'parcelasPlanejadas',
+  'notificacoes',
+  'atribuicoesRetoque',
   'avaliacoes',
   'avaliacaoColaboradores',
   'avaliacaoParcelas',
   'avaliacaoRuas',
+  'avaliacaoRetoques',
+  'avaliacaoLogs',
   'registrosColeta',
 ]);
 
@@ -259,7 +270,9 @@ function ShellRoutes() {
           <Route path="/relatorios" element={<TelaRelatorio />} />
           <Route path="/sincronizacao" element={<TelaSincronizacao />} />
           <Route path="/configuracoes" element={<TelaConfiguracoes />} />
+          <Route path="/notificacoes" element={<TelaNotificacoes />} />
           <Route path="/perfil" element={<TelaPerfil />} />
+          <Route path="/parcelas" element={<TelaParcelasPlanejadas />} />
           <Route path="/colaboradores" element={<TelaColaboradores />} />
           <Route path="/equipes" element={<TelaEquipes />} />
           <Route path="/colaboradores/cadastro" element={<CadastroColaborador />} />
