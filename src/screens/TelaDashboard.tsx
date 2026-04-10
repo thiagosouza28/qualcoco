@@ -92,16 +92,22 @@ const quickActionCatalog = [
 function DashboardStat({
   label,
   value,
+  variant = 'hero',
+  tone = 'default',
 }: {
   label: string;
   value: number;
+  variant?: 'hero' | 'surface';
+  tone?: 'default' | 'available' | 'progress' | 'retouch';
 }) {
   return (
-    <div className="metric-card flex min-h-[88px] flex-col items-center justify-center rounded-[18px] px-3 py-3 text-center text-white">
+    <div
+      className={`metric-card metric-card--${variant} metric-card--${tone} flex min-h-[88px] flex-col items-center justify-center rounded-[18px] px-3 py-3 text-center`}
+    >
       <strong className="mt-0 text-[2rem] font-black tracking-[-0.05em]">
         {value}
       </strong>
-      <span className="mt-1.5 text-[0.82rem] font-extrabold uppercase tracking-[0.08em] text-white/92">
+      <span className="mt-1.5 text-[0.82rem] font-extrabold uppercase tracking-[0.08em]">
         {label}
       </span>
     </div>
@@ -291,9 +297,21 @@ export function TelaDashboard() {
               </div>
 
               <div className="grid grid-cols-3 gap-2">
-                <DashboardStat label="Parcelas" value={stats?.parcelasHoje ?? 0} />
-                <DashboardStat label="OK" value={stats?.avaliacoesOk ?? 0} />
-                <DashboardStat label="Retoque" value={stats?.avaliacoesRefazer ?? 0} />
+                <DashboardStat
+                  label="Parcelas"
+                  value={stats?.parcelasHoje ?? 0}
+                  variant="hero"
+                />
+                <DashboardStat
+                  label="OK"
+                  value={stats?.avaliacoesOk ?? 0}
+                  variant="hero"
+                />
+                <DashboardStat
+                  label="Retoque"
+                  value={stats?.avaliacoesRefazer ?? 0}
+                  variant="hero"
+                />
               </div>
             </div>
           </CardContent>
@@ -382,9 +400,24 @@ export function TelaDashboard() {
           </div>
 
           <div className="grid grid-cols-3 gap-2">
-            <DashboardStat label="Disp." value={parcelasDisponiveis.length} />
-            <DashboardStat label="Andam." value={parcelasEmAndamentoPlanejadas.length} />
-            <DashboardStat label="Retoque" value={parcelasEmRetoquePlanejadas.length} />
+            <DashboardStat
+              label="Disponíveis"
+              value={parcelasDisponiveis.length}
+              variant="surface"
+              tone="available"
+            />
+            <DashboardStat
+              label="Andamento"
+              value={parcelasEmAndamentoPlanejadas.length}
+              variant="surface"
+              tone="progress"
+            />
+            <DashboardStat
+              label="Retoque"
+              value={parcelasEmRetoquePlanejadas.length}
+              variant="surface"
+              tone="retouch"
+            />
           </div>
 
           {parcelasDisponiveis.length === 0 ? (
