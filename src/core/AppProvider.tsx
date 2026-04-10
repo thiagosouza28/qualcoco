@@ -1,3 +1,4 @@
+import { App as CapacitorApp } from '@capacitor/app';
 import { useQueryClient } from '@tanstack/react-query';
 import { Network } from '@capacitor/network';
 import {
@@ -34,12 +35,16 @@ import {
   isCloudConfigured,
   onCloudAuthStateChange,
 } from '@/core/firebaseCloud';
+import { prepararNotificacoesNativas, publicarNotificacoesNativasPendentes } from '@/core/nativeNotifications';
+import { listarNotificacoesDoUsuario } from '@/core/notifications';
 import type { Colaborador, Dispositivo, SessaoCampo, StoreName } from '@/core/types';
 
 const SYNC_QUEUE_CHANGED_EVENT = 'qualcoco:sync-queue-changed';
 const AUTO_SYNC_PENDING_DEBOUNCE_MS = 1200;
 const AUTO_SYNC_PENDING_INTERVAL_MS = 15_000;
 const AUTO_SYNC_REMOTE_REFRESH_MS = 60_000;
+const AUTO_SYNC_WEB_ACCESS_REFRESH_MS = 5 * 60_000;
+const AUTO_SYNC_BACKGROUND_REFRESH_MS = 90_000;
 
 type AppContextShape = {
   bootstrapped: boolean;
@@ -80,6 +85,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const syncPromiseRef = useRef<Promise<SyncExecutionResult | null> | null>(null);
   const autoSyncTimerRef = useRef<number | null>(null);
   const lastSyncAtRef = useRef(0);
+  const lastWebAccessSyncAtRef = useRef(0);
+  const appActiveRef = useRef(document.visibilityState === 'visible');
 
   const hydrate = useCallback(async () => {
     await initLocalDb();
@@ -302,6 +309,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           onProgress,
         });
         lastSyncAtRef.current = Date.now();
+        lastWebAccessSyncAtRef.current = Date.now();
         return result;
       },
       {
@@ -337,6 +345,64 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const sincronizarAgora = useCallback(async () => {
     return await executarSincronizacao({ force: true, allowPullOnly: true });
   }, [executarSincronizacao]);
+
+  const publicarNotificacoesPendentes = useCallback(async () => {
+    if (!session?.colaboradorId) {
+      return 0;
+    }
+
+    const notificacoes = await listarNotificacoesDoUsuario(session.colaboradorId, {
+      unreadOnly: true,
+      limit: 8,
+    });
+    return await publicarNotificacoesNativasPendentes(notificacoes, { limit: 4 });
+  }, [session?.colaboradorId]);
+
+  const executarAutoSyncCompleto = useCallback(
+    async ({
+      force = false,
+      includeWebAccessSync = true,
+    }: {
+      force?: boolean;
+      includeWebAccessSync?: boolean;
+    } = {}) => {
+      const conectado = await detectarEstadoRede();
+      if (!bootstrapped || !conectado || !isCloudConfigured) {
+        return null;
+      }
+
+      await garantirSessaoCloudDispositivo(dispositivo);
+
+      const shouldSyncWebAccess =
+        includeWebAccessSync &&
+        (force ||
+          Date.now() - lastWebAccessSyncAtRef.current >= AUTO_SYNC_WEB_ACCESS_REFRESH_MS);
+
+      if (shouldSyncWebAccess) {
+        await sincronizarAcessosWebAgora();
+      }
+
+      const result = session
+        ? await executarSincronizacao({
+            force,
+            allowPullOnly: true,
+          })
+        : null;
+
+      await publicarNotificacoesPendentes().catch(() => 0);
+      return result;
+    },
+    [
+      bootstrapped,
+      detectarEstadoRede,
+      dispositivo,
+      executarSincronizacao,
+      garantirSessaoCloudDispositivo,
+      publicarNotificacoesPendentes,
+      session,
+      sincronizarAcessosWebAgora,
+    ],
+  );
 
   const sincronizarPullRemoto = useCallback(
     async (stores?: StoreName[]) => {
@@ -440,6 +506,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [bootstrapped, dispositivo, garantirSessaoCloudDispositivo, online]);
 
   useEffect(() => {
+    if (!bootstrapped || !session) {
+      return;
+    }
+
+    void prepararNotificacoesNativas().catch(() => false);
+  }, [bootstrapped, session]);
+
+  useEffect(() => {
     if (!isCloudConfigured) {
       setCloudSessionReady(false);
       return;
@@ -456,11 +530,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const syncIfPossible = async () => {
-      if (!session || !cloudSessionReady) return;
-      const conectado = await detectarEstadoRede();
-      if (conectado) {
-        await executarSincronizacao({ force: false, allowPullOnly: true });
-      }
+      if (!cloudSessionReady && session) return;
+      await executarAutoSyncCompleto({
+        force: false,
+        includeWebAccessSync: true,
+      });
     };
 
     const markActivity = () => {
@@ -480,7 +554,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       agendarAutoSync();
     };
     const handleVisibility = () => {
-      if (document.visibilityState === 'visible') {
+      const isVisible = document.visibilityState === 'visible';
+      appActiveRef.current = isVisible;
+      if (isVisible) {
         if (cloudSessionReady) {
           void syncIfPossible();
         }
@@ -503,8 +579,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (connected) {
         void garantirSessaoCloudDispositivo(dispositivo);
       }
-      if (connected && session && cloudSessionReady) {
-        void executarSincronizacao({ force: false, allowPullOnly: true });
+      if (connected) {
+        void executarAutoSyncCompleto({
+          force: true,
+          includeWebAccessSync: true,
+        });
       }
     }).then((listener) => {
       if (disposed) {
@@ -536,7 +615,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     atualizarPendencias,
     cloudSessionReady,
     detectarEstadoRede,
-    executarSincronizacao,
+    executarAutoSyncCompleto,
     garantirSessaoCloudDispositivo,
     session,
     dispositivo,
@@ -549,22 +628,89 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [agendarAutoSync, bootstrapped, cloudSessionReady, online, pendenciasSync, session]);
 
   useEffect(() => {
-    if (!bootstrapped || !online || !session || !cloudSessionReady || !isCloudConfigured) {
+    if (!bootstrapped || !online || !isCloudConfigured) {
       return;
     }
 
     const timer = window.setInterval(() => {
-      if (document.visibilityState !== 'visible') {
-        return;
-      }
-
-      void executarSincronizacao({ force: false, allowPullOnly: true });
-    }, AUTO_SYNC_REMOTE_REFRESH_MS);
+      void executarAutoSyncCompleto({
+        force: false,
+        includeWebAccessSync: true,
+      });
+    }, appActiveRef.current ? AUTO_SYNC_REMOTE_REFRESH_MS : AUTO_SYNC_BACKGROUND_REFRESH_MS);
 
     return () => {
       window.clearInterval(timer);
     };
-  }, [bootstrapped, cloudSessionReady, executarSincronizacao, online, session]);
+  }, [bootstrapped, executarAutoSyncCompleto, online]);
+
+  useEffect(() => {
+    if (!CapacitorApp) {
+      return;
+    }
+
+    let disposed = false;
+    let removeAppStateListener: (() => void) | null = null;
+    let removeResumeListener: (() => void) | null = null;
+    let removePauseListener: (() => void) | null = null;
+
+    void CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+      appActiveRef.current = isActive;
+      if (isActive) {
+        void executarAutoSyncCompleto({
+          force: true,
+          includeWebAccessSync: true,
+        });
+      }
+    }).then((listener) => {
+      if (disposed) {
+        void listener.remove();
+        return;
+      }
+
+      removeAppStateListener = () => {
+        void listener.remove();
+      };
+    });
+
+    void CapacitorApp.addListener('resume', () => {
+      appActiveRef.current = true;
+      void executarAutoSyncCompleto({
+        force: true,
+        includeWebAccessSync: true,
+      });
+    }).then((listener) => {
+      if (disposed) {
+        void listener.remove();
+        return;
+      }
+
+      removeResumeListener = () => {
+        void listener.remove();
+      };
+    });
+
+    void CapacitorApp.addListener('pause', () => {
+      appActiveRef.current = false;
+      void publicarNotificacoesPendentes().catch(() => 0);
+    }).then((listener) => {
+      if (disposed) {
+        void listener.remove();
+        return;
+      }
+
+      removePauseListener = () => {
+        void listener.remove();
+      };
+    });
+
+    return () => {
+      disposed = true;
+      removeAppStateListener?.();
+      removeResumeListener?.();
+      removePauseListener?.();
+    };
+  }, [executarAutoSyncCompleto, publicarNotificacoesPendentes]);
 
   const value = useMemo(
     () => ({

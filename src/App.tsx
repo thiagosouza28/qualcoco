@@ -1,5 +1,7 @@
 import { App as CapacitorApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
+import { LocalNotifications } from '@capacitor/local-notifications';
+import { useQueryClient } from '@tanstack/react-query';
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Navigate,
@@ -13,6 +15,7 @@ import { AppProvider, useCampoApp } from '@/core/AppProvider';
 import { AppUpdateProvider, useAppUpdate } from '@/core/AppUpdateProvider';
 import { SyncStatusBar } from '@/components/SyncStatusBar';
 import { TelaLogin } from '@/screens/TelaLogin';
+import { marcarNotificacaoComoLida } from '@/core/notifications';
 import type { StoreName } from '@/core/types';
 
 const TelaSelecaoUsuario = lazy(async () => ({
@@ -169,6 +172,7 @@ function RouteCloudSync() {
 function ShellRoutes() {
   const location = useLocation();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { bootstrapped, session } = useCampoApp();
   const { blockingRequiredUpdate } = useAppUpdate();
 
@@ -219,6 +223,53 @@ function ShellRoutes() {
       removeListener?.();
     };
   }, [blockingRequiredUpdate, location.pathname, navigate, session]);
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) {
+      return;
+    }
+
+    let disposed = false;
+    let removeListener: (() => void) | null = null;
+
+    void LocalNotifications.addListener('localNotificationActionPerformed', (event) => {
+      const extra = event.notification.extra as
+        | {
+            notificacaoId?: string;
+            acaoPath?: string;
+          }
+        | undefined;
+
+      const notificacaoId = String(extra?.notificacaoId || '').trim();
+      const acaoPath = String(extra?.acaoPath || '/notificacoes').trim() || '/notificacoes';
+
+      if (notificacaoId && session?.colaboradorId) {
+        void marcarNotificacaoComoLida(notificacaoId, session.colaboradorId)
+          .catch(() => null)
+          .finally(async () => {
+            await queryClient.invalidateQueries({ queryKey: ['notificacoes'] });
+            navigate(acaoPath);
+          });
+        return;
+      }
+
+      navigate(acaoPath);
+    }).then((listener) => {
+      if (disposed) {
+        void listener.remove();
+        return;
+      }
+
+      removeListener = () => {
+        void listener.remove();
+      };
+    });
+
+    return () => {
+      disposed = true;
+      removeListener?.();
+    };
+  }, [navigate, queryClient, session?.colaboradorId]);
 
   if (!bootstrapped) {
     return (

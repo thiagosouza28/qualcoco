@@ -1,5 +1,9 @@
 import { nowIso } from '@/core/date';
 import { getOrCreateDevice } from '@/core/device';
+import {
+  limparMarcacaoNotificacaoNativa,
+  publicarNotificacaoNativa,
+} from '@/core/nativeNotifications';
 import { createEntity, repository, saveEntity } from '@/core/repositories';
 import { normalizePerfilUsuario } from '@/core/permissions';
 import type {
@@ -72,6 +76,7 @@ export const marcarNotificacaoComoLida = async (
     versao: notificacao.versao + 1,
   };
   await saveEntity('notificacoes', next);
+  limparMarcacaoNotificacaoNativa(notificacao.id);
   return next;
 };
 
@@ -104,7 +109,7 @@ export const criarNotificacao = async (input: {
   }
 
   const device = await getOrCreateDevice();
-  return await createEntity('notificacoes', device.id, {
+  const created = await createEntity('notificacoes', device.id, {
     usuarioId: input.usuarioId,
     tipo: input.tipo,
     titulo: input.titulo.trim(),
@@ -117,6 +122,9 @@ export const criarNotificacao = async (input: {
     lida: false,
     lidaEm: null,
   });
+
+  await publicarNotificacaoNativa(created);
+  return created;
 };
 
 export const criarNotificacoesParaUsuarios = async (input: {

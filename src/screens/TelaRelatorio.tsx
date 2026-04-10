@@ -233,6 +233,7 @@ type RelatorioPdfRow = {
 
 type RelatorioPdfGroup = {
   key: string;
+  parcela: string;
   equipe: string;
   equipeSort: number;
   dataColheita: string;
@@ -752,16 +753,16 @@ export function TelaRelatorio() {
       }
 
       rows.sort((a, b) => {
+        if (a.parcela !== b.parcela) {
+          return String(a.parcela).localeCompare(String(b.parcela), 'pt-BR', {
+            numeric: true,
+          });
+        }
         if (a.equipeSort !== b.equipeSort) {
           return a.equipeSort - b.equipeSort;
         }
         if (a.equipe !== b.equipe) {
           return String(a.equipe).localeCompare(String(b.equipe), 'pt-BR', {
-            numeric: true,
-          });
-        }
-        if (a.parcela !== b.parcela) {
-          return String(a.parcela).localeCompare(String(b.parcela), 'pt-BR', {
             numeric: true,
           });
         }
@@ -780,6 +781,7 @@ export function TelaRelatorio() {
         string,
         {
           key: string;
+          parcela: string;
           equipe: string;
           equipeSort: number;
           dataColheita: string;
@@ -791,10 +793,11 @@ export function TelaRelatorio() {
 
       rows.forEach((row) => {
         const colheitaKey = row.dataColheita || row.referente || 'sem_colheita';
-        const groupKey = `${row.equipeKey}::${colheitaKey}`;
+        const groupKey = `${row.parcela}::${row.equipeKey}::${colheitaKey}`;
         if (!groupedRows.has(groupKey)) {
           groupedRows.set(groupKey, {
             key: groupKey,
+            parcela: row.parcela,
             equipe: row.equipe,
             equipeSort: row.equipeSort,
             dataColheita: colheitaKey,
@@ -814,6 +817,11 @@ export function TelaRelatorio() {
 
       const teamGroups: RelatorioPdfGroup[] = Array.from(groupedRows.values())
         .sort((a, b) => {
+          if (a.parcela !== b.parcela) {
+            return String(a.parcela).localeCompare(String(b.parcela), 'pt-BR', {
+              numeric: true,
+            });
+          }
           if (a.equipeSort !== b.equipeSort) {
             return a.equipeSort - b.equipeSort;
           }
@@ -826,6 +834,7 @@ export function TelaRelatorio() {
         })
         .map((group) => ({
           key: group.key,
+          parcela: group.parcela,
           equipe: group.equipe,
           equipeSort: group.equipeSort,
           dataColheita: group.dataColheita,
