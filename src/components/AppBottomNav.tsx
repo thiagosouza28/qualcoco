@@ -2,18 +2,28 @@ import { BarChart3, Home, Settings, Users } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useCampoApp } from '@/core/AppProvider';
 import { canManageTeams } from '@/core/permissions';
+import type { AcaoPermissaoPerfil } from '@/core/types';
 import { useRolePermissions } from '@/core/useRolePermissions';
 import { cn } from '@/utils';
 
-const items = [
+type BottomNavItem = {
+  label: string;
+  to: string;
+  match: (pathname: string) => boolean;
+  icon: typeof Home;
+  permissionKey?: AcaoPermissaoPerfil;
+  adminOnly?: boolean;
+};
+
+const items: BottomNavItem[] = [
   {
-    label: 'INICIO',
+    label: 'INÍCIO',
     to: '/dashboard',
     match: (pathname: string) => pathname === '/dashboard',
     icon: Home,
   },
   {
-    label: 'RELATORIOS',
+    label: 'RELATÓRIOS',
     to: '/relatorios',
     match: (pathname: string) => pathname.startsWith('/relatorios'),
     icon: BarChart3,
@@ -32,7 +42,7 @@ const items = [
     match: (pathname: string) => pathname.startsWith('/configuracoes'),
     icon: Settings,
   },
-] as const;
+];
 
 export function AppBottomNav() {
   const { pathname } = useLocation();
@@ -53,7 +63,7 @@ export function AppBottomNav() {
     visibleItems.length <= 3 ? 'app-bottom-nav__grid--compact' : null;
 
   return (
-    <nav className="app-bottom-nav" aria-label="Navegacao principal">
+    <nav className="app-bottom-nav" aria-label="Navegação principal">
       <div className={cn('app-bottom-nav__grid', compactClass)}>
         {visibleItems.map((item) => {
           const Icon = item.icon;

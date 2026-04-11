@@ -20,6 +20,77 @@ const getEquipeNome = (equipe?: Equipe | null) =>
 const getColaboradorNome = (colaborador?: Colaborador | null) =>
   colaborador?.nome || colaborador?.primeiroNome || '';
 
+type ParcelaPlanejadaInput = {
+  codigo: string;
+  equipeId: string | null;
+  alinhamentoInicial: number;
+  alinhamentoFinal: number;
+  alinhamentoTipo?: ParcelaPlanejada['alinhamentoTipo'];
+  dataColheita: string;
+  observacao?: string;
+  criadoPor: string;
+  origem: ParcelaPlanejada['origem'];
+};
+
+const normalizarInputParcelaPlanejada = (input: ParcelaPlanejadaInput) => {
+  const normalizedCodigo = normalizarCodigoParcela(input.codigo);
+  const equipeId = String(input.equipeId || '').trim() || null;
+
+  if (!normalizedCodigo) {
+    throw new Error('Informe o codigo da parcela.');
+  }
+  if (!equipeId) {
+    throw new Error('Selecione a equipe da parcela.');
+  }
+  if (!input.dataColheita) {
+    throw new Error('Informe a data da colheita.');
+  }
+  if (
+    !Number.isFinite(input.alinhamentoInicial) ||
+    !Number.isFinite(input.alinhamentoFinal) ||
+    input.alinhamentoInicial <= 0 ||
+    input.alinhamentoFinal <= 0 ||
+    input.alinhamentoFinal < input.alinhamentoInicial
+  ) {
+    throw new Error('Informe um alinhamento inicial e final valido.');
+  }
+  if (!input.criadoPor) {
+    throw new Error('Usuario responsavel nao informado para o cadastro.');
+  }
+
+  return {
+    ...input,
+    codigo: normalizedCodigo,
+    equipeId,
+    observacao: String(input.observacao || '').trim(),
+    alinhamentoInicial: Number(input.alinhamentoInicial),
+    alinhamentoFinal: Number(input.alinhamentoFinal),
+  };
+};
+
+const validarDuplicidadeParcelaPlanejada = async (
+  input: ReturnType<typeof normalizarInputParcelaPlanejada>,
+  options: {
+    ignoreId?: string;
+  } = {},
+) => {
+  const existentes = await repository.filter(
+    'parcelasPlanejadas',
+    (item) =>
+      !item.deletadoEm &&
+      item.status !== 'concluida' &&
+      item.id !== options.ignoreId &&
+      normalizarCodigoParcela(item.codigo) === input.codigo &&
+      String(item.equipeId || '') === String(input.equipeId || '') &&
+      item.dataColheita === input.dataColheita,
+  );
+  if (existentes[0]) {
+    throw new Error(
+      'Ja existe uma parcela planejada ativa com este codigo para a mesma equipe e data.',
+    );
+  }
+};
+
 export const garantirParcelaCatalogo = async (codigo: string) => {
   const normalizedCodigo = normalizarCodigoParcela(codigo);
   if (!normalizedCodigo) {
@@ -56,35 +127,17 @@ export const cadastrarParcelaPlanejada = async (input: {
   criadoPor: string;
   origem: ParcelaPlanejada['origem'];
 }) => {
-  const normalizedCodigo = normalizarCodigoParcela(input.codigo);
-  if (!normalizedCodigo) {
-    throw new Error('Informe o codigo da parcela.');
-  }
-  if (!input.dataColheita) {
-    throw new Error('Informe a data da colheita.');
-  }
-  if (
-    !Number.isFinite(input.alinhamentoInicial) ||
-    !Number.isFinite(input.alinhamentoFinal) ||
-    input.alinhamentoInicial <= 0 ||
-    input.alinhamentoFinal <= 0 ||
-    input.alinhamentoFinal < input.alinhamentoInicial
-  ) {
-    throw new Error('Informe um alinhamento inicial e final valido.');
-  }
-  if (!input.criadoPor) {
-    throw new Error('Usuario responsavel nao informado para o cadastro.');
-  }
+  const normalizedInput = normalizarInputParcelaPlanejada(input);
 
   const [equipe, criador, parcelaCatalogo] = await Promise.all([
-    input.equipeId ? repository.get('equipes', input.equipeId) : Promise.resolve(null),
-    repository.get('colaboradores', input.criadoPor),
-    garantirParcelaCatalogo(normalizedCodigo),
+    repository.get('equipes', normalizedInput.equipeId),
+    repository.get('colaboradores', normalizedInput.criadoPor),
+    garantirParcelaCatalogo(normalizedInput.codigo),
   ]);
 
   const perfilCriador = normalizePerfilUsuario(criador?.perfil);
   if (
-    input.origem === 'fiscal' &&
+    normalizedInput.origem === 'fiscal' &&
     perfilCriador !== 'fiscal' &&
     perfilCriador !== 'fiscal_chefe' &&
     perfilCriador !== 'administrador'
@@ -92,32 +145,21 @@ export const cadastrarParcelaPlanejada = async (input: {
     throw new Error('A origem fiscal exige um usuario com perfil autorizado.');
   }
 
-  const existentes = await repository.filter(
-    'parcelasPlanejadas',
-    (item) =>
-      !item.deletadoEm &&
-      item.status !== 'concluida' &&
-      normalizarCodigoParcela(item.codigo) === normalizedCodigo &&
-      String(item.equipeId || '') === String(input.equipeId || '') &&
-      item.dataColheita === input.dataColheita,
-  );
-  if (existentes[0]) {
-    throw new Error('Ja existe uma parcela planejada ativa com este codigo para a mesma equipe e data.');
-  }
+  await validarDuplicidadeParcelaPlanejada(normalizedInput);
 
   const device = await getOrCreateDevice();
   const parcelaPlanejada = await createEntity('parcelasPlanejadas', device.id, {
-    codigo: normalizedCodigo,
-    equipeId: input.equipeId || null,
+    codigo: normalizedInput.codigo,
+    equipeId: normalizedInput.equipeId,
     equipeNome: getEquipeNome(equipe),
-    alinhamentoInicial: Number(input.alinhamentoInicial),
-    alinhamentoFinal: Number(input.alinhamentoFinal),
-    alinhamentoTipo: input.alinhamentoTipo || undefined,
-    dataColheita: input.dataColheita,
-    observacao: String(input.observacao || '').trim(),
-    criadoPor: input.criadoPor,
+    alinhamentoInicial: normalizedInput.alinhamentoInicial,
+    alinhamentoFinal: normalizedInput.alinhamentoFinal,
+    alinhamentoTipo: normalizedInput.alinhamentoTipo || undefined,
+    dataColheita: normalizedInput.dataColheita,
+    observacao: normalizedInput.observacao,
+    criadoPor: normalizedInput.criadoPor,
     criadoPorNome: getColaboradorNome(criador),
-    origem: input.origem,
+    origem: normalizedInput.origem,
     status: 'disponivel',
     parcelaId: parcelaCatalogo.id,
     avaliacaoId: null,
@@ -127,9 +169,106 @@ export const cadastrarParcelaPlanejada = async (input: {
     parcelaPlanejadaId: parcelaPlanejada.id,
     codigo: parcelaPlanejada.codigo,
     equipeId: parcelaPlanejada.equipeId || null,
+    equipeNome: parcelaPlanejada.equipeNome,
   });
 
   return parcelaPlanejada;
+};
+
+export const cadastrarParcelasPlanejadasEmLote = async (input: {
+  parcelas: ParcelaPlanejadaInput[];
+}) => {
+  const parcelas = input.parcelas || [];
+  if (parcelas.length === 0) {
+    throw new Error('Adicione pelo menos uma parcela antes de salvar.');
+  }
+
+  const chaves = new Set<string>();
+  for (const parcela of parcelas) {
+    const normalized = normalizarInputParcelaPlanejada(parcela);
+    const chave = [normalized.codigo, normalized.equipeId, normalized.dataColheita].join(':');
+    if (chaves.has(chave)) {
+      throw new Error(
+        `A parcela ${normalized.codigo} foi informada mais de uma vez para a mesma equipe e data.`,
+      );
+    }
+    chaves.add(chave);
+  }
+
+  const cadastradas: ParcelaPlanejada[] = [];
+  for (const parcela of parcelas) {
+    cadastradas.push(await cadastrarParcelaPlanejada(parcela));
+  }
+
+  return cadastradas;
+};
+
+export const atualizarParcelaPlanejada = async (
+  parcelaPlanejadaId: string,
+  input: Omit<ParcelaPlanejadaInput, 'criadoPor' | 'origem'>,
+) => {
+  const atual = await repository.get('parcelasPlanejadas', parcelaPlanejadaId);
+  if (!atual || atual.deletadoEm) {
+    throw new Error('Parcela planejada nao encontrada.');
+  }
+  if (atual.status !== 'disponivel' || atual.avaliacaoId) {
+    throw new Error('So e possivel editar parcelas planejadas ainda disponiveis.');
+  }
+
+  const normalizedInput = normalizarInputParcelaPlanejada({
+    ...input,
+    criadoPor: atual.criadoPor,
+    origem: atual.origem,
+  });
+
+  const [equipe, parcelaCatalogo] = await Promise.all([
+    repository.get('equipes', normalizedInput.equipeId),
+    garantirParcelaCatalogo(normalizedInput.codigo),
+  ]);
+
+  await validarDuplicidadeParcelaPlanejada(normalizedInput, {
+    ignoreId: atual.id,
+  });
+
+  const next: ParcelaPlanejada = {
+    ...atual,
+    codigo: normalizedInput.codigo,
+    equipeId: normalizedInput.equipeId,
+    equipeNome: getEquipeNome(equipe),
+    alinhamentoInicial: normalizedInput.alinhamentoInicial,
+    alinhamentoFinal: normalizedInput.alinhamentoFinal,
+    alinhamentoTipo: normalizedInput.alinhamentoTipo || undefined,
+    dataColheita: normalizedInput.dataColheita,
+    observacao: normalizedInput.observacao,
+    parcelaId: parcelaCatalogo.id,
+    atualizadoEm: nowIso(),
+    syncStatus: 'pending_sync',
+    versao: atual.versao + 1,
+  };
+
+  await saveEntity('parcelasPlanejadas', next);
+  return next;
+};
+
+export const excluirParcelaPlanejada = async (parcelaPlanejadaId: string) => {
+  const atual = await repository.get('parcelasPlanejadas', parcelaPlanejadaId);
+  if (!atual || atual.deletadoEm) {
+    throw new Error('Parcela planejada nao encontrada.');
+  }
+  if (atual.status !== 'disponivel' || atual.avaliacaoId) {
+    throw new Error('So e possivel excluir parcelas planejadas ainda disponiveis.');
+  }
+
+  const next: ParcelaPlanejada = {
+    ...atual,
+    deletadoEm: nowIso(),
+    atualizadoEm: nowIso(),
+    syncStatus: 'pending_sync',
+    versao: atual.versao + 1,
+  };
+
+  await saveEntity('parcelasPlanejadas', next);
+  return next;
 };
 
 export const listarParcelasPlanejadasVisiveis = async (input: {

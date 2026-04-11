@@ -705,7 +705,19 @@ export function TelaNovaAvaliacao() {
             ),
           };
         })
-        .filter(Boolean)
+        .filter(
+          (
+            item,
+          ): item is {
+            parcelaId: string;
+            parcelaCodigo: string;
+            linhaInicial: number;
+            linhaFinal: number;
+            alinhamentoTipo: 'inferior-impar' | 'inferior-par';
+            sentidoRuas: SentidoRuas;
+            faixasFalha: FaixaFalhaParcela[];
+          } => Boolean(item),
+        )
         .sort((a, b) =>
           String(a.parcelaCodigo || '').localeCompare(
             String(b.parcelaCodigo || ''),
@@ -714,15 +726,7 @@ export function TelaNovaAvaliacao() {
           ),
         ),
     [alinhamentoTipo, configuracoes, parcelasCatalogo, selecionadas, sentidoRuas],
-  ) as Array<{
-    parcelaId: string;
-    parcelaCodigo: string;
-    linhaInicial: number;
-    linhaFinal: number;
-    alinhamentoTipo: 'inferior-impar' | 'inferior-par';
-    sentidoRuas: SentidoRuas;
-    faixasFalha: FaixaFalhaParcela[];
-  }>;
+  );
 
   const todasConfiguradas =
     selecionadas.length > 0 &&
@@ -1097,13 +1101,13 @@ export function TelaNovaAvaliacao() {
   if (!podeConfigurarAvaliacao) {
     return (
       <LayoutMobile
-        title={isEditMode ? 'Editar avaliacao' : 'Avaliacao'}
+        title={isEditMode ? 'Editar avaliação' : 'Avaliação'}
         subtitle="Acesso restrito"
         onBack={() =>
           navigate(isEditMode ? `/detalhe/${editingId}` : '/dashboard')
         }
       >
-        <AccessDeniedCard description="A abertura da avaliacao e a edicao da configuracao so aparecem quando essa funcao esta liberada para o seu perfil pelo administrador." />
+        <AccessDeniedCard description="A abertura da avaliação e a edição da configuração só aparecem quando essa função está liberada para o seu perfil pelo administrador." />
       </LayoutMobile>
     );
   }
@@ -2363,3 +2367,4 @@ export function TelaNovaAvaliacao() {
     </LayoutMobile>
   );
 }
+

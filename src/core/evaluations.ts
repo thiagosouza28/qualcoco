@@ -1,4 +1,4 @@
-import { nowIso, todayIso } from '@/core/date';
+﻿import { nowIso, todayIso } from '@/core/date';
 import { getOrCreateDevice } from '@/core/device';
 import { planejarParcelasAvaliacao } from '@/core/evaluationPlanning';
 import {
@@ -495,7 +495,7 @@ const ordenarEquipeSiglaKeys = (values: string[]) =>
 const remapearSiglasResumoParcela = (
   siglasResumo: AvaliacaoParcela['siglasResumo'],
   equipeLabelsPlanejadas: string[],
-) => {
+): AvaliacaoParcela['siglasResumo'] => {
   if (!siglasResumo || typeof siglasResumo !== 'object') {
     return null;
   }
@@ -518,7 +518,7 @@ const remapearSiglasResumoParcela = (
     return null;
   }
 
-  const resultado: Record<string, string> = {};
+  const resultado: NonNullable<AvaliacaoParcela['siglasResumo']> = {};
   const equipesNovasRestantes = [...equipesNovas];
 
   for (const [equipeAtual, sigla] of entradasAtuais) {
@@ -737,6 +737,7 @@ export const criarAvaliacao = async (input: NovaAvaliacaoInput) => {
     dataAvaliacao: todayIso(),
     dataColheita: input.dataColheita,
     observacoes: input.observacoes,
+    status: 'in_progress',
     tipo: input.tipo || 'normal',
     avaliacaoOriginalId: input.avaliacaoOriginalId || null,
     equipeId: equipePrincipal.equipeId,
@@ -805,7 +806,7 @@ export const criarAvaliacao = async (input: NovaAvaliacaoInput) => {
       parcelaId: parcelaPlanejada.parcelaId || null,
       colaboradorId: input.usuarioId,
       acao: 'parcela_planejada_vinculada',
-      descricao: `Parcela ${parcelaPlanejada.codigo} carregada do cadastro planejado para a avaliacao.`,
+      descricao: `Parcela ${parcelaPlanejada.codigo} carregada do cadastro planejado para a avaliação.`,
     });
   }
 
@@ -1061,11 +1062,12 @@ export const atualizarAvaliacaoConfiguracao = async (
   const participantes: AvaliacaoColaborador[] = [];
   for (const colaboradorId of participantesDesejados) {
     const colaborador = colaboradoresMap.get(colaboradorId) || null;
+    const papel: AvaliacaoColaborador['papel'] =
+      colaboradorId === responsavelId ? 'responsavel_principal' : 'ajudante';
     const payload = {
       avaliacaoId: avaliacao.id,
       colaboradorId,
-      papel:
-        colaboradorId === responsavelId ? 'responsavel_principal' : 'ajudante',
+      papel,
       colaboradorNome: colaborador?.nome || '',
       colaboradorPrimeiroNome: colaborador?.primeiroNome || '',
       colaboradorMatricula: colaborador?.matricula || '',
@@ -1270,7 +1272,7 @@ export const atualizarAvaliacaoConfiguracao = async (
     colaboradorId: responsavelId,
     acao: 'avaliacao_configuracao_editada',
     descricao:
-      'Configuracao da avaliacao atualizada com preservacao dos registros existentes sempre que a parcela e a rua permaneceram ativas.',
+      'Configuração da avaliação atualizada com preservação dos registros existentes sempre que a parcela e a rua permaneceram ativas.',
   });
 
   return {
@@ -1633,31 +1635,34 @@ export const recalcularResumoAvaliacao = async (avaliacaoId: string) => {
   return avaliacao;
 };
 
-const softDeleteAvaliacaoRecord = async <
-  T extends {
-    deletadoEm: string | null;
-    versao: number;
-    atualizadoEm: string;
-    syncStatus: string;
-  },
->(
-  storeName:
-    | 'avaliacoes'
-    | 'avaliacaoColaboradores'
-    | 'avaliacaoParcelas'
-    | 'avaliacaoRuas'
-    | 'registrosColeta',
-  record: T | null | undefined,
+type AvaliacaoRecordMap = {
+  avaliacoes: Avaliacao;
+  avaliacaoColaboradores: AvaliacaoColaborador;
+  avaliacaoParcelas: AvaliacaoParcela;
+  avaliacaoRuas: AvaliacaoRua;
+  avaliacaoLogs: AvaliacaoLog;
+  avaliacaoRetoques: AvaliacaoRetoque;
+  registrosColeta: RegistroColeta;
+};
+
+const softDeleteAvaliacaoRecord = async <K extends keyof AvaliacaoRecordMap>(
+  storeName: K,
+  record: AvaliacaoRecordMap[K] | null | undefined,
 ) => {
   if (!record || record.deletadoEm) return;
 
-  await saveEntity(storeName, {
+  const nextRecord: AvaliacaoRecordMap[K] = {
     ...record,
     deletadoEm: nowIso(),
     atualizadoEm: nowIso(),
     syncStatus: 'pending_sync',
     versao: record.versao + 1,
-  });
+  };
+
+  await saveEntity(
+    storeName as Parameters<typeof saveEntity>[0],
+    nextRecord as Parameters<typeof saveEntity>[1],
+  );
 };
 
 export const marcarFalhaRua = async (input: {
@@ -2075,7 +2080,7 @@ export const marcarAvaliacaoParaRetoque = async (input: {
     avaliacaoId: input.avaliacaoId,
     colaboradorId: input.usuarioId,
     acao: 'retoque_equipe_definida',
-    descricao: `Fiscal responsavel ${usuario?.nome || 'Usuario'} definiu a equipe ${equipeRetoqueNome || 'nao informada'} para o retoque.`,
+    descricao: `Fiscal responsável ${usuario?.nome || 'Usuário'} definiu a equipe ${equipeRetoqueNome || 'não informada'} para o retoque.`,
   });
 
   if (designados.length > 1) {
@@ -2422,3 +2427,4 @@ export const estatisticasDashboard = async (colaboradorId?: string) => {
     ).length,
   };
 };
+

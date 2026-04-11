@@ -1,4 +1,5 @@
 import { ChevronRight, ClipboardList, Trash2 } from 'lucide-react';
+import type { MouseEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -52,7 +53,7 @@ export function CardHistorico({
               variant="outline"
               size="icon"
               className="h-9 w-9 rounded-[12px]"
-              onClick={(event) => {
+              onClick={(event: MouseEvent<HTMLButtonElement>) => {
                 event.preventDefault();
                 event.stopPropagation();
                 onDelete(avaliacao.id);

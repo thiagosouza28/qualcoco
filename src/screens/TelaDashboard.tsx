@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+﻿import { useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -17,6 +17,7 @@ import {
   Trash2,
   Users,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { AccessDeniedCard } from '@/components/AccessDeniedCard';
 import { LayoutMobile } from '@/components/LayoutMobile';
 import { Button } from '@/components/ui/button';
@@ -45,8 +46,18 @@ import {
 import { contarNotificacoesNaoLidas } from '@/core/notifications';
 import { listarParcelasPlanejadasVisiveis } from '@/core/plannedParcels';
 import { useRolePermissions } from '@/core/useRolePermissions';
+import type { AcaoPermissaoPerfil } from '@/core/types';
 
-const quickActionCatalog = [
+type QuickAction = {
+  label: string;
+  subtitle: string;
+  icon: LucideIcon;
+  to: string;
+  permissionKey?: AcaoPermissaoPerfil;
+  adminOnly?: boolean;
+};
+
+const quickActionCatalog: QuickAction[] = [
   {
     label: 'Relatórios',
     subtitle: 'Consolidado diário e métricas de campo.',
@@ -63,14 +74,14 @@ const quickActionCatalog = [
   },
   {
     label: 'Equipes',
-    subtitle: 'Gerenciamento e edicao das equipes de campo.',
+    subtitle: 'Gerenciamento e edição das equipes de campo.',
     icon: Users,
     to: '/equipes',
     adminOnly: true,
   },
   {
     label: 'Parcelas',
-    subtitle: 'Cadastro rapido e fila planejada para o dia.',
+    subtitle: 'Cadastro rápido e fila planejada para o dia.',
     icon: Trees,
     to: '/parcelas',
   },
@@ -87,7 +98,7 @@ const quickActionCatalog = [
     to: '/sincronizacao',
     permissionKey: 'verSincronizacao',
   },
-] as const;
+];
 
 function DashboardStat({
   label,
@@ -254,7 +265,7 @@ export function TelaDashboard() {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              aria-label="Abrir notificacoes"
+              aria-label="Abrir notificações"
               className="relative flex h-10 w-10 items-center justify-center rounded-[16px] border border-[var(--qc-border)] bg-white text-[var(--qc-primary)] active:scale-[0.98]"
               onClick={() => navigate('/notificacoes')}
             >
@@ -267,7 +278,7 @@ export function TelaDashboard() {
             </button>
             <button
               type="button"
-              aria-label="Encerrar sessao"
+              aria-label="Encerrar sessão"
               className="flex h-10 w-10 items-center justify-center rounded-[16px] border border-[var(--qc-border)] bg-white text-[var(--qc-primary)] active:scale-[0.98]"
               onClick={handleLogout}
             >
@@ -348,13 +359,13 @@ export function TelaDashboard() {
                   Equipe do dia
                 </p>
                 <p className="mt-1 text-sm leading-relaxed text-[var(--qc-text-muted)]">
-                  Escolha a equipe ativa da jornada para visualizar parcelas disponiveis, em andamento e de retoque.
+                  Escolha a equipe ativa da jornada para visualizar parcelas disponíveis, em andamento e de retoque.
                 </p>
               </div>
 
               <Select
                 value={session?.equipeDiaId || ''}
-                onValueChange={(value) => {
+                onValueChange={(value: string) => {
                   const equipe = equipesVisiveis.find((item) => item.id === value) || null;
                   definirEquipeDoDia({
                     equipeId: value || null,
@@ -423,7 +434,7 @@ export function TelaDashboard() {
           {parcelasDisponiveis.length === 0 ? (
             <Card className="surface-card border-none shadow-sm">
               <CardContent className="p-4 text-sm text-[var(--qc-text-muted)]">
-                Nenhuma parcela disponivel para a equipe atual.
+                Nenhuma parcela disponível para a equipe atual.
               </CardContent>
             </Card>
           ) : (
@@ -599,3 +610,4 @@ export function TelaDashboard() {
     </LayoutMobile>
   );
 }
+

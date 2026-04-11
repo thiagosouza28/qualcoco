@@ -13,7 +13,6 @@ import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -241,7 +240,7 @@ export function TelaEquipes() {
 
         <Dialog
           open={dialogOpen}
-          onOpenChange={(open) => {
+          onOpenChange={(open: boolean) => {
             setDialogOpen(open);
             if (!open) {
               setSaveError('');
@@ -266,10 +265,10 @@ export function TelaEquipes() {
                   <DialogTitle className="mt-1 text-[1.75rem] font-black tracking-[-0.05em] text-[var(--qc-text)]">
                     {editingEquipe ? 'Editar equipe' : 'Nova equipe'}
                   </DialogTitle>
-                  <DialogDescription className="mt-1 max-w-[19rem] text-sm leading-relaxed text-[var(--qc-text-muted)]">
+                  <p className="mt-1 max-w-[19rem] text-sm leading-relaxed text-[var(--qc-text-muted)]">
                     Defina o número exibido no campo, o nome da equipe e o fiscal
                     responsável.
-                  </DialogDescription>
+                  </p>
                 </div>
               </div>
 

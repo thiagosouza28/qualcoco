@@ -233,11 +233,11 @@ const parseFileTransferError = (error: unknown): FileTransferError | null => {
   }
 
   if (isRecord(error.data)) {
-    return error.data as FileTransferError;
+    return error.data as unknown as FileTransferError;
   }
 
-  if (typeof error.code === 'string') {
-    return error as FileTransferError;
+  if ('code' in error && typeof error.message === 'string') {
+    return error as unknown as FileTransferError;
   }
 
   return null;

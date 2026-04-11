@@ -566,7 +566,7 @@ export function TelaRelatorio() {
         subtitle="Acesso restrito"
         onBack={() => navigate('/dashboard')}
       >
-        <AccessDeniedCard description="Os relatorios consolidados so aparecem quando essa consulta esta liberada para o seu perfil pelo administrador." />
+        <AccessDeniedCard description="Os relatórios consolidados só aparecem quando essa consulta está liberada para o seu perfil pelo administrador." />
       </LayoutMobile>
     );
   }
@@ -1083,3 +1083,4 @@ export function TelaRelatorio() {
     </LayoutMobile>
   );
 }
+

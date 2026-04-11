@@ -1,4 +1,4 @@
-import { Capacitor } from '@capacitor/core';
+﻿import { Capacitor } from '@capacitor/core';
 import { Directory, Filesystem } from '@capacitor/filesystem';
 import { Share } from '@capacitor/share';
 import { camelizeKeys, snakeifyKeys } from '@/core/casing';
@@ -490,8 +490,8 @@ const SYNC_STORE_LABELS: Partial<Record<StoreName, string>> = {
   usuarioEquipes: 'vínculos de equipe',
   parcelas: 'parcelas',
   parcelasPlanejadas: 'parcelas planejadas',
-  notificacoes: 'notificacoes',
-  atribuicoesRetoque: 'atribuicoes de retoque',
+  notificacoes: 'notificações',
+  atribuicoesRetoque: 'atribuições de retoque',
   avaliacoes: 'avalia\u00e7\u00f5es',
   avaliacaoColaboradores: 'participantes da avalia\u00e7\u00e3o',
   avaliacaoParcelas: 'parcelas da avalia\u00e7\u00e3o',
@@ -847,7 +847,7 @@ const sanitizeRemotePayload = (
 
   if (storeName === 'avaliacaoRuas' && !sanitized.alinhamentoTipo) {
     sanitized.alinhamentoTipo = inferirAlinhamentoTipoPorLinha(
-      sanitized.linhaInicial,
+      Number(sanitized.linhaInicial || 0),
     );
   }
 
@@ -874,7 +874,10 @@ const normalizarFilaSync = async (
     }
 
     // Tentar recuperar o registro original para garantir que o payload esteja completo
-    const actualRecord = (await getById(item.entidade, item.registroId)) as BaseEntity | undefined;
+    const actualRecord = (await getById(
+      item.entidade,
+      item.registroId,
+    )) as (BaseEntity & { dataAvaliacao?: string }) | undefined;
     let workingPayload = { ...item.payload, ...(actualRecord || {}) } as Record<string, unknown>;
 
     if (item.entidade === 'avaliacaoRuas' && !workingPayload.dataAvaliacao) {
@@ -895,7 +898,7 @@ const normalizarFilaSync = async (
             dataAvaliacao,
           };
 
-          if (actualRecord && !(actualRecord as Record<string, unknown>).dataAvaliacao) {
+          if (actualRecord && !actualRecord.dataAvaliacao) {
             await putRecord(item.entidade, {
               ...actualRecord,
               dataAvaliacao,
@@ -1087,7 +1090,7 @@ const getBusinessKeyValue = (
 };
 
 const getColaboradorBusinessKey = (
-  record: Partial<Colaborador> & Record<string, unknown>,
+  record: { matricula?: unknown },
 ) => String(record.matricula || '').trim().toLowerCase();
 
 const findEquivalentLocalRecord = async (
@@ -1310,7 +1313,9 @@ const pullCollaboradoresForWebAccess = async (
       ].join(','),
     });
 
-    const page = (response.rows || []).map((item) => camelizeKeys(item) as Colaborador);
+    const page = (response.rows || []).map(
+      (item) => camelizeKeys(item) as unknown as Colaborador,
+    );
     rows.push(...page);
     pageNumber += 1;
     onPage?.({
@@ -1918,7 +1923,7 @@ const pushQueueItem = async (
   await deleteRecord('syncQueue', hydratedItem.id);
   return persistRemoteRecord(
     hydratedItem.entidade,
-    camelizeKeys(data) as BaseEntity,
+    camelizeKeys(data) as unknown as BaseEntity,
   );
 };
 
@@ -1949,7 +1954,9 @@ const pullRemoteRows = async (
       fields: selectClause,
     });
 
-    const page = (response.rows || []).map((item) => camelizeKeys(item) as BaseEntity);
+    const page = (response.rows || []).map(
+      (item) => camelizeKeys(item) as unknown as BaseEntity,
+    );
     rows.push(...page);
     pageNumber += 1;
     onPage?.({
@@ -2843,3 +2850,4 @@ export const importarPacoteSyncLocal = async (fileContent: string) => {
 
   return { pacote, recebido, conflitos };
 };
+

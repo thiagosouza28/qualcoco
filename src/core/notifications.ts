@@ -8,6 +8,7 @@ import { createEntity, repository, saveEntity } from '@/core/repositories';
 import { normalizePerfilUsuario } from '@/core/permissions';
 import type {
   Colaborador,
+  Equipe,
   Notificacao,
   PerfilUsuario,
 } from '@/core/types';
@@ -21,6 +22,39 @@ const PERFIS_COM_ACESSO: PerfilUsuario[] = [
 
 const filtrarUsuariosAtivos = (usuarios: Colaborador[]) =>
   usuarios.filter((item) => item.ativo && !item.deletadoEm);
+
+const formatarEquipeResumo = (
+  equipe?: Pick<Equipe, 'numero' | 'nome'> | null,
+  fallbackNome?: string | null,
+) => {
+  const numero =
+    typeof equipe?.numero === 'number' ? String(equipe.numero).padStart(2, '0') : '';
+  const nome = String(equipe?.nome || fallbackNome || '').trim();
+
+  if (numero && nome) {
+    return `${numero} - ${nome}`;
+  }
+  if (numero) {
+    return numero;
+  }
+  return nome;
+};
+
+const resolverEquipeResumo = async (input: {
+  equipeId?: string | null;
+  equipeNome?: string | null;
+}) => {
+  if (input.equipeId) {
+    const equipe = await repository.get('equipes', input.equipeId);
+    const resumo = formatarEquipeResumo(equipe || null, input.equipeNome);
+    if (resumo) {
+      return `Equipe ${resumo}`;
+    }
+  }
+
+  const fallback = String(input.equipeNome || '').trim();
+  return fallback ? `Equipe ${fallback}` : '';
+};
 
 export const listarNotificacoesDoUsuario = async (
   usuarioId?: string,
@@ -115,7 +149,7 @@ export const criarNotificacao = async (input: {
     titulo: input.titulo.trim(),
     mensagem: input.mensagem.trim(),
     referenciaId: input.referenciaId,
-    referenciaTipo: input.referenciaTipo || null,
+    referenciaTipo: input.referenciaTipo || undefined,
     acaoPath: input.acaoPath || null,
     acaoLabel: input.acaoLabel || null,
     equipeId: input.equipeId || null,
@@ -216,16 +250,18 @@ export const notificarNovaParcela = async (input: {
   parcelaPlanejadaId: string;
   codigo: string;
   equipeId?: string | null;
+  equipeNome?: string | null;
 }) => {
   const colaboradores = await listarUsuariosNotificaveis({
     perfil: 'colaborador',
   });
+  const equipeResumo = await resolverEquipeResumo(input);
 
   return await criarNotificacoesParaUsuarios({
     usuarioIds: colaboradores.map((item) => item.id),
     tipo: 'nova_parcela',
     titulo: 'Nova parcela disponivel',
-    mensagem: `Nova parcela disponivel: ${input.codigo}`,
+    mensagem: `Nova parcela disponivel: ${input.codigo}${equipeResumo ? ` - ${equipeResumo}` : ''}`,
     referenciaId: input.parcelaPlanejadaId,
     referenciaTipo: 'parcela_planejada',
     acaoPath: '/dashboard',
@@ -238,17 +274,19 @@ export const notificarPossivelRetoque = async (input: {
   avaliacaoId: string;
   codigo: string;
   equipeId?: string | null;
+  equipeNome?: string | null;
 }) => {
   const fiscais = await listarUsuariosNotificaveis({
     perfil: 'fiscal',
     equipeId: input.equipeId || null,
   });
+  const equipeResumo = await resolverEquipeResumo(input);
 
   return await criarNotificacoesParaUsuarios({
     usuarioIds: fiscais.map((item) => item.id),
     tipo: 'possivel_retoque',
     titulo: 'Possivel retoque',
-    mensagem: `Parcela ${input.codigo} pode precisar de retoque`,
+    mensagem: `Parcela ${input.codigo} pode precisar de retoque${equipeResumo ? ` - ${equipeResumo}` : ''}`,
     referenciaId: input.avaliacaoId,
     referenciaTipo: 'avaliacao',
     acaoPath: `/detalhe/${input.avaliacaoId}`,
@@ -262,15 +300,21 @@ export const notificarRetoqueAtribuido = async (input: {
   codigo: string;
   usuarioIds: string[];
   equipeId?: string | null;
-}) =>
-  await criarNotificacoesParaUsuarios({
+  equipeNome?: string | null;
+}) => {
+  const equipeResumo = await resolverEquipeResumo(input);
+
+  return await criarNotificacoesParaUsuarios({
     usuarioIds: input.usuarioIds,
     tipo: 'retoque_atribuido',
     titulo: 'Retoque atribuido',
-    mensagem: `Voce foi designado para o retoque da parcela ${input.codigo}`,
+    mensagem: `Voce foi designado para o retoque da parcela ${input.codigo}${
+      equipeResumo ? ` - ${equipeResumo}` : ''
+    }`,
     referenciaId: input.avaliacaoId,
     referenciaTipo: 'avaliacao',
     acaoPath: `/detalhe/${input.avaliacaoId}`,
     acaoLabel: 'Abrir retoque',
     equipeId: input.equipeId || null,
   });
+};
