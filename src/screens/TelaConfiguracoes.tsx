@@ -198,19 +198,19 @@ export function TelaConfiguracoes() {
                 Limites operacionais
               </p>
               <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-[18px] border border-[var(--qc-border)] bg-[var(--qc-surface-muted)] p-3">
-                  <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[var(--qc-secondary)]">
+                <div className="flex min-h-[124px] flex-col justify-between rounded-[18px] border border-[var(--qc-border)] bg-[var(--qc-surface-muted)] p-4">
+                  <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-[var(--qc-secondary)]">
                     Cocos no chão
                   </p>
-                  <p className="mt-1 text-xl font-black text-[var(--qc-text)]">
+                  <p className="mt-3 text-[clamp(2.4rem,8vw,3.4rem)] font-black leading-none tracking-[-0.06em] text-[var(--qc-text)]">
                     {limiteCocos}
                   </p>
                 </div>
-                <div className="rounded-[18px] border border-[var(--qc-border)] bg-[var(--qc-surface-muted)] p-3">
-                  <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[var(--qc-secondary)]">
+                <div className="flex min-h-[124px] flex-col justify-between rounded-[18px] border border-[var(--qc-border)] bg-[var(--qc-surface-muted)] p-4">
+                  <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-[var(--qc-secondary)]">
                     Cachos com 3 cocos
                   </p>
-                  <p className="mt-1 text-xl font-black text-[var(--qc-text)]">
+                  <p className="mt-3 text-[clamp(2.4rem,8vw,3.4rem)] font-black leading-none tracking-[-0.06em] text-[var(--qc-text)]">
                     {limiteCachos}
                   </p>
                 </div>

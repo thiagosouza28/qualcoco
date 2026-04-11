@@ -250,12 +250,20 @@ export const atualizarParcelaPlanejada = async (
   return next;
 };
 
-export const excluirParcelaPlanejada = async (parcelaPlanejadaId: string) => {
+export const excluirParcelaPlanejada = async (
+  parcelaPlanejadaId: string,
+  options: {
+    actorPerfil?: string | null;
+  } = {},
+) => {
   const atual = await repository.get('parcelasPlanejadas', parcelaPlanejadaId);
   if (!atual || atual.deletadoEm) {
     throw new Error('Parcela planejada nao encontrada.');
   }
-  if (atual.status !== 'disponivel' || atual.avaliacaoId) {
+  const actorPerfil = normalizePerfilUsuario(options.actorPerfil);
+  const podeExcluirEmQualquerStatus = actorPerfil === 'administrador';
+
+  if (!podeExcluirEmQualquerStatus && (atual.status !== 'disponivel' || atual.avaliacaoId)) {
     throw new Error('So e possivel excluir parcelas planejadas ainda disponiveis.');
   }
 

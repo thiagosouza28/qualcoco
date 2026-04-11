@@ -195,8 +195,15 @@ const formatarData = (value?: string | null) => {
 const possuiRascunhoPreenchido = (item: ParcelaLoteDraft) =>
   Boolean(item.codigo.trim() || item.alinhamento.trim());
 
-const podeGerenciarParcela = (parcela: ParcelaPlanejada) =>
+const podeEditarParcela = (parcela: ParcelaPlanejada) =>
   parcela.status === 'disponivel' && !parcela.avaliacaoId;
+
+const podeExcluirParcela = (
+  parcela: ParcelaPlanejada,
+  options: {
+    administrador: boolean;
+  },
+) => options.administrador || podeEditarParcela(parcela);
 
 const validarParcelaDigitada = (
   item: ParcelaLoteDraft,
@@ -222,6 +229,7 @@ export function TelaParcelasPlanejadas() {
   const queryClient = useQueryClient();
   const { usuarioAtual, session } = useCampoApp();
   const perfil = normalizePerfilUsuario(usuarioAtual?.perfil);
+  const administrador = perfil === 'administrador';
   const [rascunho, setRascunho] = useState<ParcelaLoteDraft>(criarRascunhoParcela());
   const [parcelasLote, setParcelasLote] = useState<ParcelaLoteDraft[]>([]);
   const [equipeId, setEquipeId] = useState('');
@@ -399,7 +407,9 @@ export function TelaParcelasPlanejadas() {
 
   const deleteMutation = useMutation({
     mutationFn: async (parcelaPlanejadaId: string) =>
-      excluirParcelaPlanejada(parcelaPlanejadaId),
+      excluirParcelaPlanejada(parcelaPlanejadaId, {
+        actorPerfil: usuarioAtual?.perfil,
+      }),
     onSuccess: refreshListas,
     onError: (error) => {
       alert(error instanceof Error ? error.message : 'Falha ao excluir a parcela.');
@@ -736,35 +746,35 @@ export function TelaParcelasPlanejadas() {
                             Iniciar equipe
                           </Button>
                         ) : null}
-                        {podeGerenciarParcela(parcela) ? (
-                          <>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="icon"
-                              className="h-10 w-10 rounded-[16px]"
-                              onClick={() => startEditParcela(parcela)}
-                            >
-                              <Pencil className="h-4.5 w-4.5" />
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="destructive"
-                              size="icon"
-                              className="h-10 w-10 rounded-[16px]"
-                              onClick={() => {
-                                if (
-                                  confirm(
-                                    `Excluir a parcela ${parcela.codigo} da fila planejada?`,
-                                  )
-                                ) {
-                                  deleteMutation.mutate(parcela.id);
-                                }
-                              }}
-                            >
-                              <Trash2 className="h-4.5 w-4.5" />
-                            </Button>
-                          </>
+                        {podeEditarParcela(parcela) ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="h-10 w-10 rounded-[16px]"
+                            onClick={() => startEditParcela(parcela)}
+                          >
+                            <Pencil className="h-4.5 w-4.5" />
+                          </Button>
+                        ) : null}
+                        {podeExcluirParcela(parcela, { administrador }) ? (
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="h-10 w-10 rounded-[16px]"
+                            onClick={() => {
+                              if (
+                                confirm(
+                                  `Excluir a parcela ${parcela.codigo} da fila planejada?`,
+                                )
+                              ) {
+                                deleteMutation.mutate(parcela.id);
+                              }
+                            }}
+                          >
+                            <Trash2 className="h-4.5 w-4.5" />
+                          </Button>
                         ) : null}
                       </div>
                     </div>

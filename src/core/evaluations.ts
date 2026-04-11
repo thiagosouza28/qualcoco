@@ -1718,7 +1718,7 @@ export const limparFalhaRua = async (input: {
 };
 
 export const excluirAvaliacaoEmAndamento = async (avaliacaoId: string) => {
-  const [avaliacao, participantes, parcelas, ruas, registros] = await Promise.all([
+  const [avaliacao, participantes, parcelas, ruas, registros, parcelasPlanejadas] = await Promise.all([
     repository.get('avaliacoes', avaliacaoId),
     repository.filter(
       'avaliacaoColaboradores',
@@ -1736,9 +1736,18 @@ export const excluirAvaliacaoEmAndamento = async (avaliacaoId: string) => {
       'registrosColeta',
       (item) => item.avaliacaoId === avaliacaoId && !item.deletadoEm,
     ),
+    listarParcelasPlanejadasPorAvaliacao(avaliacaoId),
   ]);
 
   if (!avaliacao || avaliacao.deletadoEm) return null;
+
+  for (const parcelaPlanejada of parcelasPlanejadas) {
+    await atualizarStatusParcelaPlanejada({
+      parcelaPlanejadaId: parcelaPlanejada.id,
+      status: 'disponivel',
+      avaliacaoId: null,
+    });
+  }
 
   for (const registro of registros) {
     await softDeleteAvaliacaoRecord('registrosColeta', registro);
@@ -1769,6 +1778,7 @@ export const excluirAvaliacaoCompleta = async (avaliacaoId: string) => {
     registros,
     logs,
     retoques,
+    parcelasPlanejadas,
   ] = await Promise.all([
     repository.get('avaliacoes', avaliacaoId),
     repository.filter(
@@ -1795,9 +1805,18 @@ export const excluirAvaliacaoCompleta = async (avaliacaoId: string) => {
       'avaliacaoRetoques',
       (item) => item.avaliacaoId === avaliacaoId && !item.deletadoEm,
     ),
+    listarParcelasPlanejadasPorAvaliacao(avaliacaoId),
   ]);
 
   if (!avaliacao || avaliacao.deletadoEm) return null;
+
+  for (const parcelaPlanejada of parcelasPlanejadas) {
+    await atualizarStatusParcelaPlanejada({
+      parcelaPlanejadaId: parcelaPlanejada.id,
+      status: 'disponivel',
+      avaliacaoId: null,
+    });
+  }
 
   for (const registro of registros) {
     await softDeleteAvaliacaoRecord('registrosColeta', registro);
