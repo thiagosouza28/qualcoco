@@ -489,45 +489,59 @@ export function TelaRelatorio() {
       string,
       {
         id: string;
-        parcela: string;
         equipe: string;
         equipeSort: number;
         data: string;
         status: string;
-        responsaveis: string[];
+        responsaveis: Set<string>;
+        parcelas: Set<string>;
       }
     >();
 
     linhasDoDia.forEach((item) => {
-      const key = `${item.parcela}::${item.equipe}`;
+      const key = `${item.equipe}::${item.data}`;
       const current = groups.get(key);
       const responsaveis = responsaveisPorAvaliacao[item.avaliacaoId] || [];
 
       if (!current) {
         groups.set(key, {
           id: key,
-          parcela: item.parcela,
           equipe: item.equipe,
           equipeSort: item.equipeSort,
           data: item.data,
           status: item.status,
-          responsaveis,
+          responsaveis: new Set(responsaveis),
+          parcelas: new Set(item.parcela ? [item.parcela] : []),
         });
         return;
       }
 
       current.status = mergeStatusRelatorio(current.status, item.status);
+      responsaveis.forEach((responsavel) => current.responsaveis.add(responsavel));
+      if (item.parcela) {
+        current.parcelas.add(item.parcela);
+      }
     });
 
-    return Array.from(groups.values()).sort((a, b) => {
-      if (a.parcela !== b.parcela) {
-        return a.parcela.localeCompare(b.parcela, 'pt-BR', { numeric: true });
-      }
-      if (a.equipeSort !== b.equipeSort) {
-        return a.equipeSort - b.equipeSort;
-      }
-      return a.equipe.localeCompare(b.equipe, 'pt-BR', { numeric: true });
-    });
+    return Array.from(groups.values())
+      .map((group) => ({
+        ...group,
+        responsaveis: Array.from(group.responsaveis).sort((a, b) =>
+          a.localeCompare(b, 'pt-BR', { numeric: true }),
+        ),
+        parcelas: Array.from(group.parcelas).sort((a, b) =>
+          a.localeCompare(b, 'pt-BR', { numeric: true }),
+        ),
+      }))
+      .sort((a, b) => {
+        if (a.equipeSort !== b.equipeSort) {
+          return a.equipeSort - b.equipeSort;
+        }
+        if (a.equipe !== b.equipe) {
+          return a.equipe.localeCompare(b.equipe, 'pt-BR', { numeric: true });
+        }
+        return a.data.localeCompare(b.data, 'pt-BR', { numeric: true });
+      });
   }, [linhasDoDia, participantes, colaboradores]);
 
   const stats = useMemo(() => {
@@ -1035,7 +1049,7 @@ export function TelaRelatorio() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="truncate text-lg font-black tracking-tight text-[var(--qc-text)]">
-                          Parcela {item.parcela}
+                          Equipe {item.equipe}
                         </p>
                         <p className="mt-1 text-xs font-medium uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
                           {formatDateTimeLabel(item.data).split(' ')[0]}
@@ -1043,17 +1057,19 @@ export function TelaRelatorio() {
                       </div>
 
                       <span className="inline-flex rounded-full border border-[var(--qc-border-strong)] bg-[var(--qc-tertiary)] px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-[var(--qc-primary)]">
-                        Eq {item.equipe}
+                        {formatResumoContagem(item.parcelas.length, 'parcela', 'parcelas')}
                       </span>
                     </div>
 
                     <div className="mt-4 grid gap-3 rounded-[20px] border border-[var(--qc-border)] bg-[var(--qc-surface-muted)] p-4 sm:grid-cols-3">
                       <div className="stack-xs">
                         <span className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[var(--qc-secondary)]">
-                          Equipe
+                          Parcelas
                         </span>
                         <p className="text-sm font-bold text-[var(--qc-text)]">
-                          Eq {item.equipe}
+                          {item.parcelas.length > 0
+                            ? item.parcelas.join(' • ')
+                            : 'Não informado'}
                         </p>
                       </div>
                       <div className="stack-xs">
