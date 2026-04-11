@@ -9,21 +9,16 @@ export const formatarCodigoParcela = (value: string) => {
   const letra = sanitized.slice(0, 1).replace(/[^A-Z]/g, '');
   const numeros = sanitized.slice(1).replace(/\D/g, '');
   const blocoPrincipal = numeros.slice(0, 3);
-  const blocoSecundario = numeros.slice(3, 5);
 
   if (!letra) {
-    return numeros.slice(0, 5);
+    return numeros.slice(0, 3);
   }
 
   if (!blocoPrincipal) {
     return letra;
   }
 
-  if (!blocoSecundario) {
-    return `${letra}-${blocoPrincipal}`;
-  }
-
-  return `${letra}-${blocoPrincipal}-${blocoSecundario}`;
+  return `${letra}-${blocoPrincipal}`;
 };
 
 export const normalizarCodigoParcela = (value: string) =>

@@ -46,7 +46,7 @@ import {
 import { contarNotificacoesNaoLidas } from '@/core/notifications';
 import { listarParcelasPlanejadasVisiveis } from '@/core/plannedParcels';
 import { useRolePermissions } from '@/core/useRolePermissions';
-import type { AcaoPermissaoPerfil } from '@/core/types';
+import type { AcaoPermissaoPerfil, ParcelaPlanejada } from '@/core/types';
 
 type QuickAction = {
   label: string;
@@ -55,6 +55,32 @@ type QuickAction = {
   to: string;
   permissionKey?: AcaoPermissaoPerfil;
   adminOnly?: boolean;
+};
+
+type GrupoParcelasDisponiveis = {
+  key: string;
+  equipeNome: string;
+  dataColheita: string;
+  parcelas: ParcelaPlanejada[];
+};
+
+const getChaveGrupoParcelaPlanejada = (
+  parcela: Pick<ParcelaPlanejada, 'equipeId' | 'equipeNome' | 'dataColheita'>,
+) =>
+  [
+    String(parcela.equipeId || parcela.equipeNome || 'sem-equipe'),
+    String(parcela.dataColheita || ''),
+  ].join('::');
+
+const criarBuscaAvaliacaoPlanejada = (parcelas: ParcelaPlanejada[]) => {
+  const params = new URLSearchParams();
+
+  parcelas
+    .slice()
+    .sort((a, b) => a.codigo.localeCompare(b.codigo, 'pt-BR', { numeric: true }))
+    .forEach((item) => params.append('parcelaPlanejadaId', item.id));
+
+  return params.toString();
 };
 
 const quickActionCatalog: QuickAction[] = [
@@ -203,6 +229,36 @@ export function TelaDashboard() {
     () => parcelasPlanejadas.filter((item) => item.status === 'disponivel'),
     [parcelasPlanejadas],
   );
+  const parcelasDisponiveisAgrupadas = useMemo(() => {
+    const grupos = parcelasDisponiveis.reduce<Map<string, GrupoParcelasDisponiveis>>(
+      (acc, item) => {
+        const key = getChaveGrupoParcelaPlanejada(item);
+        const current = acc.get(key) || {
+          key,
+          equipeNome: item.equipeNome || '--',
+          dataColheita: item.dataColheita || '',
+          parcelas: [],
+        };
+        current.parcelas.push(item);
+        acc.set(key, current);
+        return acc;
+      },
+      new Map(),
+    );
+
+    return Array.from(grupos.values())
+      .map((grupo) => ({
+        ...grupo,
+        parcelas: grupo.parcelas
+          .slice()
+          .sort((a, b) => a.codigo.localeCompare(b.codigo, 'pt-BR', { numeric: true })),
+      }))
+      .sort(
+        (a, b) =>
+          a.equipeNome.localeCompare(b.equipeNome, 'pt-BR', { numeric: true }) ||
+          a.dataColheita.localeCompare(b.dataColheita, 'pt-BR', { numeric: true }),
+      );
+  }, [parcelasDisponiveis]);
   const parcelasEmAndamentoPlanejadas = useMemo(
     () => parcelasPlanejadas.filter((item) => item.status === 'em_andamento'),
     [parcelasPlanejadas],
@@ -431,22 +487,26 @@ export function TelaDashboard() {
             />
           </div>
 
-          {parcelasDisponiveis.length === 0 ? (
+          {parcelasDisponiveisAgrupadas.length === 0 ? (
             <Card className="surface-card border-none shadow-sm">
               <CardContent className="p-4 text-sm text-[var(--qc-text-muted)]">
                 Nenhuma parcela disponível para a equipe atual.
               </CardContent>
             </Card>
           ) : (
-            parcelasDisponiveis.slice(0, 4).map((parcela) => (
-              <Card key={parcela.id} className="surface-card border-none shadow-sm">
+            parcelasDisponiveisAgrupadas.slice(0, 4).map((grupo) => (
+              <Card key={grupo.key} className="surface-card border-none shadow-sm">
                 <CardContent className="flex items-center justify-between gap-4 p-4">
                   <div className="min-w-0">
                     <p className="text-lg font-black tracking-tight text-[var(--qc-text)]">
-                      {parcela.codigo}
+                      Equipe {grupo.equipeNome || '--'}
                     </p>
                     <p className="mt-1 text-sm text-[var(--qc-text-muted)]">
-                      Equipe {parcela.equipeNome || '--'} • Colheita {parcela.dataColheita}
+                      {grupo.parcelas.map((item) => item.codigo).join(' • ')}
+                    </p>
+                    <p className="mt-1 text-sm text-[var(--qc-text-muted)]">
+                      {grupo.parcelas.length} parcela{grupo.parcelas.length === 1 ? '' : 's'} •
+                      {' '}Colheita {grupo.dataColheita || '--'}
                     </p>
                   </div>
                   <Button
@@ -454,7 +514,7 @@ export function TelaDashboard() {
                     variant="outline"
                     className="rounded-2xl"
                     onClick={() =>
-                      navigate(`/avaliacoes/nova?parcelaPlanejadaId=${parcela.id}`)
+                      navigate(`/avaliacoes/nova?${criarBuscaAvaliacaoPlanejada(grupo.parcelas)}`)
                     }
                   >
                     Iniciar

@@ -295,9 +295,21 @@ export function TelaNovaAvaliacao() {
         .slice(0, 24),
     [buscaParcela, parcelasCatalogo],
   );
-  const parcelaPlanejadaParam = useMemo(
-    () => new URLSearchParams(location.search).get('parcelaPlanejadaId') || '',
+  const parcelaPlanejadaParams = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          new URLSearchParams(location.search)
+            .getAll('parcelaPlanejadaId')
+            .map((item) => String(item || '').trim())
+            .filter(Boolean),
+        ),
+      ).sort((a, b) => a.localeCompare(b, 'pt-BR', { numeric: true })),
     [location.search],
+  );
+  const parcelaPlanejadaParamsKey = useMemo(
+    () => parcelaPlanejadaParams.join('|'),
+    [parcelaPlanejadaParams],
   );
   const parcelasPlanejadasAtivas = useMemo(
     () =>
@@ -509,70 +521,116 @@ export function TelaNovaAvaliacao() {
   }, [equipe1Id, isEditMode, session?.equipeDiaId]);
 
   useEffect(() => {
-    if (isEditMode || !parcelaPlanejadaParam || plannedParcelInitRef.current === parcelaPlanejadaParam) {
+    if (
+      isEditMode ||
+      parcelaPlanejadaParams.length === 0 ||
+      plannedParcelInitRef.current === parcelaPlanejadaParamsKey
+    ) {
       return;
     }
 
-    const parcelaPlanejada =
-      parcelasPlanejadasAtivas.find((item) => item.id === parcelaPlanejadaParam) || null;
-    if (!parcelaPlanejada) {
+    const parcelasPlanejadasSelecionadas = parcelaPlanejadaParams
+      .map(
+        (parcelaPlanejadaId) =>
+          parcelasPlanejadasAtivas.find((item) => item.id === parcelaPlanejadaId) || null,
+      )
+      .filter(Boolean) as ParcelaPlanejada[];
+
+    if (parcelasPlanejadasSelecionadas.length === 0) {
       return;
     }
 
-    const parcelaCatalogo =
-      parcelasCatalogo.find(
-        (item) =>
-          item.id === parcelaPlanejada.parcelaId ||
-          item.codigo === parcelaPlanejada.codigo,
-      ) || null;
-    if (!parcelaCatalogo) {
+    const combinacoes = parcelasPlanejadasSelecionadas
+      .map((parcelaPlanejada) => {
+        const parcelaCatalogo =
+          parcelasCatalogo.find(
+            (item) =>
+              item.id === parcelaPlanejada.parcelaId ||
+              item.codigo === parcelaPlanejada.codigo,
+          ) || null;
+
+        if (!parcelaCatalogo) {
+          return null;
+        }
+
+        return {
+          parcelaPlanejada,
+          parcelaCatalogo,
+        };
+      })
+      .filter(Boolean) as Array<{
+      parcelaPlanejada: ParcelaPlanejada;
+      parcelaCatalogo: (typeof parcelasCatalogo)[number];
+    }>;
+
+    if (combinacoes.length === 0) {
       return;
     }
 
-    plannedParcelInitRef.current = parcelaPlanejadaParam;
-    setDataColheita(parcelaPlanejada.dataColheita || todayIso());
-    if (parcelaPlanejada.equipeId) {
-      setEquipe1Id(parcelaPlanejada.equipeId);
+    plannedParcelInitRef.current = parcelaPlanejadaParamsKey;
+    const primeiraParcelaPlanejada = combinacoes[0].parcelaPlanejada;
+
+    setDataColheita(primeiraParcelaPlanejada.dataColheita || todayIso());
+    if (primeiraParcelaPlanejada.equipeId) {
+      setEquipe1Id(primeiraParcelaPlanejada.equipeId);
     }
     setSelecionadas((current) =>
-      ordenarParcelasSelecionadas([...current, parcelaCatalogo.id]),
+      ordenarParcelasSelecionadas([
+        ...current,
+        ...combinacoes.map(({ parcelaCatalogo }) => parcelaCatalogo.id),
+      ]),
     );
-    setParcelaPlanejadaIds([parcelaPlanejada.id]);
-    setConfiguracoes((current) => ({
-      ...current,
-      [parcelaCatalogo.id]: {
-        linhaInicial: String(parcelaPlanejada.alinhamentoInicial || ''),
-        linhaFinal: String(parcelaPlanejada.alinhamentoFinal || ''),
-        alinhamentoFalha:
-          current[parcelaCatalogo.id]?.alinhamentoFalha ||
-          parcelaPlanejada.alinhamentoTipo ||
-          alinhamentoTipo,
-        falhasLinhas: current[parcelaCatalogo.id]?.falhasLinhas || '',
-        sentidoRuas: current[parcelaCatalogo.id]?.sentidoRuas || sentidoRuas,
-        ruasEquipe1:
-          current[parcelaCatalogo.id]?.ruasEquipe1 ||
-          String(Math.max(0, totalRuasEq1 || 0)),
-        ruasEquipe2:
-          current[parcelaCatalogo.id]?.ruasEquipe2 ||
-          (duasEquipes ? String(Math.max(0, totalRuasEq2 || 0)) : '0'),
-        alinhamentoTipo:
-          parcelaPlanejada.alinhamentoTipo ||
-          current[parcelaCatalogo.id]?.alinhamentoTipo ||
-          alinhamentoTipo,
-      },
-    }));
-    if (parcelaPlanejada.observacao && !observacoes.trim()) {
-      setObservacoes(parcelaPlanejada.observacao);
+    setParcelaPlanejadaIds(combinacoes.map(({ parcelaPlanejada }) => parcelaPlanejada.id));
+    setConfiguracoes((current) => {
+      const next = { ...current };
+
+      for (const { parcelaPlanejada, parcelaCatalogo } of combinacoes) {
+        next[parcelaCatalogo.id] = {
+          linhaInicial: String(parcelaPlanejada.alinhamentoInicial || ''),
+          linhaFinal: String(parcelaPlanejada.alinhamentoFinal || ''),
+          alinhamentoFalha:
+            current[parcelaCatalogo.id]?.alinhamentoFalha ||
+            parcelaPlanejada.alinhamentoTipo ||
+            alinhamentoTipo,
+          falhasLinhas: current[parcelaCatalogo.id]?.falhasLinhas || '',
+          sentidoRuas: current[parcelaCatalogo.id]?.sentidoRuas || sentidoRuas,
+          ruasEquipe1:
+            current[parcelaCatalogo.id]?.ruasEquipe1 ||
+            String(Math.max(0, totalRuasEq1 || 0)),
+          ruasEquipe2:
+            current[parcelaCatalogo.id]?.ruasEquipe2 ||
+            (duasEquipes ? String(Math.max(0, totalRuasEq2 || 0)) : '0'),
+          alinhamentoTipo:
+            parcelaPlanejada.alinhamentoTipo ||
+            current[parcelaCatalogo.id]?.alinhamentoTipo ||
+            alinhamentoTipo,
+        };
+      }
+
+      return next;
+    });
+    if (!observacoes.trim()) {
+      const observacoesPlanejadas = combinacoes
+        .map(({ parcelaPlanejada }) => {
+          const observacao = String(parcelaPlanejada.observacao || '').trim();
+          return observacao ? `${parcelaPlanejada.codigo}: ${observacao}` : '';
+        })
+        .filter(Boolean)
+        .join('\n');
+
+      if (observacoesPlanejadas) {
+        setObservacoes(observacoesPlanejadas);
+      }
     }
   }, [
     alinhamentoTipo,
     duasEquipes,
     isEditMode,
     observacoes,
-    parcelaPlanejadaParam,
+    parcelaPlanejadaParams,
+    parcelaPlanejadaParamsKey,
     parcelasCatalogo,
     parcelasPlanejadasAtivas,
-    parcelaCodigoPorId,
     sentidoRuas,
     totalRuasEq1,
     totalRuasEq2,
@@ -1336,7 +1394,7 @@ export function TelaNovaAvaliacao() {
                       <Input
                         value={buscaParcela}
                         className="h-12 rounded-[18px] pl-12 font-bold text-base"
-                        placeholder="Código (Ex: G-156-1)"
+                        placeholder="Código (Ex: G-111)"
                         onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
                           setBuscaParcela(formatarCodigoParcela(event.target.value))
                         }

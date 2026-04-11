@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, Navigate, useSearchParams } from 'react-router-dom';
-import { KeyRound, UserRound } from 'lucide-react';
+import { Eye, EyeOff, KeyRound, UserRound } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useCampoApp } from '@/core/AppProvider';
 import { getUltimoUsuario, listarColaboradoresAtivos } from '@/core/auth';
@@ -24,6 +24,7 @@ export function TelaLogin() {
     String(params.get('usuario') || getUltimoUsuario() || ''),
   );
   const [pin, setPin] = useState('');
+  const [showPin, setShowPin] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [syncingWebAccess, setSyncingWebAccess] = useState(false);
@@ -184,7 +185,7 @@ export function TelaLogin() {
                 <KeyRound className="h-4 w-4 text-emerald-700" />
                 <Input
                   value={pin}
-                  type="tel"
+                  type={showPin ? 'text' : 'password'}
                   placeholder="4 ou 6 dígitos"
                   inputMode="numeric"
                   pattern="[0-9]*"
@@ -194,6 +195,19 @@ export function TelaLogin() {
                     setPin(event.target.value.replace(/\D/g, ''))
                   }
                 />
+                <button
+                  type="button"
+                  className="input-shell__action"
+                  aria-label={showPin ? 'Ocultar PIN' : 'Mostrar PIN'}
+                  aria-pressed={showPin}
+                  onClick={() => setShowPin((current) => !current)}
+                >
+                  {showPin ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
               </div>
             </div>
 

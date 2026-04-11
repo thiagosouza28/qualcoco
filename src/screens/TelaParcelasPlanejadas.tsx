@@ -39,36 +39,30 @@ import {
 import { repository } from '@/core/repositories';
 import type { Equipe, ParcelaPlanejada } from '@/core/types';
 
-type AlinhamentoTipo = NonNullable<ParcelaPlanejada['alinhamentoTipo']>;
-
 type ParcelaLoteDraft = {
   id: string;
   codigo: string;
-  alinhamentoInicial: string;
-  alinhamentoFinal: string;
-  alinhamentoTipo: AlinhamentoTipo;
+  alinhamento: string;
+  observacao: string;
 };
 
 type ParcelaEdicaoForm = {
   codigo: string;
   equipeId: string;
-  alinhamentoInicial: string;
-  alinhamentoFinal: string;
-  alinhamentoTipo: AlinhamentoTipo;
+  alinhamento: string;
   dataColheita: string;
   observacao: string;
 };
 
-const DEFAULT_ALINHAMENTO_TIPO: AlinhamentoTipo = 'inferior-impar';
+const CODIGO_PARCELA_REGEX = /^[A-Z]-\d{3}$/;
 
 const criarRascunhoParcela = (
   patch: Partial<Omit<ParcelaLoteDraft, 'id'>> = {},
 ): ParcelaLoteDraft => ({
   id: crypto.randomUUID(),
   codigo: '',
-  alinhamentoInicial: '',
-  alinhamentoFinal: '',
-  alinhamentoTipo: DEFAULT_ALINHAMENTO_TIPO,
+  alinhamento: '',
+  observacao: '',
   ...patch,
 });
 
@@ -77,19 +71,96 @@ const criarFormularioEdicao = (
 ): ParcelaEdicaoForm => ({
   codigo: parcela?.codigo || '',
   equipeId: parcela?.equipeId || '',
-  alinhamentoInicial: parcela?.alinhamentoInicial
-    ? String(parcela.alinhamentoInicial)
-    : '',
-  alinhamentoFinal: parcela?.alinhamentoFinal
-    ? String(parcela.alinhamentoFinal)
-    : '',
-  alinhamentoTipo: parcela?.alinhamentoTipo || DEFAULT_ALINHAMENTO_TIPO,
+  alinhamento: formatarFaixaAlinhamento(
+    parcela?.alinhamentoInicial,
+    parcela?.alinhamentoFinal,
+  ),
   dataColheita: parcela?.dataColheita || todayIso(),
   observacao: parcela?.observacao || '',
 });
 
-const formatarAlinhamentoTipo = (value: AlinhamentoTipo) =>
-  value === 'inferior-par' ? 'Par' : 'Impar';
+function formatarFaixaAlinhamento(
+  alinhamentoInicial?: string | number | null,
+  alinhamentoFinal?: string | number | null,
+) {
+  const inicio = Number(alinhamentoInicial);
+  const fim = Number(alinhamentoFinal);
+
+  if (!Number.isFinite(inicio) || inicio <= 0) {
+    return '';
+  }
+  if (!Number.isFinite(fim) || fim <= 0 || fim === inicio) {
+    return String(inicio);
+  }
+
+  return `${inicio}-${fim}`;
+}
+
+const parsearFaixaAlinhamento = (value: string) => {
+  const numeros = String(value || '')
+    .match(/\d+/g)
+    ?.slice(0, 2)
+    .map((item) => Number(item)) || [];
+  const alinhamentoInicial = numeros[0];
+  const alinhamentoFinal = numeros[1] ?? numeros[0];
+
+  if (
+    !Number.isFinite(alinhamentoInicial) ||
+    !Number.isFinite(alinhamentoFinal) ||
+    alinhamentoInicial <= 0 ||
+    alinhamentoFinal <= 0 ||
+    alinhamentoFinal < alinhamentoInicial
+  ) {
+    throw new Error('Informe um alinhamento válido. Use algo como 1-25.');
+  }
+
+  return {
+    alinhamentoInicial,
+    alinhamentoFinal,
+    alinhamento: formatarFaixaAlinhamento(alinhamentoInicial, alinhamentoFinal),
+  };
+};
+
+const normalizarDadosParcelaDigitada = (input: {
+  codigo: string;
+  alinhamento: string;
+  observacao?: string;
+}) => {
+  const codigo = formatarCodigoParcela(input.codigo);
+  const codigoNormalizado = normalizarCodigoParcela(codigo);
+
+  if (!codigoNormalizado) {
+    throw new Error('Informe o código da parcela.');
+  }
+  if (!CODIGO_PARCELA_REGEX.test(codigoNormalizado)) {
+    throw new Error('Informe o código da parcela no formato G-111.');
+  }
+
+  return {
+    codigo,
+    ...parsearFaixaAlinhamento(input.alinhamento),
+    observacao: String(input.observacao || '').trim(),
+  };
+};
+
+const getChaveGrupoParcelaPlanejada = (
+  parcela: Pick<ParcelaPlanejada, 'equipeId' | 'equipeNome' | 'dataColheita'>,
+) =>
+  [
+    String(parcela.equipeId || parcela.equipeNome || 'sem-equipe'),
+    String(parcela.dataColheita || ''),
+  ].join('::');
+
+const criarBuscaAvaliacaoPlanejada = (parcelas: ParcelaPlanejada[]) => {
+  const params = new URLSearchParams();
+
+  parcelas
+    .slice()
+    .sort((a, b) => a.codigo.localeCompare(b.codigo, 'pt-BR', { numeric: true }))
+    .forEach((item) => params.append('parcelaPlanejadaId', item.id));
+
+  return params.toString();
+};
 
 const formatarStatusParcela = (status: ParcelaPlanejada['status']) => {
   switch (status) {
@@ -98,9 +169,9 @@ const formatarStatusParcela = (status: ParcelaPlanejada['status']) => {
     case 'em_retoque':
       return 'Em retoque';
     case 'concluida':
-      return 'Concluida';
+      return 'Concluída';
     default:
-      return 'Disponivel';
+      return 'Disponível';
   }
 };
 
@@ -122,7 +193,7 @@ const formatarData = (value?: string | null) => {
 };
 
 const possuiRascunhoPreenchido = (item: ParcelaLoteDraft) =>
-  Boolean(item.codigo.trim() || item.alinhamentoInicial.trim() || item.alinhamentoFinal.trim());
+  Boolean(item.codigo.trim() || item.alinhamento.trim());
 
 const podeGerenciarParcela = (parcela: ParcelaPlanejada) =>
   parcela.status === 'disponivel' && !parcela.avaliacaoId;
@@ -131,23 +202,8 @@ const validarParcelaDigitada = (
   item: ParcelaLoteDraft,
   outrosItens: ParcelaLoteDraft[],
 ) => {
-  const codigo = formatarCodigoParcela(item.codigo);
-  const codigoNormalizado = normalizarCodigoParcela(codigo);
-  const alinhamentoInicial = Number(item.alinhamentoInicial);
-  const alinhamentoFinal = Number(item.alinhamentoFinal);
-
-  if (!codigoNormalizado) {
-    throw new Error('Informe o codigo da parcela.');
-  }
-  if (
-    !Number.isFinite(alinhamentoInicial) ||
-    !Number.isFinite(alinhamentoFinal) ||
-    alinhamentoInicial <= 0 ||
-    alinhamentoFinal <= 0 ||
-    alinhamentoFinal < alinhamentoInicial
-  ) {
-    throw new Error('Informe um alinhamento inicial e final valido.');
-  }
+  const validado = normalizarDadosParcelaDigitada(item);
+  const codigoNormalizado = normalizarCodigoParcela(validado.codigo);
   if (
     outrosItens.some(
       (outro) =>
@@ -155,15 +211,10 @@ const validarParcelaDigitada = (
         normalizarCodigoParcela(outro.codigo) === codigoNormalizado,
     )
   ) {
-    throw new Error('Esta parcela ja foi adicionada ao lote atual.');
+    throw new Error('Esta parcela já foi adicionada ao lote atual.');
   }
 
-  return {
-    codigo,
-    alinhamentoInicial,
-    alinhamentoFinal,
-    alinhamentoTipo: item.alinhamentoTipo || DEFAULT_ALINHAMENTO_TIPO,
-  };
+  return validado;
 };
 
 export function TelaParcelasPlanejadas() {
@@ -175,7 +226,6 @@ export function TelaParcelasPlanejadas() {
   const [parcelasLote, setParcelasLote] = useState<ParcelaLoteDraft[]>([]);
   const [equipeId, setEquipeId] = useState('');
   const [dataColheita, setDataColheita] = useState(todayIso());
-  const [observacao, setObservacao] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingParcela, setEditingParcela] = useState<ParcelaPlanejada | null>(null);
   const [editForm, setEditForm] = useState<ParcelaEdicaoForm>(criarFormularioEdicao());
@@ -259,6 +309,19 @@ export function TelaParcelasPlanejadas() {
     await queryClient.invalidateQueries({ queryKey: ['notificacoes'] });
   };
 
+  const iniciarAvaliacaoDaEquipe = (parcela: ParcelaPlanejada) => {
+    const parcelasDaEquipe = parcelasPlanejadas.filter(
+      (item) =>
+        item.status === 'disponivel' &&
+        getChaveGrupoParcelaPlanejada(item) === getChaveGrupoParcelaPlanejada(parcela),
+    );
+    const busca = criarBuscaAvaliacaoPlanejada(
+      parcelasDaEquipe.length > 0 ? parcelasDaEquipe : [parcela],
+    );
+
+    navigate(`/avaliacoes/nova?${busca}`);
+  };
+
   const createMutation = useMutation({
     mutationFn: async () => {
       if (!usuarioAtual?.id) {
@@ -289,9 +352,8 @@ export function TelaParcelasPlanejadas() {
             equipeId,
             alinhamentoInicial: validado.alinhamentoInicial,
             alinhamentoFinal: validado.alinhamentoFinal,
-            alinhamentoTipo: validado.alinhamentoTipo,
             dataColheita,
-            observacao,
+            observacao: validado.observacao,
             criadoPor: usuarioAtual.id,
             origem: perfil === 'colaborador' ? 'colaborador' : 'fiscal',
           };
@@ -299,9 +361,8 @@ export function TelaParcelasPlanejadas() {
       });
     },
     onSuccess: async () => {
-      setRascunho(criarRascunhoParcela({ alinhamentoTipo: rascunho.alinhamentoTipo }));
+      setRascunho(criarRascunhoParcela());
       setParcelasLote([]);
-      setObservacao('');
       await refreshListas();
     },
     onError: (error) => {
@@ -314,15 +375,15 @@ export function TelaParcelasPlanejadas() {
       if (!editingParcela) {
         throw new Error('Parcela planejada não encontrada para edição.');
       }
+      const validado = normalizarDadosParcelaDigitada(editForm);
 
       return atualizarParcelaPlanejada(editingParcela.id, {
-        codigo: editForm.codigo,
+        codigo: validado.codigo,
         equipeId: editForm.equipeId || null,
-        alinhamentoInicial: Number(editForm.alinhamentoInicial),
-        alinhamentoFinal: Number(editForm.alinhamentoFinal),
-        alinhamentoTipo: editForm.alinhamentoTipo,
+        alinhamentoInicial: validado.alinhamentoInicial,
+        alinhamentoFinal: validado.alinhamentoFinal,
         dataColheita: editForm.dataColheita,
-        observacao: editForm.observacao,
+        observacao: validado.observacao,
       });
     },
     onSuccess: async () => {
@@ -353,14 +414,13 @@ export function TelaParcelasPlanejadas() {
         {
           ...rascunho,
           codigo: validado.codigo,
-          alinhamentoInicial: String(validado.alinhamentoInicial),
-          alinhamentoFinal: String(validado.alinhamentoFinal),
-          alinhamentoTipo: validado.alinhamentoTipo,
+          alinhamento: validado.alinhamento,
+          observacao: validado.observacao,
         },
       ]);
-      setRascunho(criarRascunhoParcela({ alinhamentoTipo: rascunho.alinhamentoTipo }));
+      setRascunho(criarRascunhoParcela());
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Nao foi possivel adicionar a parcela.');
+      alert(error instanceof Error ? error.message : 'Não foi possível adicionar a parcela.');
     }
   };
 
@@ -438,16 +498,6 @@ export function TelaParcelasPlanejadas() {
                 </strong>
                 .
               </div>
-              <div className="sm:col-span-2">
-                <Textarea
-                  rows={3}
-                  value={observacao}
-                  placeholder="Observacao opcional para todas as parcelas deste cadastro"
-                  onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
-                    setObservacao(event.target.value)
-                  }
-                />
-              </div>
             </div>
 
             <div className="rounded-[24px] border border-[var(--qc-border)] bg-[var(--qc-surface-muted)] p-4">
@@ -457,7 +507,7 @@ export function TelaParcelasPlanejadas() {
                     Parcela do lote
                   </p>
                   <p className="mt-1 text-sm leading-relaxed text-[var(--qc-text-muted)]">
-                    Cada parcela pode ter seu proprio alinhamento inicial, final e tipo.
+                    Informe somente o código, o alinhamento e, se precisar, as observações.
                   </p>
                 </div>
                 <Badge variant="emerald">{totalParcelasParaSalvar} para salvar</Badge>
@@ -466,7 +516,7 @@ export function TelaParcelasPlanejadas() {
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <Input
                   value={rascunho.codigo}
-                  placeholder="Codigo da parcela (ex: G-156-1)"
+                  placeholder="Código da parcela (ex: G-111)"
                   onChange={(event: ChangeEvent<HTMLInputElement>) =>
                     setRascunho((current) => ({
                       ...current,
@@ -474,30 +524,26 @@ export function TelaParcelasPlanejadas() {
                     }))
                   }
                 />
-                <div className="grid grid-cols-2 gap-3">
-                  <Input
-                    type="number"
-                    inputMode="numeric"
-                    min="1"
-                    value={rascunho.alinhamentoInicial}
-                    placeholder="Alinhamento inicial"
-                    onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                <Input
+                  value={rascunho.alinhamento}
+                  inputMode="numeric"
+                  placeholder="Alinhamento (ex: 1-25)"
+                  onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                    setRascunho((current) => ({
+                      ...current,
+                      alinhamento: event.target.value.slice(0, 11),
+                    }))
+                  }
+                />
+                <div className="sm:col-span-2">
+                  <Textarea
+                    rows={3}
+                    value={rascunho.observacao}
+                    placeholder="Observações desta parcela (opcional)"
+                    onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
                       setRascunho((current) => ({
                         ...current,
-                        alinhamentoInicial: event.target.value.replace(/\D/g, '').slice(0, 3),
-                      }))
-                    }
-                  />
-                  <Input
-                    type="number"
-                    inputMode="numeric"
-                    min="1"
-                    value={rascunho.alinhamentoFinal}
-                    placeholder="Alinhamento final"
-                    onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                      setRascunho((current) => ({
-                        ...current,
-                        alinhamentoFinal: event.target.value.replace(/\D/g, '').slice(0, 3),
+                        observacao: event.target.value,
                       }))
                     }
                   />
@@ -507,7 +553,7 @@ export function TelaParcelasPlanejadas() {
               {sugestoesParcelas.length > 0 ? (
                 <div className="mt-3 rounded-[18px] border border-[var(--qc-border)] bg-white p-3">
                   <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
-                    Parcelas ja cadastradas
+                    Parcelas já cadastradas
                   </p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {sugestoesParcelas.map((item) => {
@@ -523,59 +569,22 @@ export function TelaParcelasPlanejadas() {
                           onClick={() =>
                             setRascunho((current) => ({
                               ...current,
-                              codigo: item.codigo,
+                              codigo: formatarCodigoParcela(item.codigo),
                             }))
                           }
                         >
-                          {item.codigo}
+                          {formatarCodigoParcela(item.codigo)}
                         </Button>
                       );
                     })}
                   </div>
                   <p className="mt-2 text-xs text-[var(--qc-text-muted)]">
                     {codigoTemSugestaoExata
-                      ? 'Codigo encontrado no catalogo.'
-                      : 'Selecione uma parcela existente ou continue digitando para cadastrar um novo codigo.'}
+                      ? 'Código encontrado no catálogo.'
+                      : 'Selecione uma parcela existente ou continue digitando para cadastrar um novo código.'}
                   </p>
                 </div>
               ) : null}
-
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                <Button
-                  type="button"
-                  variant={rascunho.alinhamentoTipo === 'inferior-impar' ? 'default' : 'outline'}
-                  className={`h-11 rounded-xl ${
-                    rascunho.alinhamentoTipo === 'inferior-impar'
-                      ? 'bg-[var(--qc-primary)] text-white'
-                      : 'bg-white text-[var(--qc-secondary)]'
-                  }`}
-                  onClick={() =>
-                    setRascunho((current) => ({
-                      ...current,
-                      alinhamentoTipo: 'inferior-impar',
-                    }))
-                  }
-                >
-                  Impar
-                </Button>
-                <Button
-                  type="button"
-                  variant={rascunho.alinhamentoTipo === 'inferior-par' ? 'default' : 'outline'}
-                  className={`h-11 rounded-xl ${
-                    rascunho.alinhamentoTipo === 'inferior-par'
-                      ? 'bg-[var(--qc-primary)] text-white'
-                      : 'bg-white text-[var(--qc-secondary)]'
-                  }`}
-                  onClick={() =>
-                    setRascunho((current) => ({
-                      ...current,
-                      alinhamentoTipo: 'inferior-par',
-                    }))
-                  }
-                >
-                  Par
-                </Button>
-              </div>
 
               <Button
                 type="button"
@@ -595,7 +604,7 @@ export function TelaParcelasPlanejadas() {
                     Lote pronto
                   </p>
                   <p className="mt-1 text-sm leading-relaxed text-[var(--qc-text-muted)]">
-                    Revise as parcelas antes de salvar. O rascunho atual tambem entra no envio se
+                    Revise as parcelas antes de salvar. O rascunho atual também entra no envio se
                     estiver preenchido.
                   </p>
                 </div>
@@ -617,12 +626,14 @@ export function TelaParcelasPlanejadas() {
                         <p className="text-sm font-black tracking-tight text-[var(--qc-text)]">
                           {item.codigo}
                         </p>
-                        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-[var(--qc-text-muted)]">
-                          <span>
-                            Alinhamento {item.alinhamentoInicial}-{item.alinhamentoFinal}
-                          </span>
-                          <Badge variant="slate">{formatarAlinhamentoTipo(item.alinhamentoTipo)}</Badge>
-                        </div>
+                        <p className="mt-1 text-xs text-[var(--qc-text-muted)]">
+                          Alinhamento {item.alinhamento}
+                        </p>
+                        {item.observacao ? (
+                          <p className="mt-1 text-xs leading-relaxed text-[var(--qc-text-muted)]">
+                            {item.observacao}
+                          </p>
+                        ) : null}
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
                         <Button
@@ -690,11 +701,6 @@ export function TelaParcelasPlanejadas() {
                           <p className="text-lg font-black tracking-tight text-[var(--qc-text)]">
                             {parcela.codigo}
                           </p>
-                          <Badge variant="slate">
-                            {formatarAlinhamentoTipo(
-                              parcela.alinhamentoTipo || DEFAULT_ALINHAMENTO_TIPO,
-                            )}
-                          </Badge>
                           {parcela.status !== 'disponivel' ? (
                             <Badge variant="secondary">{formatarStatusParcela(parcela.status)}</Badge>
                           ) : null}
@@ -703,7 +709,11 @@ export function TelaParcelasPlanejadas() {
                           Equipe {parcela.equipeNome || '--'} - Colheita {formatarData(parcela.dataColheita)}
                         </p>
                         <p className="mt-1 text-sm text-[var(--qc-text-muted)]">
-                          Alinhamento {parcela.alinhamentoInicial}-{parcela.alinhamentoFinal}
+                          Alinhamento{' '}
+                          {formatarFaixaAlinhamento(
+                            parcela.alinhamentoInicial,
+                            parcela.alinhamentoFinal,
+                          )}
                         </p>
                         <p className="mt-1 text-xs font-bold uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
                           Inserido por {parcela.criadoPorNome || 'usuário não identificado'}
@@ -721,11 +731,9 @@ export function TelaParcelasPlanejadas() {
                             type="button"
                             variant="outline"
                             className="rounded-2xl"
-                            onClick={() =>
-                              navigate(`/avaliacoes/nova?parcelaPlanejadaId=${parcela.id}`)
-                            }
+                            onClick={() => iniciarAvaliacaoDaEquipe(parcela)}
                           >
-                            Iniciar
+                            Iniciar equipe
                           </Button>
                         ) : null}
                         {podeGerenciarParcela(parcela) ? (
@@ -774,7 +782,7 @@ export function TelaParcelasPlanejadas() {
             </div>
             <div>
               <p className="text-sm font-black tracking-tight text-[var(--qc-text)]">
-                Notificacao automatica
+                Notificação automática
               </p>
               <p className="mt-1 text-sm leading-relaxed text-[var(--qc-text-muted)]">
                 Cada parcela cadastrada aqui gera alerta de nova parcela disponível com a equipe
@@ -802,7 +810,7 @@ export function TelaParcelasPlanejadas() {
             <div className="stack-md">
               <Input
                 value={editForm.codigo}
-                placeholder="Codigo da parcela"
+                placeholder="Código da parcela"
                 onChange={(event: ChangeEvent<HTMLInputElement>) =>
                   setEditForm((current) => ({
                     ...current,
@@ -833,71 +841,17 @@ export function TelaParcelasPlanejadas() {
                 </SelectContent>
               </Select>
 
-              <div className="grid grid-cols-2 gap-3">
-                <Input
-                  type="number"
-                  inputMode="numeric"
-                  min="1"
-                  value={editForm.alinhamentoInicial}
-                  placeholder="Alinhamento inicial"
-                  onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                    setEditForm((current) => ({
-                      ...current,
-                      alinhamentoInicial: event.target.value.replace(/\D/g, '').slice(0, 3),
-                    }))
-                  }
-                />
-                <Input
-                  type="number"
-                  inputMode="numeric"
-                  min="1"
-                  value={editForm.alinhamentoFinal}
-                  placeholder="Alinhamento final"
-                  onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                    setEditForm((current) => ({
-                      ...current,
-                      alinhamentoFinal: event.target.value.replace(/\D/g, '').slice(0, 3),
-                    }))
-                  }
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  type="button"
-                  variant={editForm.alinhamentoTipo === 'inferior-impar' ? 'default' : 'outline'}
-                  className={`h-11 rounded-xl ${
-                    editForm.alinhamentoTipo === 'inferior-impar'
-                      ? 'bg-[var(--qc-primary)] text-white'
-                      : 'bg-white text-[var(--qc-secondary)]'
-                  }`}
-                  onClick={() =>
-                    setEditForm((current) => ({
-                      ...current,
-                      alinhamentoTipo: 'inferior-impar',
-                    }))
-                  }
-                >
-                  Impar
-                </Button>
-                <Button
-                  type="button"
-                  variant={editForm.alinhamentoTipo === 'inferior-par' ? 'default' : 'outline'}
-                  className={`h-11 rounded-xl ${
-                    editForm.alinhamentoTipo === 'inferior-par'
-                      ? 'bg-[var(--qc-primary)] text-white'
-                      : 'bg-white text-[var(--qc-secondary)]'
-                  }`}
-                  onClick={() =>
-                    setEditForm((current) => ({
-                      ...current,
-                      alinhamentoTipo: 'inferior-par',
-                    }))
-                  }
-                >
-                  Par
-                </Button>
-              </div>
+              <Input
+                value={editForm.alinhamento}
+                inputMode="numeric"
+                placeholder="Alinhamento (ex: 1-25)"
+                onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                  setEditForm((current) => ({
+                    ...current,
+                    alinhamento: event.target.value.slice(0, 11),
+                  }))
+                }
+              />
 
               <Input
                 type="date"
@@ -913,7 +867,7 @@ export function TelaParcelasPlanejadas() {
               <Textarea
                 rows={3}
                 value={editForm.observacao}
-                placeholder="Observacao opcional"
+                placeholder="Observações da parcela (opcional)"
                 onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
                   setEditForm((current) => ({
                     ...current,
@@ -938,7 +892,7 @@ export function TelaParcelasPlanejadas() {
                 onClick={() => updateMutation.mutate()}
                 disabled={updateMutation.isPending}
               >
-                {updateMutation.isPending ? 'Salvando' : 'Salvar alteracoes'}
+                {updateMutation.isPending ? 'Salvando' : 'Salvar alterações'}
               </Button>
             </DialogFooter>
           </DialogContent>

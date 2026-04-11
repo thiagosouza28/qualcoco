@@ -410,6 +410,32 @@ a {
   box-shadow: none;
 }
 
+.input-shell__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--qc-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.18s ease, color 0.18s ease;
+}
+
+.input-shell__action:hover,
+.input-shell__action:focus-visible {
+  background: rgba(210, 231, 211, 0.82);
+  color: var(--qc-primary);
+  outline: none;
+}
+
+.input-shell__action svg {
+  margin-left: 0;
+}
+
 .input-shell input:focus,
 .input-shell input:focus-visible {
   border: 0;
