@@ -4,7 +4,7 @@ export const APP_NAME = 'QualCoco Campo';
 export const SESSION_TIMEOUT_MINUTES = 30;
 export const LOGIN_MAX_ATTEMPTS = 5;
 export const LOGIN_LOCK_MINUTES = 30;
-export const MAX_PARCELAS = 3;
+export const MAX_PARCELAS = 10;
 
 export const STORE_NAMES: StoreName[] = [
   'equipes',

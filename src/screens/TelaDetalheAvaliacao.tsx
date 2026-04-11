@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ChangeEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ClipboardList, History, Wrench } from 'lucide-react';
+import { ClipboardList, History, PencilLine, Wrench } from 'lucide-react';
 import { AccessDeniedCard } from '@/components/AccessDeniedCard';
 import { LayoutMobile } from '@/components/LayoutMobile';
 import { useCampoApp } from '@/core/AppProvider';
@@ -33,6 +33,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { getEvaluationStatusMeta } from '@/core/evaluationStatus';
 import {
+  canEditCompletedEvaluation,
   canOperateAssignedRetoque,
   canMarkRetoque,
   canViewHistory,
@@ -155,6 +156,15 @@ export function TelaDetalheAvaliacao() {
     designadoParaIds: data?.avaliacao?.retoqueDesignadoParaIds,
     matrix: permissionMatrix,
   });
+  const podeEditarConcluida = canEditCompletedEvaluation(
+    usuarioAtual?.perfil,
+    permissionMatrix,
+  );
+  const statusAtual = String(data?.avaliacao?.status || '').trim().toLowerCase();
+  const podeEditarAvaliacaoFinalizada =
+    data?.avaliacao?.tipo !== 'retoque' &&
+    ['completed', 'ok', 'refazer', 'revisado'].includes(statusAtual) &&
+    podeEditarConcluida;
 
   const historicoRetoques = useMemo<HistoricoRetoqueItem[]>(() => {
     const items: HistoricoRetoqueItem[] = [];
@@ -719,6 +729,21 @@ export function TelaDetalheAvaliacao() {
               <Button onClick={() => navigate(`/avaliacoes/${id}`)}>
                 <ClipboardList className="h-4 w-4" />
                 Continuar avaliação
+              </Button>
+            ) : null}
+            {podeEditarAvaliacaoFinalizada ? (
+              <Button variant="outline" onClick={() => navigate(`/avaliacoes/${id}`)}>
+                <ClipboardList className="h-4 w-4" />
+                Editar coleta
+              </Button>
+            ) : null}
+            {podeEditarAvaliacaoFinalizada ? (
+              <Button
+                variant="outline"
+                onClick={() => navigate(`/avaliacoes/${id}/editar`)}
+              >
+                <PencilLine className="h-4 w-4" />
+                Editar programação
               </Button>
             ) : null}
             {data?.avaliacao?.status === 'refazer' &&

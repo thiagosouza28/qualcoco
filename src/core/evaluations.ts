@@ -476,6 +476,131 @@ const listarCodigosParcelasDaAvaliacao = async (avaliacaoId: string) =>
 const formatarListaNomes = (nomes: string[]) =>
   nomes.filter(Boolean).join(' - ');
 
+const FINAL_EVALUATION_STATUSES = new Set([
+  'completed',
+  'ok',
+  'refazer',
+  'revisado',
+]);
+
+const formatarEquipeSiglaKey = (value: string | null | undefined) => {
+  const normalized = String(value || '').trim();
+  if (!normalized) return '';
+  return /^\d+$/.test(normalized) ? normalized.padStart(2, '0') : normalized;
+};
+
+const ordenarEquipeSiglaKeys = (values: string[]) =>
+  [...values].sort((a, b) => a.localeCompare(b, 'pt-BR', { numeric: true }));
+
+const remapearSiglasResumoParcela = (
+  siglasResumo: AvaliacaoParcela['siglasResumo'],
+  equipeLabelsPlanejadas: string[],
+) => {
+  if (!siglasResumo || typeof siglasResumo !== 'object') {
+    return null;
+  }
+
+  const entradasAtuais = Object.entries(siglasResumo)
+    .map(([equipe, sigla]) => [formatarEquipeSiglaKey(equipe), sigla] as const)
+    .filter(([, sigla]) => Boolean(sigla));
+  if (entradasAtuais.length === 0) {
+    return null;
+  }
+
+  const equipesNovas = ordenarEquipeSiglaKeys(
+    Array.from(
+      new Set(
+        equipeLabelsPlanejadas.map((item) => formatarEquipeSiglaKey(item)).filter(Boolean),
+      ),
+    ),
+  );
+  if (equipesNovas.length === 0) {
+    return null;
+  }
+
+  const resultado: Record<string, string> = {};
+  const equipesNovasRestantes = [...equipesNovas];
+
+  for (const [equipeAtual, sigla] of entradasAtuais) {
+    if (!sigla || !equipesNovasRestantes.includes(equipeAtual)) {
+      continue;
+    }
+
+    resultado[equipeAtual] = sigla;
+    equipesNovasRestantes.splice(equipesNovasRestantes.indexOf(equipeAtual), 1);
+  }
+
+  const siglasRestantes = entradasAtuais
+    .filter(([equipeAtual]) => !(equipeAtual in resultado))
+    .map(([, sigla]) => sigla)
+    .filter(Boolean);
+
+  equipesNovasRestantes.forEach((equipe, index) => {
+    const sigla = siglasRestantes[index];
+    if (sigla) {
+      resultado[equipe] = sigla;
+    }
+  });
+
+  return Object.keys(resultado).length > 0 ? resultado : null;
+};
+
+const resolverStatusFinalPorMedia = (avaliacao: Avaliacao, input: {
+  limiteCocos: number;
+  limiteCachos: number;
+}) => {
+  const excedeuLimites =
+    avaliacao.mediaParcela > input.limiteCocos ||
+    avaliacao.mediaCachos3 > input.limiteCachos;
+  const statusAtual = String(avaliacao.status || '').trim().toLowerCase();
+
+  if (avaliacao.tipo === 'retoque') {
+    return excedeuLimites ? 'refazer' : 'revisado';
+  }
+
+  if (statusAtual === 'revisado') {
+    return excedeuLimites ? 'refazer' : 'revisado';
+  }
+
+  return excedeuLimites ? 'refazer' : 'ok';
+};
+
+const sincronizarStatusFinalAvaliacaoAposEdicao = async (avaliacaoId: string) => {
+  const [avaliacao, configs] = await Promise.all([
+    repository.get('avaliacoes', avaliacaoId),
+    repository.list('configuracoes'),
+  ]);
+
+  if (!avaliacao || avaliacao.deletadoEm) {
+    return null;
+  }
+
+  const statusAtual = String(avaliacao.status || '').trim().toLowerCase();
+  if (!FINAL_EVALUATION_STATUSES.has(statusAtual)) {
+    return avaliacao;
+  }
+
+  const config = configs[0];
+  const nextStatus = resolverStatusFinalPorMedia(avaliacao, {
+    limiteCocos: config?.limiteCocosChao ?? 19,
+    limiteCachos: config?.limiteCachos3Cocos ?? 19,
+  });
+
+  if (nextStatus === avaliacao.status) {
+    return avaliacao;
+  }
+
+  const nextAvaliacao: Avaliacao = {
+    ...avaliacao,
+    status: nextStatus,
+    atualizadoEm: nowIso(),
+    syncStatus: 'pending_sync',
+    versao: avaliacao.versao + 1,
+  };
+  await saveEntity('avaliacoes', nextAvaliacao);
+  return nextAvaliacao;
+};
+
 const sincronizarAtribuicoesRetoque = async (input: {
   avaliacaoId: string;
   parcelaId?: string | null;
@@ -612,7 +737,6 @@ export const criarAvaliacao = async (input: NovaAvaliacaoInput) => {
     dataAvaliacao: todayIso(),
     dataColheita: input.dataColheita,
     observacoes: input.observacoes,
-    status: 'in_progress',
     tipo: input.tipo || 'normal',
     avaliacaoOriginalId: input.avaliacaoOriginalId || null,
     equipeId: equipePrincipal.equipeId,
@@ -860,7 +984,6 @@ export const atualizarAvaliacaoConfiguracao = async (
   input: AtualizarAvaliacaoInput,
 ) => {
   const device = await getOrCreateDevice();
-  const dataAvaliacaoAtualizada = todayIso();
   const colaboradores = await repository.list('colaboradores');
   const colaboradoresMap = new Map(
     colaboradores.map((item) => [item.id, item]),
@@ -890,22 +1013,6 @@ export const atualizarAvaliacaoConfiguracao = async (
     return null;
   }
 
-  for (const registro of registrosAtuais) {
-    await softDeleteAvaliacaoRecord('registrosColeta', registro);
-  }
-
-  for (const rua of ruasAtuais) {
-    await softDeleteAvaliacaoRecord('avaliacaoRuas', rua);
-  }
-
-  for (const participante of participantesAtuais) {
-    await softDeleteAvaliacaoRecord('avaliacaoColaboradores', participante);
-  }
-
-  for (const parcela of parcelasAtuais) {
-    await softDeleteAvaliacaoRecord('avaliacaoParcelas', parcela);
-  }
-
   const responsavelId = input.responsavelId || avaliacao.usuarioId || input.usuarioId;
   const responsavel = colaboradoresMap.get(responsavelId) || null;
   const equipePrincipal = resolveEquipePrincipal({
@@ -913,26 +1020,19 @@ export const atualizarAvaliacaoConfiguracao = async (
     equipeNome: input.equipeNome || avaliacao.equipeNome,
     planejamentoEquipes: input.planejamentoEquipes,
   });
+  const dataAvaliacaoAtualizada =
+    input.dataAvaliacao || avaliacao.dataAvaliacao || todayIso();
   const nextAvaliacao: Avaliacao = {
     ...avaliacao,
     usuarioId: responsavelId,
     dispositivoId: input.dispositivoId,
-    // Toda edição reabre a avaliação na data atual.
     dataAvaliacao: dataAvaliacaoAtualizada,
     dataColheita: input.dataColheita || avaliacao.dataColheita || todayIso(),
     observacoes: input.observacoes,
-    status: 'in_progress',
     equipeId: equipePrincipal.equipeId,
     equipeNome: equipePrincipal.equipeNome,
     responsavelPrincipalId: responsavelId,
     responsavelPrincipalNome: responsavel?.nome || '',
-    inicioEm: nowIso(),
-    fimEm: null,
-    encerradoPorId: null,
-    encerradoPorNome: '',
-    totalRegistros: 0,
-    mediaParcela: 0,
-    mediaCachos3: 0,
     alinhamentoTipo: input.alinhamentoTipo,
     ordemColeta: ORDEM_COLETA_FIXA,
     modoCalculo: input.modoCalculo || 'manual',
@@ -943,25 +1043,238 @@ export const atualizarAvaliacaoConfiguracao = async (
 
   await saveEntity('avaliacoes', nextAvaliacao);
 
-  const participantes = await criarParticipantesAvaliacao({
-    avaliacaoId: avaliacao.id,
-    deviceId: device.id,
-    responsavelId,
-    participanteIds: input.participanteIds,
-    colaboradoresMap,
-  });
-  const { parcelas, ruas } = await materializarPlanejamentoAvaliacao({
-    avaliacaoId: avaliacao.id,
-    deviceId: device.id,
-    dataAvaliacao: dataAvaliacaoAtualizada,
-    parcelasInput: input.parcelas,
+  const participantesDesejados = Array.from(
+    new Set([responsavelId, ...input.participanteIds].filter(Boolean)),
+  );
+  const participantesAtuaisPorColaborador = new Map(
+    participantesAtuais.map((item) => [item.colaboradorId, item]),
+  );
+
+  for (const participanteAtual of participantesAtuais) {
+    if (participantesDesejados.includes(participanteAtual.colaboradorId)) {
+      continue;
+    }
+
+    await softDeleteAvaliacaoRecord('avaliacaoColaboradores', participanteAtual);
+  }
+
+  const participantes: AvaliacaoColaborador[] = [];
+  for (const colaboradorId of participantesDesejados) {
+    const colaborador = colaboradoresMap.get(colaboradorId) || null;
+    const payload = {
+      avaliacaoId: avaliacao.id,
+      colaboradorId,
+      papel:
+        colaboradorId === responsavelId ? 'responsavel_principal' : 'ajudante',
+      colaboradorNome: colaborador?.nome || '',
+      colaboradorPrimeiroNome: colaborador?.primeiroNome || '',
+      colaboradorMatricula: colaborador?.matricula || '',
+      colaboradorPerfil: resolveColaboradorPerfil(colaborador),
+    };
+    const participanteAtual =
+      participantesAtuaisPorColaborador.get(colaboradorId) || null;
+
+    if (participanteAtual) {
+      const nextParticipante: AvaliacaoColaborador = {
+        ...participanteAtual,
+        ...payload,
+        atualizadoEm: nowIso(),
+        syncStatus: 'pending_sync',
+        versao: participanteAtual.versao + 1,
+      };
+      await saveEntity('avaliacaoColaboradores', nextParticipante);
+      participantes.push(nextParticipante);
+      continue;
+    }
+
+    participantes.push(
+      await createEntity('avaliacaoColaboradores', device.id, payload),
+    );
+  }
+
+  const parcelasPlanejadas = planejarParcelasAvaliacao({
+    parcelas: input.parcelas,
     planejamentoEquipes: input.planejamentoEquipes,
     alinhamentoTipo: input.alinhamentoTipo,
     sentidoRuas: input.sentidoRuas,
   });
+  const parcelasAtuaisPorParcelaId = new Map(
+    parcelasAtuais.map((item) => [item.parcelaId, item]),
+  );
+  const ruasAtuaisPorParcelaAvaliacaoId = ruasAtuais.reduce<
+    Map<string, AvaliacaoRua[]>
+  >((acc, item) => {
+    const current = acc.get(item.avaliacaoParcelaId) || [];
+    current.push(item);
+    acc.set(item.avaliacaoParcelaId, current);
+    return acc;
+  }, new Map());
+  const registrosPorRuaId = registrosAtuais.reduce<Map<string, RegistroColeta[]>>(
+    (acc, item) => {
+      const current = acc.get(item.ruaId) || [];
+      current.push(item);
+      acc.set(item.ruaId, current);
+      return acc;
+    },
+    new Map(),
+  );
+
+  const parcelasMantidas = new Set<string>();
+  const parcelas: AvaliacaoParcela[] = [];
+  const ruas: AvaliacaoRua[] = [];
+
+  for (const parcelaPlanejada of parcelasPlanejadas) {
+    const parcelaAtual =
+      parcelasAtuaisPorParcelaId.get(parcelaPlanejada.parcelaId) || null;
+    const siglasResumo = remapearSiglasResumoParcela(
+      parcelaAtual?.siglasResumo || null,
+      parcelaPlanejada.ruasProgramadas.map((item) => item.equipeNome),
+    );
+
+    let parcelaRecord: AvaliacaoParcela;
+    if (parcelaAtual) {
+      parcelasMantidas.add(parcelaAtual.id);
+      parcelaRecord = {
+        ...parcelaAtual,
+        parcelaCodigo: parcelaPlanejada.parcelaCodigo,
+        linhaInicial: parcelaPlanejada.linhaInicial,
+        linhaFinal: parcelaPlanejada.linhaFinal,
+        configuradaEm: nowIso(),
+        faixasFalha: parcelaPlanejada.faixasFalha || [],
+        siglasResumo,
+        atualizadoEm: nowIso(),
+        syncStatus: 'pending_sync',
+        versao: parcelaAtual.versao + 1,
+      };
+      await saveEntity('avaliacaoParcelas', parcelaRecord);
+    } else {
+      parcelaRecord = await createEntity('avaliacaoParcelas', device.id, {
+        avaliacaoId: avaliacao.id,
+        parcelaId: parcelaPlanejada.parcelaId,
+        parcelaCodigo: parcelaPlanejada.parcelaCodigo,
+        linhaInicial: parcelaPlanejada.linhaInicial,
+        linhaFinal: parcelaPlanejada.linhaFinal,
+        configuradaEm: nowIso(),
+        faixasFalha: parcelaPlanejada.faixasFalha || [],
+        siglasResumo,
+      });
+    }
+
+    parcelas.push(parcelaRecord);
+
+    const ruasExistentes = [
+      ...(parcelaAtual
+        ? ruasAtuaisPorParcelaAvaliacaoId.get(parcelaAtual.id) || []
+        : []),
+    ].sort(
+      (a, b) =>
+        a.ruaNumero - b.ruaNumero ||
+        a.linhaInicial - b.linhaInicial ||
+        a.linhaFinal - b.linhaFinal,
+    );
+    const ruasExistentesPorFaixa = new Map(
+      ruasExistentes.map((item) => [`${item.linhaInicial}:${item.linhaFinal}`, item]),
+    );
+    const ruasExistentesMantidas = new Set<string>();
+
+    for (let index = 0; index < parcelaPlanejada.ruasProgramadas.length; index += 1) {
+      const ruaPlanejada = parcelaPlanejada.ruasProgramadas[index];
+      const ruaExata =
+        ruasExistentesPorFaixa.get(
+          `${ruaPlanejada.linhaInicial}:${ruaPlanejada.linhaFinal}`,
+        ) || null;
+      const ruaAtual =
+        (ruaExata && !ruasExistentesMantidas.has(ruaExata.id) ? ruaExata : null) ||
+        ruasExistentes.find(
+          (item, itemIndex) =>
+            itemIndex === index && !ruasExistentesMantidas.has(item.id),
+        ) ||
+        null;
+
+      if (ruaAtual) {
+        ruasExistentesMantidas.add(ruaAtual.id);
+        const nextRua: AvaliacaoRua = {
+          ...ruaAtual,
+          parcelaId: parcelaPlanejada.parcelaId,
+          dataAvaliacao: dataAvaliacaoAtualizada,
+          avaliacaoParcelaId: parcelaRecord.id,
+          ruaNumero: index + 1,
+          linhaInicial: ruaPlanejada.linhaInicial,
+          linhaFinal: ruaPlanejada.linhaFinal,
+          alinhamentoTipo: ruaPlanejada.alinhamentoTipo,
+          sentidoRuas: parcelaPlanejada.sentidoRuas,
+          equipeId: ruaPlanejada.equipeId,
+          equipeNome: ruaPlanejada.equipeNome,
+          atualizadoEm: nowIso(),
+          syncStatus: 'pending_sync',
+          versao: ruaAtual.versao + 1,
+        };
+        await saveEntity('avaliacaoRuas', nextRua);
+        ruas.push(nextRua);
+        continue;
+      }
+
+      ruas.push(
+        await createEntity('avaliacaoRuas', device.id, {
+          avaliacaoId: avaliacao.id,
+          parcelaId: parcelaPlanejada.parcelaId,
+          dataAvaliacao: dataAvaliacaoAtualizada,
+          avaliacaoParcelaId: parcelaRecord.id,
+          ruaNumero: index + 1,
+          linhaInicial: ruaPlanejada.linhaInicial,
+          linhaFinal: ruaPlanejada.linhaFinal,
+          alinhamentoTipo: ruaPlanejada.alinhamentoTipo,
+          sentidoRuas: parcelaPlanejada.sentidoRuas,
+          equipeId: ruaPlanejada.equipeId,
+          equipeNome: ruaPlanejada.equipeNome,
+          tipoFalha: null,
+        }),
+      );
+    }
+
+    for (const ruaExtra of ruasExistentes.filter(
+      (item) => !ruasExistentesMantidas.has(item.id),
+    )) {
+      const registrosRua = registrosPorRuaId.get(ruaExtra.id) || [];
+      for (const registro of registrosRua) {
+        await softDeleteAvaliacaoRecord('registrosColeta', registro);
+      }
+      await softDeleteAvaliacaoRecord('avaliacaoRuas', ruaExtra);
+    }
+  }
+
+  for (const parcelaAtual of parcelasAtuais) {
+    if (parcelasMantidas.has(parcelaAtual.id)) {
+      continue;
+    }
+
+    const ruasDaParcela =
+      ruasAtuaisPorParcelaAvaliacaoId.get(parcelaAtual.id) || [];
+    for (const rua of ruasDaParcela) {
+      const registrosRua = registrosPorRuaId.get(rua.id) || [];
+      for (const registro of registrosRua) {
+        await softDeleteAvaliacaoRecord('registrosColeta', registro);
+      }
+      await softDeleteAvaliacaoRecord('avaliacaoRuas', rua);
+    }
+    await softDeleteAvaliacaoRecord('avaliacaoParcelas', parcelaAtual);
+  }
+
+  await recalcularResumoAvaliacao(avaliacao.id);
+  const avaliacaoAtualizada =
+    (await sincronizarStatusFinalAvaliacaoAposEdicao(avaliacao.id)) ||
+    (await repository.get('avaliacoes', avaliacao.id)) ||
+    nextAvaliacao;
+  await criarLogAvaliacao({
+    avaliacaoId: avaliacao.id,
+    colaboradorId: responsavelId,
+    acao: 'avaliacao_configuracao_editada',
+    descricao:
+      'Configuracao da avaliacao atualizada com preservacao dos registros existentes sempre que a parcela e a rua permaneceram ativas.',
+  });
 
   return {
-    avaliacao: nextAvaliacao,
+    avaliacao: avaliacaoAtualizada,
     participantes,
     parcelas,
     ruas,
@@ -1281,6 +1594,7 @@ export const salvarRegistroColeta = async (input: {
   }
 
   await recalcularResumoAvaliacao(input.avaliacaoId);
+  await sincronizarStatusFinalAvaliacaoAposEdicao(input.avaliacaoId);
   return registro;
 };
 
@@ -1373,6 +1687,7 @@ export const marcarFalhaRua = async (input: {
 
   await saveEntity('avaliacaoRuas', nextRua);
   await recalcularResumoAvaliacao(input.avaliacaoId);
+  await sincronizarStatusFinalAvaliacaoAposEdicao(input.avaliacaoId);
   return nextRua;
 };
 
@@ -1393,6 +1708,7 @@ export const limparFalhaRua = async (input: {
 
   await saveEntity('avaliacaoRuas', nextRua);
   await recalcularResumoAvaliacao(input.avaliacaoId);
+  await sincronizarStatusFinalAvaliacaoAposEdicao(input.avaliacaoId);
   return nextRua;
 };
 

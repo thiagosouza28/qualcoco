@@ -1,6 +1,7 @@
 import { nowIso } from '@/core/date';
 import { getOrCreateDevice } from '@/core/device';
 import { notificarNovaParcela } from '@/core/notifications';
+import { normalizarCodigoParcela } from '@/core/parcelCode';
 import {
   getAccessContext,
   normalizePerfilUsuario,
@@ -13,13 +14,6 @@ import type {
   ParcelaPlanejada,
 } from '@/core/types';
 
-const normalizeCodigoParcela = (value: string) =>
-  String(value || '')
-    .trim()
-    .toUpperCase()
-    .replace(/\s+/g, '')
-    .replace(/^([A-Z])(\d{1,3})$/, '$1-$2');
-
 const getEquipeNome = (equipe?: Equipe | null) =>
   equipe?.nome || (typeof equipe?.numero === 'number' ? String(equipe.numero).padStart(2, '0') : '');
 
@@ -27,7 +21,7 @@ const getColaboradorNome = (colaborador?: Colaborador | null) =>
   colaborador?.nome || colaborador?.primeiroNome || '';
 
 export const garantirParcelaCatalogo = async (codigo: string) => {
-  const normalizedCodigo = normalizeCodigoParcela(codigo);
+  const normalizedCodigo = normalizarCodigoParcela(codigo);
   if (!normalizedCodigo) {
     throw new Error('Informe o codigo da parcela.');
   }
@@ -36,7 +30,7 @@ export const garantirParcelaCatalogo = async (codigo: string) => {
     'parcelas',
     (item) =>
       !item.deletadoEm &&
-      normalizeCodigoParcela(item.codigo) === normalizedCodigo,
+      normalizarCodigoParcela(item.codigo) === normalizedCodigo,
   );
 
   if (existentes[0]) {
@@ -62,7 +56,7 @@ export const cadastrarParcelaPlanejada = async (input: {
   criadoPor: string;
   origem: ParcelaPlanejada['origem'];
 }) => {
-  const normalizedCodigo = normalizeCodigoParcela(input.codigo);
+  const normalizedCodigo = normalizarCodigoParcela(input.codigo);
   if (!normalizedCodigo) {
     throw new Error('Informe o codigo da parcela.');
   }
@@ -103,7 +97,7 @@ export const cadastrarParcelaPlanejada = async (input: {
     (item) =>
       !item.deletadoEm &&
       item.status !== 'concluida' &&
-      normalizeCodigoParcela(item.codigo) === normalizedCodigo &&
+      normalizarCodigoParcela(item.codigo) === normalizedCodigo &&
       String(item.equipeId || '') === String(input.equipeId || '') &&
       item.dataColheita === input.dataColheita,
   );

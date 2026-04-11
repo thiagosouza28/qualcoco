@@ -28,7 +28,15 @@ import {
   obterAvaliacaoDetalhada,
 } from '@/core/evaluations';
 import { clamp } from '@/core/plots';
-import { canStartEvaluation, filtrarEquipesVisiveis } from '@/core/permissions';
+import {
+  canEditCompletedEvaluation,
+  canStartEvaluation,
+  filtrarEquipesVisiveis,
+} from '@/core/permissions';
+import {
+  codigoParcelaCorrespondeBusca,
+  formatarCodigoParcela,
+} from '@/core/parcelCode';
 import { repository } from '@/core/repositories';
 import { ListaParcelas } from '@/components/ListaParcelas';
 import { Button } from '@/components/ui/button';
@@ -40,6 +48,7 @@ import { Badge } from '@/components/ui/badge';
 import { todayIso } from '@/core/date';
 import { listarParcelasPlanejadasVisiveis } from '@/core/plannedParcels';
 import { useRolePermissions } from '@/core/useRolePermissions';
+import { MAX_PARCELAS } from '@/core/constants';
 import { cn } from '@/utils';
 import type {
   FaixaFalhaParcela,
@@ -64,19 +73,6 @@ type ConfigMap = Record<
 >;
 
 type Step = 'participantes' | 'parcelas' | 'equipes' | 'revisao';
-
-const formatarBuscaParcela = (value: string) => {
-  const sanitized = String(value || '')
-    .toUpperCase()
-    .replace(/[^A-Z0-9]/g, '');
-
-  const letra = sanitized.slice(0, 1).replace(/[^A-Z]/g, '');
-  const numeros = sanitized.slice(1).replace(/\D/g, '').slice(0, 3);
-
-  if (!letra) return numeros;
-  if (!numeros) return letra;
-  return `${letra}-${numeros}`;
-};
 
 const formatarAlinhamentoTipo = (value: 'inferior-impar' | 'inferior-par') =>
   value === 'inferior-impar' ? 'Ímpar' : 'Par';
@@ -196,7 +192,6 @@ export function TelaNovaAvaliacao() {
   const isEditMode = Boolean(editingId);
   const initializedEditRef = useRef<string | null>(null);
   const plannedParcelInitRef = useRef<string | null>(null);
-  const dataAvaliacaoEdicao = todayIso();
   
   const [step, setStep] = useState<Step>('participantes');
   const [temMaisPessoas, setTemMaisPessoas] = useState<boolean | null>(null);
@@ -254,6 +249,8 @@ export function TelaNovaAvaliacao() {
     queryFn: () => obterAvaliacaoDetalhada(editingId, usuarioAtual?.id),
     enabled: Boolean(isEditMode && editingId && usuarioAtual?.id),
   });
+  const dataAvaliacaoEdicao =
+    editData?.avaliacao?.dataAvaliacao || todayIso();
 
   const parcelasCatalogo = useMemo(() => {
     const unicas = new Map<string, (typeof parcelas)[number]>();
@@ -294,9 +291,7 @@ export function TelaNovaAvaliacao() {
   const parcelasFiltradas = useMemo(
     () =>
       parcelasCatalogo
-        .filter((item) =>
-          item.codigo.toLowerCase().includes(buscaParcela.trim().toLowerCase()),
-        )
+        .filter((item) => codigoParcelaCorrespondeBusca(item.codigo, buscaParcela))
         .slice(0, 24),
     [buscaParcela, parcelasCatalogo],
   );
@@ -502,6 +497,7 @@ export function TelaNovaAvaliacao() {
     setLinhaFimEq1(Boolean(equipeSecundaria) ? faixaEquipePrimaria.fim : '');
     setLinhaInicioEq2(faixaEquipeSecundaria.inicio);
     setLinhaFimEq2(faixaEquipeSecundaria.fim);
+    setParcelaPlanejadaIds(editData.parcelasPlanejadas.map((item) => item.id));
   }, [editData, editingId, isEditMode, responsavelId]);
 
   useEffect(() => {
@@ -769,7 +765,7 @@ export function TelaNovaAvaliacao() {
       return;
     }
 
-    if (selecionadas.length >= 3) return;
+    if (selecionadas.length >= MAX_PARCELAS) return;
 
     setSelecionadas((current) =>
       ordenarParcelasSelecionadas([...current, parcelaId]),
@@ -1020,7 +1016,7 @@ export function TelaNovaAvaliacao() {
     if (
       isEditMode &&
       !confirm(
-        'Salvar esta edição completa? Parcelas, alinhamentos, equipes, ruas programadas e registros atuais serão reprocessados como uma nova configuração.',
+        'Salvar esta edição completa? O app vai atualizar parcelas, equipes e ruas preservando os registros atuais sempre que a mesma parcela e a mesma rua continuarem na avaliação.',
       )
     ) {
       return;
@@ -1093,14 +1089,21 @@ export function TelaNovaAvaliacao() {
     );
   };
 
-  if (!canStartEvaluation(usuarioAtual?.perfil, permissionMatrix)) {
+  const podeConfigurarAvaliacao =
+    canStartEvaluation(usuarioAtual?.perfil, permissionMatrix) ||
+    (isEditMode &&
+      canEditCompletedEvaluation(usuarioAtual?.perfil, permissionMatrix));
+
+  if (!podeConfigurarAvaliacao) {
     return (
       <LayoutMobile
         title={isEditMode ? 'Editar avaliacao' : 'Avaliacao'}
         subtitle="Acesso restrito"
-        onBack={() => navigate('/dashboard')}
+        onBack={() =>
+          navigate(isEditMode ? `/detalhe/${editingId}` : '/dashboard')
+        }
       >
-        <AccessDeniedCard description="A abertura e configuracao da avaliacao so aparecem quando essa funcao esta liberada para o seu perfil pelo administrador." />
+        <AccessDeniedCard description="A abertura da avaliacao e a edicao da configuracao so aparecem quando essa funcao esta liberada para o seu perfil pelo administrador." />
       </LayoutMobile>
     );
   }
@@ -1319,7 +1322,7 @@ export function TelaNovaAvaliacao() {
                     <h2 className="text-lg font-black text-white tracking-tight uppercase">Seleção de Parcelas</h2>
                   </div>
                   <Badge className="border-none bg-white/16 px-3 py-1 font-black text-white">
-                    {selecionadas.length} / 3
+                    {selecionadas.length} / {MAX_PARCELAS}
                   </Badge>
                 </div>
                 <CardContent className="stack-md p-4">
@@ -1329,9 +1332,9 @@ export function TelaNovaAvaliacao() {
                       <Input
                         value={buscaParcela}
                         className="h-12 rounded-[18px] pl-12 font-bold text-base"
-                        placeholder="Código (Ex: A-121)"
+                        placeholder="Código (Ex: G-156-1)"
                         onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                          setBuscaParcela(formatarBuscaParcela(event.target.value))
+                          setBuscaParcela(formatarCodigoParcela(event.target.value))
                         }
                       />
                       <div className="absolute left-4 top-4">
@@ -2180,12 +2183,12 @@ export function TelaNovaAvaliacao() {
                 </div>
                 <CardContent className="stack-md p-5">
                    {isEditMode ? (
-                     <div className="rounded-2xl border border-[rgba(197,58,53,0.18)] bg-[rgba(197,58,53,0.05)] px-4 py-3">
+                   <div className="rounded-2xl border border-[rgba(197,58,53,0.18)] bg-[rgba(197,58,53,0.05)] px-4 py-3">
                        <p className="text-sm font-semibold text-[var(--qc-text)]">
                          Esta edição é completa.
                        </p>
                        <p className="mt-1 text-sm text-[var(--qc-text-muted)]">
-                         Ao salvar, a avaliação será reconfigurada com parcelas, equipes, alinhamentos e ruas planejadas novamente.
+                         Ao salvar, o planejamento será atualizado e os registros existentes serão mantidos sempre que a parcela e a rua correspondente continuarem nesta avaliação.
                        </p>
                      </div>
                    ) : null}

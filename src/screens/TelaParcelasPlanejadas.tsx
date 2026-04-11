@@ -16,24 +16,17 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { useCampoApp } from '@/core/AppProvider';
 import { todayIso } from '@/core/date';
+import {
+  codigoParcelaCorrespondeBusca,
+  formatarCodigoParcela,
+  normalizarCodigoParcela,
+} from '@/core/parcelCode';
 import { filtrarEquipesVisiveis, normalizePerfilUsuario } from '@/core/permissions';
 import {
   cadastrarParcelaPlanejada,
   listarParcelasPlanejadasVisiveis,
 } from '@/core/plannedParcels';
-
-const formatarCodigoParcela = (value: string) => {
-  const sanitized = String(value || '')
-    .toUpperCase()
-    .replace(/[^A-Z0-9]/g, '');
-
-  const letra = sanitized.slice(0, 1).replace(/[^A-Z]/g, '');
-  const numeros = sanitized.slice(1).replace(/\D/g, '').slice(0, 3);
-
-  if (!letra) return numeros;
-  if (!numeros) return letra;
-  return `${letra}-${numeros}`;
-};
+import { repository } from '@/core/repositories';
 
 export function TelaParcelasPlanejadas() {
   const navigate = useNavigate();
@@ -63,6 +56,11 @@ export function TelaParcelasPlanejadas() {
       }),
     enabled: Boolean(usuarioAtual?.id),
   });
+  const { data: parcelasCatalogo = [] } = useQuery({
+    queryKey: ['parcelas', 'planejadas', 'catalogo'],
+    queryFn: () => repository.list('parcelas'),
+    staleTime: 60_000,
+  });
 
   useEffect(() => {
     if (perfil === 'fiscal' && equipes[0] && !equipeId) {
@@ -78,6 +76,25 @@ export function TelaParcelasPlanejadas() {
       retoque: parcelasPlanejadas.filter((item) => item.status === 'em_retoque'),
     }),
     [parcelasPlanejadas],
+  );
+  const sugestoesParcelas = useMemo(() => {
+    const codigoNormalizado = normalizarCodigoParcela(codigo);
+    if (!codigoNormalizado) {
+      return [];
+    }
+
+    return parcelasCatalogo
+      .filter((item) => item.ativo && !item.deletadoEm)
+      .filter((item) => codigoParcelaCorrespondeBusca(item.codigo, codigoNormalizado))
+      .sort((a, b) => a.codigo.localeCompare(b.codigo, 'pt-BR', { numeric: true }))
+      .slice(0, 8);
+  }, [codigo, parcelasCatalogo]);
+  const codigoTemSugestaoExata = useMemo(
+    () =>
+      sugestoesParcelas.some(
+        (item) => normalizarCodigoParcela(item.codigo) === normalizarCodigoParcela(codigo),
+      ),
+    [codigo, sugestoesParcelas],
   );
 
   const mutation = useMutation({
@@ -137,11 +154,43 @@ export function TelaParcelasPlanejadas() {
             <div className="grid gap-3 sm:grid-cols-2">
               <Input
                 value={codigo}
-                placeholder="Codigo da parcela"
+                placeholder="Codigo da parcela (ex: G-156-1)"
                 onChange={(event: ChangeEvent<HTMLInputElement>) =>
                   setCodigo(formatarCodigoParcela(event.target.value))
                 }
               />
+              {sugestoesParcelas.length > 0 ? (
+                <div className="sm:col-span-2">
+                  <div className="rounded-[18px] border border-[var(--qc-border)] bg-white p-3">
+                    <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
+                      Parcelas ja cadastradas
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {sugestoesParcelas.map((item) => {
+                        const selecionada =
+                          normalizarCodigoParcela(item.codigo) ===
+                          normalizarCodigoParcela(codigo);
+                        return (
+                          <Button
+                            key={item.id}
+                            type="button"
+                            variant={selecionada ? 'default' : 'outline'}
+                            className="h-9 rounded-2xl px-3 font-bold"
+                            onClick={() => setCodigo(item.codigo)}
+                          >
+                            {item.codigo}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                    <p className="mt-2 text-xs text-[var(--qc-text-muted)]">
+                      {codigoTemSugestaoExata
+                        ? 'Codigo encontrado no catalogo.'
+                        : 'Selecione uma parcela existente ou continue digitando para cadastrar um novo codigo.'}
+                    </p>
+                  </div>
+                </div>
+              ) : null}
               <Select
                 value={equipeId}
                 onValueChange={setEquipeId}

@@ -24,6 +24,7 @@ import {
 import { saveEntity } from '@/core/repositories';
 import { nowIso } from '@/core/date';
 import {
+  canEditCompletedEvaluation,
   canOperateAssignedRetoque,
   canStartEvaluation,
   normalizePapelAvaliacao,
@@ -532,18 +533,24 @@ export function TelaRegistroLinhas() {
     }
   }, [data, isFetched, navigate]);
 
+  const avaliacaoTipoAtual = data?.avaliacao?.tipo || 'normal';
+  const statusAtualAvaliacao = String(data?.avaliacao?.status || '').trim().toLowerCase();
+  const edicaoConcluidaLiberada =
+    ['completed', 'ok', 'refazer', 'revisado'].includes(statusAtualAvaliacao) &&
+    canEditCompletedEvaluation(usuarioAtual?.perfil, permissionMatrix);
+  const avaliacaoAberta =
+    statusAtualAvaliacao === 'draft' || statusAtualAvaliacao === 'in_progress';
+
   useEffect(() => {
     const status = data?.avaliacao?.status;
     if (!isFetched || !status) {
       return;
     }
 
-    if (status !== 'draft' && status !== 'in_progress') {
+    if (!avaliacaoAberta && !edicaoConcluidaLiberada) {
       navigate(`/detalhe/${id}`, { replace: true });
     }
-  }, [data?.avaliacao?.status, id, isFetched, navigate]);
-
-  const avaliacaoTipoAtual = data?.avaliacao?.tipo || 'normal';
+  }, [avaliacaoAberta, data?.avaliacao?.status, edicaoConcluidaLiberada, id, isFetched, navigate]);
   const podeEditarFluxoAtual =
     avaliacaoTipoAtual === 'retoque'
       ? canOperateAssignedRetoque({
@@ -555,7 +562,8 @@ export function TelaRegistroLinhas() {
           designadoParaIds: data?.avaliacao?.retoqueDesignadoParaIds,
           matrix: permissionMatrix,
         })
-      : canStartEvaluation(usuarioAtual?.perfil, permissionMatrix);
+      : canStartEvaluation(usuarioAtual?.perfil, permissionMatrix) ||
+        edicaoConcluidaLiberada;
 
   const ruas = useMemo(() => data?.ruas || [], [data]);
   const ruaAtual = ruas[ruaIndex] || null;
@@ -1125,7 +1133,7 @@ export function TelaRegistroLinhas() {
         return;
       }
 
-      if (result?.next) {
+      if (result?.next && !edicaoConcluidaLiberada) {
         setShowFinalizacaoModal(true);
       }
     },
@@ -1566,9 +1574,25 @@ export function TelaRegistroLinhas() {
     <LayoutMobile
       title={parcelaAtual?.parcelaCodigo || data?.avaliacao?.parcelaCodigo || 'Registro'}
       subtitle={`Equipe ${equipeAtual}`}
-      onBack={() => navigate('/dashboard')}
+      onBack={() =>
+        navigate(edicaoConcluidaLiberada ? `/detalhe/${id}` : '/dashboard')
+      }
     >
       <div className="stack-lg">
+        {edicaoConcluidaLiberada ? (
+          <Card className="surface-card border-none shadow-sm">
+            <CardContent className="p-4">
+              <p className="text-sm font-black tracking-tight text-[var(--qc-text)]">
+                Edição em avaliação finalizada
+              </p>
+              <p className="mt-1 text-sm text-[var(--qc-text-muted)]">
+                Ajustes de rua, equipe, cocos, cachos e observações ficam liberados aqui
+                sem reabrir a coleta e sem apagar os registros já vinculados.
+              </p>
+            </CardContent>
+          </Card>
+        ) : null}
+
         <Dialog open={showRetoqueModal} onOpenChange={setShowRetoqueModal}>
           <DialogContent className="max-w-[420px]">
             <DialogHeader>
@@ -2031,9 +2055,13 @@ export function TelaRegistroLinhas() {
             variant="outline"
             size="lg"
             className="h-14 rounded-[18px] text-base font-bold"
-            onClick={handleFinalizar}
+            onClick={() =>
+              edicaoConcluidaLiberada
+                ? navigate(`/detalhe/${id}`)
+                : void handleFinalizar()
+            }
           >
-            Finalizar
+            {edicaoConcluidaLiberada ? 'Voltar' : 'Finalizar'}
           </Button>
 
           <Button
@@ -2042,7 +2070,11 @@ export function TelaRegistroLinhas() {
             disabled={saveMutation.isPending || !ruaAtual}
             onClick={handleNextRua}
           >
-            {obterProximaRuaPendente(ruaIndex) == null ? 'Salvar' : 'Salvar e Próxima'}
+            {edicaoConcluidaLiberada
+              ? 'Salvar ajuste'
+              : obterProximaRuaPendente(ruaIndex) == null
+                ? 'Salvar'
+                : 'Salvar e Próxima'}
             <ChevronRight className="h-5 w-5" />
           </Button>
         </div>
