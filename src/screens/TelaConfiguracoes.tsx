@@ -42,8 +42,7 @@ export function TelaConfiguracoes() {
     updateMessage,
     availableUpdate,
     installReadyForAvailableUpdate,
-    checkForUpdate,
-    openUpdate,
+    refreshAndOpenUpdate,
   } = useAppUpdate();
   const {
     config,
@@ -132,12 +131,12 @@ export function TelaConfiguracoes() {
   );
 
   const handleUpdateAction = async () => {
-    if (availableUpdate) {
-      await openUpdate();
+    const result = await refreshAndOpenUpdate();
+
+    if (result.status === 'available') {
       return;
     }
 
-    const result = await checkForUpdate();
     if (result.status === 'up-to-date') {
       alert(`O app já está na versão mais recente (${result.currentVersion}).`);
       return;

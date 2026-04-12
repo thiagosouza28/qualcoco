@@ -11,7 +11,7 @@ export function AppUpdateDialog() {
     updateMessage,
     installReadyForAvailableUpdate,
     dismissUpdate,
-    openUpdate,
+    refreshAndOpenUpdate,
   } = useAppUpdate();
 
   if (!availableUpdate || !updateDialogOpen) {
@@ -78,7 +78,7 @@ export function AppUpdateDialog() {
                 size="lg"
                 className="h-12 w-full rounded-[18px] text-base font-bold"
                 onClick={() => {
-                  void openUpdate();
+                  void refreshAndOpenUpdate();
                 }}
                 disabled={updatingApp}
               >

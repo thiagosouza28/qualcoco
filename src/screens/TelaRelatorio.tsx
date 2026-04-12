@@ -23,12 +23,26 @@ import {
   obterApresentacaoEstadoColetaRua,
 } from '@/core/registroRua';
 import { createRelatorioPdfBlob } from '@/lib/relatorioPdf';
-import { formatDateTimeLabel, todayIso } from '@/core/date';
+import {
+  formatDateLabel,
+  formatDateTimeLabel,
+  normalizeDateKey,
+  todayIso,
+} from '@/core/date';
 
 const ROWS_PER_PAGE = 40;
 const DEFAULT_TEAM_SPACER_ROWS = 3;
 const MAX_TEAM_SPACER_ROWS = 8;
+const TEAM_HISTORY_DAYS = 7;
+const TEAM_HISTORY_ENTRIES = 4;
 const REFERENTE_LABEL = `Referente${String.fromCharCode(160)}a`;
+
+const formatDateKeyRelatorio = (date: Date) =>
+  [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0'),
+  ].join('-');
 
 const padRelatorioNumero = (value: number | string | null | undefined) => {
   const parsed = Number(value);
@@ -74,7 +88,7 @@ const normalizarSiglasResumoParcela = (
 };
 
 const formatStatusRelatorio = (value: string | null | undefined) => {
-  if (value === 'ok') return 'OK';
+  if (value === 'ok' || value === 'completed') return 'OK';
   if (value === 'revisado') return 'Revisado';
   if (value === 'em_retoque') return 'Em retoque';
   if (value === 'refazer') return 'Retoque';
@@ -94,6 +108,74 @@ const mergeStatusRelatorio = (
 
 const formatResumoContagem = (value: number, singular: string, plural: string) =>
   `${value} ${value === 1 ? singular : plural}`;
+
+const buildDateWindowRelatorio = (anchor: string, total: number) => {
+  const normalizedAnchor = normalizeDateKey(anchor) || todayIso();
+  const baseDate = new Date(`${normalizedAnchor}T12:00:00`);
+
+  if (Number.isNaN(baseDate.getTime())) {
+    return [];
+  }
+
+  return Array.from({ length: total }, (_, index) => {
+    const nextDate = new Date(baseDate);
+    nextDate.setDate(baseDate.getDate() - (total - index - 1));
+    return formatDateKeyRelatorio(nextDate);
+  });
+};
+
+const formatDiaCurtoRelatorio = (value: string) => {
+  const date = new Date(`${value}T12:00:00`);
+  if (Number.isNaN(date.getTime())) {
+    return '--';
+  }
+
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+  }).format(date);
+};
+
+const getHistoricoEquipeStatusMeta = (value?: string | null) => {
+  const normalized = String(value || '').trim().toLowerCase();
+
+  if (normalized === 'refazer' || normalized === 'em_retoque') {
+    return {
+      label: 'Retoque',
+      dotClassName: 'bg-[var(--qc-danger)]',
+      surfaceClassName:
+        'border-[rgba(197,58,53,0.22)] bg-[rgba(197,58,53,0.08)] text-[var(--qc-danger)]',
+    };
+  }
+
+  if (
+    normalized === 'ok' ||
+    normalized === 'revisado' ||
+    normalized === 'completed'
+  ) {
+    return {
+      label: 'Positivo',
+      dotClassName: 'bg-[#1f61a4]',
+      surfaceClassName:
+        'border-[rgba(31,97,164,0.22)] bg-[rgba(31,97,164,0.08)] text-[#1f61a4]',
+    };
+  }
+
+  if (normalized === 'draft' || normalized === 'in_progress') {
+    return {
+      label: 'Andamento',
+      dotClassName: 'bg-[#dd7c29]',
+      surfaceClassName:
+        'border-[rgba(221,124,41,0.22)] bg-[rgba(221,124,41,0.08)] text-[#b45c13]',
+    };
+  }
+
+  return {
+    label: 'Sem registro',
+    dotClassName: 'bg-[rgba(93,98,78,0.3)]',
+    surfaceClassName:
+      'border-[var(--qc-border)] bg-[var(--qc-surface-muted)] text-[var(--qc-text-muted)]',
+  };
+};
 
 const formatRuaRelatorio = (
   linhaInicial: number | string | null | undefined,
@@ -242,6 +324,16 @@ type RelatorioPdfGroup = {
   rows: RelatorioPdfRow[];
 };
 
+type GrupoHistoricoEquipe = {
+  id: string;
+  equipe: string;
+  equipeSort: number;
+  data: string;
+  status: string;
+  responsaveis: string[];
+  parcelas: string[];
+};
+
 const paginateGroupedRows = (
   groups: RelatorioPdfGroup[],
   rowsPerPage: number,
@@ -349,8 +441,8 @@ export function TelaRelatorio() {
     DEFAULT_TEAM_SPACER_ROWS,
   );
 
-  const { data: avaliacoes = [] } = useQuery({
-    queryKey: ['relatorio', 'avaliacoes', dataFiltro, usuarioAtual?.id],
+  const { data: avaliacoesHistorico = [] } = useQuery({
+    queryKey: ['relatorio', 'avaliacoes', usuarioAtual?.id],
     queryFn: async () => {
       if (!usuarioAtual?.id) {
         return [];
@@ -363,7 +455,6 @@ export function TelaRelatorio() {
 
       return all.filter(
         (item) =>
-          item.dataAvaliacao === dataFiltro &&
           !item.deletadoEm &&
           (item.usuarioId === usuarioAtual.id ||
             avaliacaoIdsAcessiveis.has(item.id)),
@@ -397,6 +488,12 @@ export function TelaRelatorio() {
     queryFn: () => repository.list('avaliacaoParcelas'),
   });
 
+  const avaliacoes = useMemo(
+    () =>
+      avaliacoesHistorico.filter((item) => normalizeDateKey(item.dataAvaliacao) === dataFiltro),
+    [avaliacoesHistorico, dataFiltro],
+  );
+
   const avaliacaoIds = useMemo(
     () => new Set(avaliacoes.map((item) => item.id)),
     [avaliacoes],
@@ -409,11 +506,41 @@ export function TelaRelatorio() {
     }
   }, [routeState]);
 
+  const colaboradoresMap = useMemo(
+    () => new Map(colaboradores.map((item) => [item.id, item])),
+    [colaboradores],
+  );
+
+  const responsaveisPorAvaliacao = useMemo(
+    () =>
+      participantes.reduce<Record<string, string[]>>((acc, item) => {
+        if (item.deletadoEm) return acc;
+        if (normalizePapelAvaliacao(item.papel) !== 'responsavel_principal') return acc;
+
+        const nome =
+          item.colaboradorPrimeiroNome ||
+          item.colaboradorNome ||
+          colaboradoresMap.get(item.colaboradorId)?.primeiroNome ||
+          colaboradoresMap.get(item.colaboradorId)?.nome ||
+          '';
+        if (!nome) return acc;
+
+        acc[item.avaliacaoId] = acc[item.avaliacaoId] || [];
+        if (!acc[item.avaliacaoId].includes(nome)) {
+          acc[item.avaliacaoId].push(nome);
+        }
+        return acc;
+      }, {}),
+    [colaboradoresMap, participantes],
+  );
+
+  const parcelaCodigoMap = useMemo(
+    () => new Map(avaliacaoParcelas.map((item) => [item.id, item.parcelaCodigo])),
+    [avaliacaoParcelas],
+  );
+
   const linhasDoDia = useMemo(() => {
     const avaliacaoMap = new Map(avaliacoes.map((item) => [item.id, item]));
-    const parcelaMap = new Map(
-      avaliacaoParcelas.map((item) => [item.id, item.parcelaCodigo]),
-    );
     const registrosAtivos = new Set(
       registros.filter((item) => !item.deletadoEm).map((item) => item.ruaId),
     );
@@ -431,7 +558,7 @@ export function TelaRelatorio() {
           id: rua.id,
           avaliacaoId: rua.avaliacaoId,
           parcela:
-            parcelaMap.get(rua.avaliacaoParcelaId) ||
+            parcelaCodigoMap.get(rua.avaliacaoParcelaId) ||
             avaliacao?.parcelaCodigo ||
             'Parcela',
           data: rua.dataAvaliacao || avaliacao?.dataAvaliacao || dataFiltro,
@@ -458,33 +585,9 @@ export function TelaRelatorio() {
         }
         return a.linhaFinal - b.linhaFinal;
       });
-  }, [avaliacaoIds, avaliacaoParcelas, avaliacoes, dataFiltro, registros, ruas]);
+  }, [avaliacaoIds, avaliacoes, dataFiltro, parcelaCodigoMap, registros, ruas]);
 
   const gruposConsolidados = useMemo(() => {
-    const colaboradoresMap = new Map(
-      colaboradores.map((item) => [item.id, item]),
-    );
-    const responsaveisPorAvaliacao = participantes.reduce<
-      Record<string, string[]>
-    >((acc, item) => {
-      if (item.deletadoEm) return acc;
-      if (normalizePapelAvaliacao(item.papel) !== 'responsavel_principal') return acc;
-
-      const nome =
-        item.colaboradorPrimeiroNome ||
-        item.colaboradorNome ||
-        colaboradoresMap.get(item.colaboradorId)?.primeiroNome ||
-        colaboradoresMap.get(item.colaboradorId)?.nome ||
-        '';
-      if (!nome) return acc;
-
-      acc[item.avaliacaoId] = acc[item.avaliacaoId] || [];
-      if (!acc[item.avaliacaoId].includes(nome)) {
-        acc[item.avaliacaoId].push(nome);
-      }
-      return acc;
-    }, {});
-
     const groups = new Map<
       string,
       {
@@ -542,7 +645,130 @@ export function TelaRelatorio() {
         }
         return a.data.localeCompare(b.data, 'pt-BR', { numeric: true });
       });
-  }, [linhasDoDia, participantes, colaboradores]);
+  }, [linhasDoDia, responsaveisPorAvaliacao]);
+
+  const gruposHistoricoEquipes = useMemo<GrupoHistoricoEquipe[]>(() => {
+    const avaliacaoMap = new Map(
+      avaliacoesHistorico.map((item) => [item.id, item]),
+    );
+    const groups = new Map<
+      string,
+      {
+        id: string;
+        equipe: string;
+        equipeSort: number;
+        data: string;
+        status: string;
+        responsaveis: Set<string>;
+        parcelas: Set<string>;
+      }
+    >();
+
+    ruas
+      .filter((item) => !item.deletadoEm && avaliacaoMap.has(item.avaliacaoId))
+      .forEach((rua) => {
+        const avaliacao = avaliacaoMap.get(rua.avaliacaoId);
+        const data = normalizeDateKey(rua.dataAvaliacao || avaliacao?.dataAvaliacao);
+        if (!data || data > dataFiltro) {
+          return;
+        }
+
+        const equipe = formatEquipeRelatorio(rua.equipeNome || avaliacao?.equipeNome);
+        const key = `${equipe}::${data}`;
+        const current = groups.get(key);
+        const responsaveis = responsaveisPorAvaliacao[rua.avaliacaoId] || [];
+        const parcela =
+          parcelaCodigoMap.get(rua.avaliacaoParcelaId) ||
+          avaliacao?.parcelaCodigo ||
+          'Parcela';
+
+        if (!current) {
+          groups.set(key, {
+            id: key,
+            equipe,
+            equipeSort: getEquipeSortValue(rua.equipeNome || avaliacao?.equipeNome),
+            data,
+            status: avaliacao?.status || 'in_progress',
+            responsaveis: new Set(responsaveis),
+            parcelas: new Set(parcela ? [parcela] : []),
+          });
+          return;
+        }
+
+        current.status = mergeStatusRelatorio(current.status, avaliacao?.status);
+        responsaveis.forEach((responsavel) => current.responsaveis.add(responsavel));
+        if (parcela) {
+          current.parcelas.add(parcela);
+        }
+      });
+
+    return Array.from(groups.values())
+      .map((group) => ({
+        ...group,
+        responsaveis: Array.from(group.responsaveis).sort((a, b) =>
+          a.localeCompare(b, 'pt-BR', { numeric: true }),
+        ),
+        parcelas: Array.from(group.parcelas).sort((a, b) =>
+          a.localeCompare(b, 'pt-BR', { numeric: true }),
+        ),
+      }))
+      .sort((a, b) => {
+        if (a.equipeSort !== b.equipeSort) {
+          return a.equipeSort - b.equipeSort;
+        }
+        if (a.equipe !== b.equipe) {
+          return a.equipe.localeCompare(b.equipe, 'pt-BR', { numeric: true });
+        }
+        return b.data.localeCompare(a.data, 'pt-BR', { numeric: true });
+      });
+  }, [avaliacoesHistorico, dataFiltro, parcelaCodigoMap, responsaveisPorAvaliacao, ruas]);
+
+  const historicoPorEquipe = useMemo(() => {
+    const janelaDatas = buildDateWindowRelatorio(dataFiltro, TEAM_HISTORY_DAYS);
+    const groups = new Map<
+      string,
+      {
+        equipe: string;
+        equipeSort: number;
+        registros: GrupoHistoricoEquipe[];
+      }
+    >();
+
+    gruposHistoricoEquipes.forEach((item) => {
+      const current = groups.get(item.equipe) || {
+        equipe: item.equipe,
+        equipeSort: item.equipeSort,
+        registros: [],
+      };
+      current.registros.push(item);
+      groups.set(item.equipe, current);
+    });
+
+    return Array.from(groups.values())
+      .map((group) => {
+        const registros = group.registros
+          .slice()
+          .sort((a, b) => b.data.localeCompare(a.data, 'pt-BR', { numeric: true }));
+        const mapaDatas = new Map(registros.map((item) => [item.data, item]));
+        const totalParcelas = new Set(registros.flatMap((item) => item.parcelas)).size;
+
+        return {
+          ...group,
+          totalParcelas,
+          janela: janelaDatas.map((data) => ({
+            data,
+            registro: mapaDatas.get(data) || null,
+          })),
+          ultimosRegistros: registros.slice(0, TEAM_HISTORY_ENTRIES),
+        };
+      })
+      .sort((a, b) => {
+        if (a.equipeSort !== b.equipeSort) {
+          return a.equipeSort - b.equipeSort;
+        }
+        return a.equipe.localeCompare(b.equipe, 'pt-BR', { numeric: true });
+      });
+  }, [dataFiltro, gruposHistoricoEquipes]);
 
   const stats = useMemo(() => {
     const avaliacaoIdsComDados = new Set(linhasDoDia.map((item) => item.avaliacaoId));
@@ -1088,6 +1314,120 @@ export function TelaRelatorio() {
                           {formatStatusRelatorio(item.status)}
                         </p>
                       </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="stack-md">
+          <div className="px-1">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2 className="text-xl font-black tracking-tight text-[var(--qc-text)] sm:text-[1.35rem]">
+                  Histórico por Equipe
+                </h2>
+                <p className="mt-1 text-sm leading-relaxed text-[var(--qc-text-muted)]">
+                  Azul indica dia positivo e vermelho indica dia com retoque.
+                </p>
+              </div>
+              <span className="inline-flex w-fit whitespace-nowrap rounded-full border border-[var(--qc-border)] bg-[var(--qc-surface-muted)] px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
+                Últimos {TEAM_HISTORY_DAYS} dias até {formatDateLabel(dataFiltro)}
+              </span>
+            </div>
+          </div>
+
+          {historicoPorEquipe.length === 0 ? (
+            <Card className="surface-card border-none shadow-sm">
+              <CardContent className="p-6 text-center">
+                <p className="text-sm font-medium text-[var(--qc-text-muted)]">
+                  Nenhum histórico por equipe encontrado até a data selecionada.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="stack-md">
+              {historicoPorEquipe.map((item) => (
+                <Card key={item.equipe} className="surface-card border-none shadow-sm">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-lg font-black tracking-tight text-[var(--qc-text)]">
+                          Equipe {item.equipe}
+                        </p>
+                        <p className="mt-1 text-sm text-[var(--qc-text-muted)]">
+                          {formatResumoContagem(item.totalParcelas, 'parcela', 'parcelas')} no histórico
+                        </p>
+                      </div>
+
+                      <span className="inline-flex rounded-full border border-[var(--qc-border-strong)] bg-[var(--qc-tertiary)] px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-[var(--qc-primary)]">
+                        {formatResumoContagem(item.registros.length, 'registro', 'registros')}
+                      </span>
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-7 gap-2">
+                      {item.janela.map(({ data, registro }) => {
+                        const meta = getHistoricoEquipeStatusMeta(registro?.status);
+                        return (
+                          <div
+                            key={`${item.equipe}-${data}`}
+                            className={`rounded-[16px] border px-2 py-3 text-center ${meta.surfaceClassName}`}
+                          >
+                            <p className="text-[10px] font-extrabold uppercase tracking-[0.16em]">
+                              {formatDiaCurtoRelatorio(data)}
+                            </p>
+                            <span className={`mx-auto mt-2 block h-2.5 w-2.5 rounded-full ${meta.dotClassName}`} />
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="mt-4 stack-sm">
+                      {item.ultimosRegistros.map((registro) => {
+                        const meta = getHistoricoEquipeStatusMeta(registro.status);
+                        return (
+                          <div
+                            key={registro.id}
+                            className="rounded-[18px] border border-[var(--qc-border)] bg-[var(--qc-surface-muted)] p-4"
+                          >
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                              <p className="text-sm font-black text-[var(--qc-text)]">
+                                {formatDateLabel(registro.data)}
+                              </p>
+                              <span
+                                className={`inline-flex w-fit rounded-full border px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.14em] ${meta.surfaceClassName}`}
+                              >
+                                {meta.label}
+                              </span>
+                            </div>
+
+                            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                              <div className="stack-xs">
+                                <span className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[var(--qc-secondary)]">
+                                  Parcelas
+                                </span>
+                                <p className="text-sm font-bold text-[var(--qc-text)]">
+                                  {registro.parcelas.length > 0
+                                    ? registro.parcelas.join(' • ')
+                                    : 'Não informado'}
+                                </p>
+                              </div>
+                              <div className="stack-xs">
+                                <span className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[var(--qc-secondary)]">
+                                  Responsável
+                                </span>
+                                <p className="text-sm font-bold text-[var(--qc-text)]">
+                                  {registro.responsaveis.length > 0
+                                    ? registro.responsaveis.join(', ')
+                                    : 'Não informado'}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </CardContent>
                 </Card>

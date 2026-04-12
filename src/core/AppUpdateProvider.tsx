@@ -34,6 +34,7 @@ type AppUpdateContextShape = {
   blockingRequiredUpdate: boolean;
   installReadyForAvailableUpdate: boolean;
   checkForUpdate: () => Promise<AppUpdateCheckResult>;
+  refreshAndOpenUpdate: () => Promise<AppUpdateCheckResult>;
   dismissUpdate: () => void;
   openUpdate: () => Promise<void>;
 };
@@ -141,8 +142,8 @@ export function AppUpdateProvider({
     setUpdateDialogOpen(false);
   }, [availableUpdate]);
 
-  const openUpdate = useCallback(async () => {
-    if (!availableUpdate || updatingApp) {
+  const installUpdate = useCallback(async (targetUpdate: AvailableAppUpdate) => {
+    if (updatingApp) {
       return;
     }
 
@@ -152,24 +153,24 @@ export function AppUpdateProvider({
 
     try {
       const result = await downloadAndInstallAppUpdate({
-        urls: availableUpdate.urls,
-        version: availableUpdate.latestVersion,
-        fileName: availableUpdate.fileName,
+        urls: targetUpdate.urls,
+        version: targetUpdate.latestVersion,
+        fileName: targetUpdate.fileName,
         onProgress: (percent) => {
           setUpdateProgressPercent(percent);
         },
       });
 
       const preparedUpdate = await hasPreparedAppUpdate(
-        availableUpdate.latestVersion,
-        availableUpdate.fileName,
+        targetUpdate.latestVersion,
+        targetUpdate.fileName,
       );
       setInstallReadyForAvailableUpdate(preparedUpdate);
       setUpdateMessage(result.message);
 
       if (result.status === 'installer-opened') {
-        markStartedAppUpdateVersion(availableUpdate.latestVersion);
-        if (!availableUpdate.required) {
+        markStartedAppUpdateVersion(targetUpdate.latestVersion);
+        if (!targetUpdate.required) {
           setUpdateDialogOpen(false);
         }
       } else {
@@ -179,7 +180,47 @@ export function AppUpdateProvider({
       setUpdatingApp(false);
       setUpdateProgressPercent(null);
     }
-  }, [availableUpdate, updatingApp]);
+  }, [updatingApp]);
+
+  const openUpdate = useCallback(async () => {
+    if (!availableUpdate) {
+      return;
+    }
+
+    await installUpdate(availableUpdate);
+  }, [availableUpdate, installUpdate]);
+
+  const refreshAndOpenUpdate = useCallback(async () => {
+    const result = await checkForUpdate();
+
+    if (result.status !== 'available') {
+      if (
+        availableUpdate &&
+        installReadyForAvailableUpdate &&
+        (result.status === 'error' || result.status === 'not-configured')
+      ) {
+        await installUpdate(availableUpdate);
+        return {
+          status: 'available' as const,
+          currentVersion:
+            result.currentVersion || currentVersion || availableUpdate.currentVersion,
+          update: availableUpdate,
+        };
+      }
+
+      return result;
+    }
+
+    autoStartUpdateKeyRef.current = `${result.update.latestVersion}:${result.update.urls.join('|')}`;
+    await installUpdate(result.update);
+    return result;
+  }, [
+    availableUpdate,
+    checkForUpdate,
+    currentVersion,
+    installReadyForAvailableUpdate,
+    installUpdate,
+  ]);
 
   useEffect(() => {
     void hydrateCurrentVersion();
@@ -235,6 +276,7 @@ export function AppUpdateProvider({
       ),
       installReadyForAvailableUpdate,
       checkForUpdate,
+      refreshAndOpenUpdate,
       dismissUpdate,
       openUpdate,
     }),
@@ -246,6 +288,7 @@ export function AppUpdateProvider({
       dismissUpdate,
       installReadyForAvailableUpdate,
       openUpdate,
+      refreshAndOpenUpdate,
       updateMessage,
       updateProgressPercent,
       updateDialogOpen,
