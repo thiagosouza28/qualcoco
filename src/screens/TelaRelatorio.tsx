@@ -31,6 +31,8 @@ import {
 } from '@/core/date';
 
 const ROWS_PER_PAGE = 40;
+const DEFAULT_TEAM_SPACER_ROWS = 0;
+const MAX_TEAM_SPACER_ROWS = 8;
 const TEAM_HISTORY_DAYS = 7;
 const TEAM_HISTORY_ENTRIES = 4;
 const REFERENTE_LABEL = `Referente${String.fromCharCode(160)}a`;
@@ -435,6 +437,9 @@ export function TelaRelatorio() {
   const { permissionMatrix } = useRolePermissions(usuarioAtual?.perfil);
   const [dataFiltro, setDataFiltro] = useState(todayIso());
   const [gerando, setGerando] = useState(false);
+  const [espacoEntreEquipes, setEspacoEntreEquipes] = useState(
+    DEFAULT_TEAM_SPACER_ROWS,
+  );
 
   const { data: avaliacoesHistorico = [] } = useQuery({
     queryKey: ['relatorio', 'avaliacoes', usuarioAtual?.id],
@@ -1088,7 +1093,7 @@ export function TelaRelatorio() {
       const printPages = paginateGroupedRows(
         teamGroups,
         ROWS_PER_PAGE,
-        0,
+        espacoEntreEquipes,
       );
 
       const blob = await createRelatorioPdfBlob({
@@ -1177,6 +1182,57 @@ export function TelaRelatorio() {
                     {stats.responsaveis}
                   </p>
                 </div>
+              </div>
+
+              <div className="stack-xs rounded-[20px] border border-[var(--qc-border)] bg-white p-4">
+                <span className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[var(--qc-secondary)]">
+                  Espaço entre equipes no PDF
+                </span>
+                <div className="mt-2 flex h-11 items-center overflow-hidden rounded-[16px] border border-[var(--qc-border)] bg-[var(--qc-surface-muted)]">
+                  <button
+                    type="button"
+                    className="h-full border-r border-[var(--qc-border)] px-4 font-bold text-[var(--qc-secondary)]"
+                    onClick={() =>
+                      setEspacoEntreEquipes((current) =>
+                        Math.max(0, Math.min(MAX_TEAM_SPACER_ROWS, current - 1)),
+                      )
+                    }
+                  >
+                    -
+                  </button>
+                  <input
+                    type="number"
+                    min="0"
+                    max={String(MAX_TEAM_SPACER_ROWS)}
+                    className="w-full bg-transparent text-center font-bold text-[var(--qc-text)] focus:outline-none"
+                    value={espacoEntreEquipes}
+                    onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                      setEspacoEntreEquipes(
+                        Math.max(
+                          0,
+                          Math.min(
+                            MAX_TEAM_SPACER_ROWS,
+                            Number(event.target.value) || 0,
+                          ),
+                        ),
+                      )
+                    }
+                  />
+                  <button
+                    type="button"
+                    className="h-full border-l border-[var(--qc-border)] px-4 font-bold text-[var(--qc-secondary)]"
+                    onClick={() =>
+                      setEspacoEntreEquipes((current) =>
+                        Math.max(0, Math.min(MAX_TEAM_SPACER_ROWS, current + 1)),
+                      )
+                    }
+                  >
+                    +
+                  </button>
+                </div>
+                <p className="text-xs text-[var(--qc-text-muted)]">
+                  Define quantas linhas em branco o PDF deixa entre uma equipe e outra.
+                </p>
               </div>
 
               <Button
