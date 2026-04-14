@@ -871,13 +871,23 @@ export function TelaRelatorio() {
             const nome = resolveNomeColaborador(item);
             return nome ? [nome] : [];
           });
+        const ajudantes = avColabs
+          .filter((item) => normalizePapelAvaliacao(item.papel) === 'ajudante')
+          .flatMap((item) => {
+            const nome = resolveNomeColaborador(item);
+            return nome ? [nome] : [];
+          });
         const participantes = avColabs
           .flatMap((item) => {
             const nome = resolveNomeColaborador(item);
             return nome ? [nome] : [];
           });
         const responsaveisLista = Array.from(
-          new Set(responsaveis.length > 0 ? responsaveis : participantes),
+          new Set(
+            responsaveis.length > 0 || ajudantes.length > 0
+              ? [...responsaveis, ...ajudantes]
+              : participantes,
+          ),
         );
 
         avRuas.forEach((rua) => {
