@@ -7,6 +7,7 @@ import { LayoutMobile } from '@/components/LayoutMobile';
 import { useCampoApp } from '@/core/AppProvider';
 import { listarColaboradoresAtivos } from '@/core/auth';
 import {
+  criarRetoqueAvaliacao,
   marcarAvaliacaoParaRetoque,
   obterAvaliacaoDetalhada,
   registrarRetoque,
@@ -36,6 +37,7 @@ import {
   canEditCompletedEvaluation,
   canOperateAssignedRetoque,
   canMarkRetoque,
+  canStartRetoque,
   canViewHistory,
   filtrarEquipesVisiveis,
   normalizePapelAvaliacao,
@@ -43,19 +45,19 @@ import {
 } from '@/core/permissions';
 import { useRolePermissions } from '@/core/useRolePermissions';
 
-const formatDateTime = (value?: string | null) => {
-  if (!value) return '-';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString('pt-BR');
-};
-
 const formatDateOnly = (value?: string | null) => {
   if (!value) return '-';
   const date = new Date(`${value}T12:00:00`);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleDateString('pt-BR');
 };
+
+const HIDDEN_AUDIT_ACTIONS = new Set([
+  'avaliacao_iniciada',
+  'avaliacao_finalizada',
+  'retoque_iniciado',
+  'retoque_finalizado',
+]);
 
 type HistoricoRetoqueItem = {
   id: string;
@@ -165,6 +167,23 @@ export function TelaDetalheAvaliacao() {
     data?.avaliacao?.tipo !== 'retoque' &&
     ['completed', 'ok', 'refazer', 'revisado'].includes(statusAtual) &&
     podeEditarConcluida;
+  const retoqueAtivo = useMemo(
+    () =>
+      retoquesRelacionados.find((item) => {
+        const statusRetoque = String(item.avaliacao.status || '').trim().toLowerCase();
+        return (
+          statusRetoque === 'draft' ||
+          statusRetoque === 'in_progress' ||
+          item.detalheRetoque?.status === 'em_retoque'
+        );
+      }) || null,
+    [retoquesRelacionados],
+  );
+  const podeExecutarFluxoRetoque =
+    data?.avaliacao?.tipo !== 'retoque' &&
+    statusAtual === 'em_retoque' &&
+    podeInformarRetoque &&
+    canStartRetoque(usuarioAtual?.perfil, permissionMatrix);
 
   const historicoRetoques = useMemo<HistoricoRetoqueItem[]>(() => {
     const items: HistoricoRetoqueItem[] = [];
@@ -223,6 +242,11 @@ export function TelaDetalheAvaliacao() {
 
     return items;
   }, [data, fiscalResponsavelNome, retoquesRelacionados]);
+  const logsVisiveis = useMemo(
+    () =>
+      (data?.logs || []).filter((log) => !HIDDEN_AUDIT_ACTIONS.has(String(log.acao || ''))),
+    [data?.logs],
+  );
 
   useEffect(() => {
     if (!showMarcarModal) return;
@@ -372,6 +396,48 @@ export function TelaDetalheAvaliacao() {
         error instanceof Error
           ? error.message
           : 'Não foi possível informar o retoque.',
+      );
+    },
+  });
+
+  const iniciarRetoqueMutation = useMutation({
+    mutationFn: async () => {
+      if (!usuarioAtual?.id) {
+        throw new Error('Usuário atual não encontrado.');
+      }
+
+      const designados = Array.from(
+        new Set(
+          (
+            data?.avaliacao?.retoqueDesignadoParaIds ||
+            [data?.avaliacao?.retoqueDesignadoParaId || '']
+          )
+            .map((item) => String(item || '').trim())
+            .filter(Boolean),
+        ),
+      );
+      if (designados.length === 0) {
+        throw new Error('Selecione ao menos um colaborador para executar o retoque.');
+      }
+
+      return criarRetoqueAvaliacao({
+        avaliacaoOriginalId: id,
+        iniciadoPorId: usuarioAtual.id,
+        responsavelId: designados[0],
+        participanteIds: designados.slice(1),
+        equipeId: data?.avaliacao?.retoqueEquipeId || data?.avaliacao?.equipeId || null,
+        equipeNome: data?.avaliacao?.retoqueEquipeNome || data?.avaliacao?.equipeNome || '',
+      });
+    },
+    onSuccess: async (result) => {
+      await queryClient.invalidateQueries();
+      navigate(`/avaliacoes/${result.avaliacao.id}`);
+    },
+    onError: (error) => {
+      alert(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível iniciar o fluxo de retoque.',
       );
     },
   });
@@ -683,15 +749,6 @@ export function TelaDetalheAvaliacao() {
                   {formatDateOnly(data?.avaliacao?.dataColheita)}
                 </p>
               </div>
-              <div className="rounded-[22px] border border-[var(--qc-border)] bg-white p-4">
-                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
-                  Início / fim
-                </p>
-                <p className="mt-1 text-sm font-semibold text-[var(--qc-text)]">
-                  {formatDateTime(data?.avaliacao?.inicioEm)} •{' '}
-                  {formatDateTime(data?.avaliacao?.fimEm)}
-                </p>
-              </div>
             </div>
 
             <div className="grid grid-cols-3 gap-3">
@@ -713,7 +770,7 @@ export function TelaDetalheAvaliacao() {
               </div>
               <div className="rounded-[22px] border border-[var(--qc-border)] bg-[var(--qc-surface-muted)] p-4 text-center">
                 <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
-                  Cachos 3
+                  Cachos
                 </p>
                 <p className="mt-1 text-lg font-black text-[var(--qc-text)]">
                   {Number(data?.avaliacao?.mediaCachos3 || 0).toFixed(2)}
@@ -754,7 +811,25 @@ export function TelaDetalheAvaliacao() {
               </Button>
             ) : null}
             {data?.avaliacao?.status === 'em_retoque' &&
+            podeExecutarFluxoRetoque ? (
+              <Button
+                onClick={() => {
+                  if (retoqueAtivo?.avaliacao?.id) {
+                    navigate(`/avaliacoes/${retoqueAtivo.avaliacao.id}`);
+                    return;
+                  }
+
+                  iniciarRetoqueMutation.mutate();
+                }}
+                disabled={iniciarRetoqueMutation.isPending}
+              >
+                <Wrench className="h-4 w-4" />
+                {retoqueAtivo?.avaliacao?.id ? 'Abrir retoque' : 'Iniciar retoque'}
+              </Button>
+            ) : null}
+            {data?.avaliacao?.status === 'em_retoque' &&
             !data?.retoque &&
+            !podeExecutarFluxoRetoque &&
             podeInformarRetoque ? (
               <Button onClick={() => setShowRetoqueModal(true)}>
                 <Wrench className="h-4 w-4" />
@@ -874,15 +949,12 @@ export function TelaDetalheAvaliacao() {
               </p>
             </div>
 
-            {(data?.logs || []).map((log) => (
+            {logsVisiveis.map((log) => (
               <div
                 key={log.id}
                 className="rounded-[20px] border border-[var(--qc-border)] bg-white p-4"
               >
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
-                  {formatDateTime(log.criadoEm)}
-                </p>
-                <p className="mt-2 text-sm font-semibold text-[var(--qc-text)]">
+                <p className="text-sm font-semibold text-[var(--qc-text)]">
                   {log.descricao}
                 </p>
                 {log.usuarioNome ? (

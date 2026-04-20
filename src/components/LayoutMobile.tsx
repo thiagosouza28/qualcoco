@@ -4,12 +4,13 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/utils';
 
 type LayoutMobileProps = {
-  title: string;
-  subtitle?: string;
+  title: React.ReactNode;
+  subtitle?: React.ReactNode;
   action?: React.ReactNode;
   onBack?: () => void;
   hideHeader?: boolean;
   headerVariant?: 'plain' | 'brand';
+  headerContentAlignment?: 'start' | 'center';
   contentClassName?: string;
   showBottomNav?: boolean;
   children: React.ReactNode;
@@ -22,6 +23,7 @@ export function LayoutMobile({
   onBack,
   hideHeader = false,
   headerVariant = 'plain',
+  headerContentAlignment = 'start',
   contentClassName,
   showBottomNav = false,
   children,
@@ -41,14 +43,21 @@ export function LayoutMobile({
             headerVariant === 'brand' && 'app-page-header--brand',
           )}
         >
-          <div className="app-page-header__inner">
+          <div
+            className={cn(
+              'app-page-header__inner',
+              headerContentAlignment === 'center' && 'items-center',
+            )}
+          >
             {onBack ? (
               <Button
                 type="button"
                 variant={headerVariant === 'brand' ? 'secondary' : 'ghost'}
                 size="icon"
                 className={cn(
-                  'mt-0.5 shrink-0',
+                  headerContentAlignment === 'center'
+                    ? 'mt-0 shrink-0 self-center'
+                    : 'mt-0.5 shrink-0',
                   headerVariant === 'brand' &&
                     'bg-white/12 text-white',
                 )}
@@ -58,14 +67,28 @@ export function LayoutMobile({
               </Button>
             ) : null}
 
-            <div className="app-page-header__title-wrap">
+            <div
+              className={cn(
+                'app-page-header__title-wrap',
+                headerContentAlignment === 'center' && 'justify-center gap-0 pt-0',
+              )}
+            >
               <h1 className="app-page-header__title">{title}</h1>
               {subtitle ? (
                 <p className="app-page-header__subtitle">{subtitle}</p>
               ) : null}
             </div>
 
-            {action ? <div className="app-page-header__action">{action}</div> : null}
+            {action ? (
+              <div
+                className={cn(
+                  'app-page-header__action',
+                  headerContentAlignment === 'center' && 'self-center',
+                )}
+              >
+                {action}
+              </div>
+            ) : null}
           </div>
         </header>
       ) : null}

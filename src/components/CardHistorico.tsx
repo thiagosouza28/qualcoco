@@ -9,11 +9,13 @@ import type { Avaliacao } from '@/core/types';
 export function CardHistorico({
   avaliacao,
   parcelas,
+  equipeResumo,
   participantes,
   onDelete,
 }: {
   avaliacao: Avaliacao;
   parcelas: string[];
+  equipeResumo?: string;
   participantes: string[];
   onDelete?: (avaliacaoId: string) => void;
 }) {
@@ -42,7 +44,9 @@ export function CardHistorico({
           </div>
 
           <p className="text-sm leading-relaxed text-[var(--qc-text-muted)]">
-            {participantesResumo} • {avaliacao.totalRegistros || 0} reg.
+            {participantesResumo}
+            {equipeResumo ? ` • ${equipeResumo}` : ''}
+            • {avaliacao.totalRegistros || 0} reg.
           </p>
         </div>
 

@@ -9,6 +9,7 @@ import {
   putRecord,
   touchEntity,
 } from '@/core/localDb';
+import { sanitizeStoreRecord } from '@/core/storeSanitizers';
 import type {
   AtribuicaoRetoque,
   Avaliacao,
@@ -82,12 +83,13 @@ async function queueUpsert<T extends BaseEntity>(
   origem: 'local' | 'shared' | 'firebase',
 ) {
   if (!syncableStores.has(storeName) || !REMOTE_COLLECTION_MAP[storeName]) return;
+  const sanitizedRecord = sanitizeStoreRecord(storeName, record);
 
   await addSyncQueueItem({
     entidade: storeName,
-    registroId: record.id,
+    registroId: sanitizedRecord.id,
     operacao: 'upsert',
-    payload: record as unknown as Record<string, unknown>,
+    payload: sanitizedRecord as unknown as Record<string, unknown>,
     origem,
   });
 }
@@ -100,11 +102,16 @@ export async function saveEntity<K extends keyof EntityByStore>(
     origem?: 'local' | 'shared' | 'firebase';
   },
 ) {
-  await putRecord(storeName, record);
+  const sanitizedRecord = sanitizeStoreRecord(storeName, record);
+  await putRecord(storeName, sanitizedRecord);
   if (options?.queue !== false) {
-    await queueUpsert(storeName, record as BaseEntity, options?.origem || 'local');
+    await queueUpsert(
+      storeName,
+      sanitizedRecord as BaseEntity,
+      options?.origem || 'local',
+    );
   }
-  return record;
+  return sanitizedRecord;
 }
 
 export async function createEntity<K extends keyof EntityByStore>(
@@ -161,5 +168,8 @@ export const repository = {
     predicate: (record: EntityByStore[K]) => boolean,
   ) => filterRecords<EntityByStore[K]>(storeName, predicate),
   bulkPut: <K extends keyof EntityByStore>(storeName: K, records: EntityByStore[K][]) =>
-    bulkPut(storeName, records),
+    bulkPut(
+      storeName,
+      records.map((record) => sanitizeStoreRecord(storeName, record)),
+    ),
 };

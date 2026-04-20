@@ -19,6 +19,7 @@ import {
   finalizarAvaliacao,
   obterAvaliacaoDetalhada,
   registrarRetoque,
+  salvarResumoParcelaAvaliacao,
   salvarRegistroColeta,
 } from '@/core/evaluations';
 import { saveEntity } from '@/core/repositories';
@@ -102,8 +103,8 @@ const SIGLAS_RESUMO_PARCELA = [
   },
   {
     value: 'A.N.C.R',
-    label: 'A.N.C.R',
-    descricao: 'Área não coroada e rebaixada',
+    label: 'A.R.N.C',
+    descricao: 'Área rebaixada e não coroada',
   },
   {
     value: 'A.C.N.R',
@@ -123,6 +124,15 @@ const SIGLAS_RESUMO_PARCELA = [
 
 const isSiglaResumoParcela = (value: unknown): value is SiglaResumoParcela =>
   SIGLAS_RESUMO_PARCELA.some((item) => item.value === value);
+
+const formatarSiglaResumoParcelaLabel = (value?: string | null) =>
+  value === 'A.N.C.R' ? 'A.R.N.C' : String(value || '');
+
+const formatarResumoSiglasParcela = (raw: unknown) =>
+  Object.entries(normalizarSiglasResumoParcela(raw))
+    .sort(([left], [right]) => left.localeCompare(right, 'pt-BR', { numeric: true }))
+    .map(([equipe, sigla]) => `EQ ${equipe}: ${formatarSiglaResumoParcelaLabel(sigla)}`)
+    .join(' • ');
 
 function parseObservacoesString(observacoes = ''): {
   detalhadas: ObservacaoDetalhada[];
@@ -335,12 +345,23 @@ const formatarTipoFalha = (value: TipoFalhaRua | null | undefined) => {
 const formatarModoCalculo = (value: ModoCalculo) =>
   value === 'media_vizinhas' ? 'Média vizinha' : 'Manual';
 
-const formatarNumeroRuaDisplay = (
+const formatarNumeroDoisDigitos = (
   value: number | string | null | undefined,
 ) => {
   const normalized = String(value ?? '').trim();
-  return normalized || '--';
+  if (!normalized) return '--';
+  return /^\d+$/.test(normalized) ? normalized.padStart(2, '0') : normalized;
 };
+
+const formatarNumeroRuaDisplay = (
+  value: number | string | null | undefined,
+) => formatarNumeroDoisDigitos(value);
+
+const formatarFaixaRuaDisplay = (
+  linhaInicial: number | string | null | undefined,
+  linhaFinal: number | string | null | undefined,
+  separator = '-',
+) => `${formatarNumeroRuaDisplay(linhaInicial)}${separator}${formatarNumeroRuaDisplay(linhaFinal)}`;
 
 const formatarEquipeResumoParcela = (value: string | null | undefined) => {
   const normalized = String(value || '').trim();
@@ -371,18 +392,18 @@ const getNumeroRuaFontClass = (displayValue: string) => {
   const digits = displayValue.replace(/\D/g, '').length;
 
   if (digits >= 4) {
-    return 'text-[clamp(2.2rem,8.6vw,3.3rem)] tracking-[-0.03em]';
+    return 'text-[clamp(1.9rem,7.8vw,2.9rem)] tracking-[-0.01em]';
   }
 
   if (digits === 3) {
-    return 'text-[clamp(2.6rem,10.6vw,4rem)] tracking-[-0.04em]';
+    return 'text-[clamp(2.35rem,9.2vw,3.45rem)] tracking-[-0.02em]';
   }
 
   if (digits === 2) {
-    return 'text-[clamp(2.9rem,12vw,4.4rem)] tracking-[-0.05em]';
+    return 'text-[clamp(2.9rem,11.5vw,4.2rem)] tracking-[-0.03em]';
   }
 
-  return 'text-[clamp(3.1rem,13vw,4.7rem)] tracking-[-0.06em]';
+  return 'text-[clamp(3.1rem,12.4vw,4.5rem)] tracking-[-0.04em]';
 };
 
 function RuaNumeroCard({
@@ -396,11 +417,11 @@ function RuaNumeroCard({
 
   return (
     <div
-      className="mx-auto flex h-[clamp(128px,30vw,150px)] w-full max-w-[148px] min-w-0 overflow-hidden rounded-[18px] border border-[var(--qc-border-strong)] bg-white shadow-[0_14px_24px_-20px_rgba(0,107,68,0.18)]"
+      className="mx-auto flex h-[clamp(128px,30vw,150px)] w-full max-w-[148px] min-w-0 rounded-[18px] border border-[var(--qc-border-strong)] bg-white shadow-[0_14px_24px_-20px_rgba(0,107,68,0.18)]"
       style={{ justifyContent: 'center', alignItems: 'center' }}
     >
       <div
-        className="flex h-full w-full flex-col overflow-hidden px-2 py-2.5 sm:px-3 sm:py-3"
+        className="flex h-full w-full flex-col px-3 py-2.5 sm:px-3.5 sm:py-3"
         style={{
           justifyContent: 'center',
           alignItems: 'center',
@@ -412,7 +433,7 @@ function RuaNumeroCard({
         </p>
 
         <div
-          className="flex min-h-0 w-full flex-1 overflow-hidden"
+          className="flex min-h-0 w-full flex-1"
           style={{
             justifyContent: 'center',
             alignItems: 'center',
@@ -421,7 +442,7 @@ function RuaNumeroCard({
         >
           <span
             className={cn(
-              'block max-w-full overflow-hidden whitespace-nowrap font-black leading-none tabular-nums text-[var(--qc-primary)]',
+              'flex w-full items-center justify-center whitespace-nowrap px-1 text-center font-black leading-none tabular-nums text-[var(--qc-primary)]',
               getNumeroRuaFontClass(displayValue),
             )}
             style={{ textAlign: 'center' }}
@@ -498,6 +519,8 @@ export function TelaRegistroLinhas() {
   const [showEditRuas, setShowEditRuas] = useState(false);
   const [showInvertParcela, setShowInvertParcela] = useState(false);
   const [showResumoParcelaModal, setShowResumoParcelaModal] = useState(false);
+  const [resumoParcelaModalObrigatorio, setResumoParcelaModalObrigatorio] =
+    useState(false);
   const [showFinalizacaoModal, setShowFinalizacaoModal] = useState(false);
   const [ultimaParcelaConcluida, setUltimaParcelaConcluida] = useState<
     string | null
@@ -535,6 +558,9 @@ export function TelaRegistroLinhas() {
 
   const avaliacaoTipoAtual = data?.avaliacao?.tipo || 'normal';
   const statusAtualAvaliacao = String(data?.avaliacao?.status || '').trim().toLowerCase();
+  const retoqueFinalizado = data?.retoque?.status === 'finalizado';
+  const precisaRegistrarEncerramentoRetoque =
+    avaliacaoTipoAtual === 'retoque' && !retoqueFinalizado && !retoqueRegistrado;
   const edicaoConcluidaLiberada =
     ['completed', 'ok', 'refazer', 'revisado'].includes(statusAtualAvaliacao) &&
     canEditCompletedEvaluation(usuarioAtual?.perfil, permissionMatrix);
@@ -668,6 +694,19 @@ export function TelaRegistroLinhas() {
   );
   const statusParcelaAtual =
     parcelasStatus.find((item) => item.parcelaId === parcelaAtual?.id) || null;
+  const parcelasStatusDetalhado = useMemo(
+    () =>
+      parcelasStatus.map((item) => {
+        const parcela = parcelasMap.get(item.parcelaId) || null;
+        const resumoSiglas = formatarResumoSiglasParcela(parcela?.siglasResumo);
+        return {
+          ...item,
+          resumoSiglas,
+          fechamentoRegistrado: Boolean(resumoSiglas),
+        };
+      }),
+    [parcelasMap, parcelasStatus],
+  );
   const ruasParcelaAtual = useMemo(() => {
     if (!ruaAtual) return [];
     return ruas.filter(
@@ -873,7 +912,7 @@ export function TelaRegistroLinhas() {
 
         if (temSiglaPendente) {
           setShowFinalizacaoModal(false);
-          abrirResumoParcelaModal(item.parcelaId);
+          abrirResumoParcelaModal(item.parcelaId, { obrigatorio: true });
         }
       }
     });
@@ -940,7 +979,7 @@ export function TelaRegistroLinhas() {
   }, [ruaAtual?.id]);
 
   useEffect(() => {
-    setRetoqueRegistrado(Boolean(data?.retoque));
+    setRetoqueRegistrado(Boolean(data?.retoque?.status === 'finalizado'));
   }, [data?.avaliacao?.id, data?.retoque]);
 
   useEffect(() => {
@@ -1092,8 +1131,25 @@ export function TelaRegistroLinhas() {
     );
   };
 
+  const voltarParaTelaAnterior = useCallback(() => {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+
+    navigate(edicaoConcluidaLiberada ? `/detalhe/${id}` : '/dashboard', {
+      replace: true,
+    });
+  }, [edicaoConcluidaLiberada, id, navigate]);
+
   const saveMutation = useMutation({
-    mutationFn: async ({ next = true }: { next?: boolean } = {}) => {
+    mutationFn: async ({
+      next = true,
+      voltarAposSalvar = false,
+    }: {
+      next?: boolean;
+      voltarAposSalvar?: boolean;
+    } = {}) => {
       if (!ruaAtual) return { next };
 
       const completedIds = new Set(ruaIdsComRegistro);
@@ -1118,12 +1174,18 @@ export function TelaRegistroLinhas() {
 
       return {
         next,
+        voltarAposSalvar,
         nextIndex: next ? obterProximaRuaPendente(ruaIndex, completedIds, failedIds) : null,
       };
     },
     onSuccess: async (result) => {
       clearCurrentObservacoesDraft(ruaAtual?.id || '');
       await queryClient.invalidateQueries({ queryKey: ['avaliacao', id] });
+      if (result?.voltarAposSalvar) {
+        voltarParaTelaAnterior();
+        return;
+      }
+
       if (result?.next && typeof result.nextIndex === 'number') {
         const nextRua = ruas[result.nextIndex];
         if (nextRua) {
@@ -1223,12 +1285,22 @@ export function TelaRegistroLinhas() {
     };
   }
 
-  function abrirResumoParcelaModal(avaliacaoParcelaId: string) {
+  const fecharResumoParcelaModal = useCallback(() => {
+    setShowResumoParcelaModal(false);
+    setResumoParcelaDraft(null);
+    setResumoParcelaModalObrigatorio(false);
+  }, []);
+
+  function abrirResumoParcelaModal(
+    avaliacaoParcelaId: string,
+    options?: { obrigatorio?: boolean },
+  ) {
     const draft = montarResumoParcelaDraft(avaliacaoParcelaId);
     if (!draft) {
       return;
     }
 
+    setResumoParcelaModalObrigatorio(Boolean(options?.obrigatorio));
     setResumoParcelaDraft(draft);
     setShowResumoParcelaModal(true);
   }
@@ -1264,18 +1336,13 @@ export function TelaRegistroLinhas() {
 
     setUltimaParcelaConcluida(parcelaPendente.parcelaCodigo);
     setShowFinalizacaoModal(false);
-    abrirResumoParcelaModal(parcelaPendente.parcelaId);
+    abrirResumoParcelaModal(parcelaPendente.parcelaId, { obrigatorio: true });
   }, [parcelasStatus, showResumoParcelaModal]);
 
   const saveResumoParcelaMutation = useMutation({
     mutationFn: async () => {
       if (!resumoParcelaDraft) {
         return null;
-      }
-
-      const parcela = parcelasMap.get(resumoParcelaDraft.avaliacaoParcelaId);
-      if (!parcela) {
-        throw new Error('Parcela não encontrada para salvar a sigla final.');
       }
 
       const siglas = Object.entries(resumoParcelaDraft.siglas).reduce<
@@ -1287,24 +1354,31 @@ export function TelaRegistroLinhas() {
         return acc;
       }, {});
 
-      await saveEntity('avaliacaoParcelas', {
-        ...parcela,
-        siglasResumo: siglas,
-        atualizadoEm: nowIso(),
-        syncStatus: 'pending_sync',
-        versao: parcela.versao + 1,
+      await salvarResumoParcelaAvaliacao({
+        avaliacaoId: id,
+        avaliacaoParcelaId: resumoParcelaDraft.avaliacaoParcelaId,
+        usuarioId: usuarioAtual?.id,
+        siglas,
       });
 
       return resumoParcelaDraft.avaliacaoParcelaId;
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['avaliacao', id] });
-      setShowResumoParcelaModal(false);
-      setResumoParcelaDraft(null);
+      const deveReabrirFinalizacao =
+        resumoParcelaModalObrigatorio && totalRuas > 0 && totalConcluidas >= totalRuas;
+      fecharResumoParcelaModal();
 
-      if (totalRuas > 0 && totalConcluidas >= totalRuas) {
+      if (deveReabrirFinalizacao) {
         setShowFinalizacaoModal(true);
       }
+    },
+    onError: (error) => {
+      alert(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível salvar o fechamento da parcela.',
+      );
     },
   });
 
@@ -1399,6 +1473,15 @@ export function TelaRegistroLinhas() {
     },
   });
 
+  const resumoParcelaJaRegistrado = useMemo(() => {
+    if (!resumoParcelaDraft) {
+      return false;
+    }
+
+    const parcela = parcelasMap.get(resumoParcelaDraft.avaliacaoParcelaId);
+    return Boolean(formatarResumoSiglasParcela(parcela?.siglasResumo));
+  }, [parcelasMap, resumoParcelaDraft]);
+
   const inverterParcelaMutation = useMutation({
     mutationFn: async () => {
       if (!ruaAtual || !parcelaAtual || ruasParcelaAtual.length < 2) {
@@ -1444,7 +1527,7 @@ export function TelaRegistroLinhas() {
     if (parcelaPendente) {
       setUltimaParcelaConcluida(parcelaPendente.parcelaCodigo);
       setShowFinalizacaoModal(false);
-      abrirResumoParcelaModal(parcelaPendente.parcelaId);
+      abrirResumoParcelaModal(parcelaPendente.parcelaId, { obrigatorio: true });
       alert(
         `Selecione a sigla final da parcela ${parcelaPendente.parcelaCodigo} antes de finalizar a avaliação.`,
       );
@@ -1457,7 +1540,10 @@ export function TelaRegistroLinhas() {
   };
 
   const handleNextRua = async () => {
-    await saveMutation.mutateAsync({ next: true });
+    await saveMutation.mutateAsync({
+      next: !edicaoConcluidaLiberada,
+      voltarAposSalvar: edicaoConcluidaLiberada,
+    });
   };
 
   const handlePrevRua = () => {
@@ -1482,7 +1568,7 @@ export function TelaRegistroLinhas() {
     if (parcelaPendente) {
       setUltimaParcelaConcluida(parcelaPendente.parcelaCodigo);
       setShowFinalizacaoModal(false);
-      abrirResumoParcelaModal(parcelaPendente.parcelaId);
+      abrirResumoParcelaModal(parcelaPendente.parcelaId, { obrigatorio: true });
       alert(
         `Selecione a sigla final da parcela ${parcelaPendente.parcelaCodigo} antes de encerrar a coleta.`,
       );
@@ -1490,7 +1576,7 @@ export function TelaRegistroLinhas() {
     }
 
     try {
-      if (data?.avaliacao?.tipo === 'retoque' && !data?.retoque && !retoqueRegistrado) {
+      if (precisaRegistrarEncerramentoRetoque) {
         setShowRetoqueModal(true);
         setFinalizandoDestino(destino);
         return;
@@ -1572,8 +1658,22 @@ export function TelaRegistroLinhas() {
 
   return (
     <LayoutMobile
-      title={parcelaAtual?.parcelaCodigo || data?.avaliacao?.parcelaCodigo || 'Registro'}
-      subtitle={`Equipe ${equipeAtual}`}
+      title={
+        <span className="inline-flex h-10 items-center leading-none">
+          {parcelaAtual?.parcelaCodigo || data?.avaliacao?.parcelaCodigo || 'Registro'}
+        </span>
+      }
+      action={
+        <span className="inline-flex h-10 items-center gap-2 rounded-full border border-[var(--qc-border)] bg-white/88 px-3 py-2 shadow-[0_14px_24px_-22px_rgba(17,33,23,0.2)]">
+          <span className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[var(--qc-secondary)]">
+            Equipe
+          </span>
+          <span className="text-[clamp(1.2rem,4.5vw,1.5rem)] font-black leading-none tabular-nums text-[var(--qc-primary)]">
+            {formatarEquipeResumoParcela(equipeAtual)}
+          </span>
+        </span>
+      }
+      headerContentAlignment="center"
       onBack={() =>
         navigate(edicaoConcluidaLiberada ? `/detalhe/${id}` : '/dashboard')
       }
@@ -1655,12 +1755,14 @@ export function TelaRegistroLinhas() {
                   Progresso
                 </p>
                 <p className="mt-1 text-sm text-[var(--qc-text-muted)]">
-                  {totalConcluidas}/{totalRuas} ruas concluídas
+                  {formatarNumeroDoisDigitos(totalConcluidas)}/
+                  {formatarNumeroDoisDigitos(totalRuas)} ruas concluídas
                 </p>
               </div>
 
               <Badge className="border-[var(--qc-border-strong)] bg-[var(--qc-tertiary)] px-3 py-1.5 text-xs font-black tracking-[0.14em] text-[var(--qc-primary)]">
-                {totalConcluidas}/{totalRuas} ruas
+                {formatarNumeroDoisDigitos(totalConcluidas)}/
+                {formatarNumeroDoisDigitos(totalRuas)} ruas
               </Badge>
             </div>
 
@@ -1708,25 +1810,68 @@ export function TelaRegistroLinhas() {
               </p>
               <Badge variant="slate">{parcelasStatus.length} parcela(s)</Badge>
             </div>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {parcelasStatus.map((item) => (
-                <Badge
+            <div className="mt-4 grid gap-2.5">
+              {parcelasStatusDetalhado.map((item) => (
+                <div
                   key={item.parcelaId}
-                  variant={
-                    item.status === 'concluida'
-                      ? 'emerald'
-                      : item.status === 'em_andamento'
-                        ? 'amber'
-                        : 'amber'
-                  }
+                  className="rounded-[20px] border border-[var(--qc-border)] bg-white p-3.5"
                 >
-                  {item.parcelaCodigo} •{' '}
-                  {item.status === 'concluida'
-                    ? 'concluída'
-                    : item.status === 'em_andamento'
-                      ? 'em andamento'
-                      : 'pendente'}
-                </Badge>
+                  <div className="flex items-stretch justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-black tracking-tight text-[var(--qc-text)]">
+                        Parcela {item.parcelaCodigo}
+                      </p>
+                      <p className="mt-1 text-xs text-[var(--qc-text-muted)]">
+                        {item.concluidas}/{item.total} ruas concluídas
+                        {item.falhas > 0 ? ` • ${item.falhas} com falha` : ''}
+                      </p>
+                      {item.status === 'concluida' ? (
+                        <div className="mt-1 text-xs text-[var(--qc-text-muted)]">
+                          <p>
+                            {item.fechamentoRegistrado
+                              ? 'Fechamento salvo:'
+                              : 'Fechamento pendente:'}
+                          </p>
+                          <p className="overflow-hidden text-ellipsis whitespace-nowrap font-semibold text-[var(--qc-text)]">
+                            {item.resumoSiglas || 'Selecione a sigla final'}
+                          </p>
+                        </div>
+                      ) : null}
+                    </div>
+
+                    <div className="flex shrink-0 self-stretch flex-col items-end justify-between gap-2">
+                      <Badge
+                        variant={
+                          item.status === 'concluida'
+                            ? 'emerald'
+                            : item.status === 'em_andamento'
+                              ? 'amber'
+                              : 'amber'
+                        }
+                      >
+                        {item.status === 'concluida'
+                          ? 'concluída'
+                          : item.status === 'em_andamento'
+                            ? 'em andamento'
+                            : 'pendente'}
+                      </Badge>
+
+                      {item.status === 'concluida' ? (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-9 self-end whitespace-nowrap rounded-2xl px-3 text-xs font-bold"
+                          onClick={() => abrirResumoParcelaModal(item.parcelaId)}
+                        >
+                          <PencilLine className="h-4 w-4" />
+                          {item.fechamentoRegistrado
+                            ? 'Editar fechamento'
+                            : 'Definir fechamento'}
+                        </Button>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
               ))}
             </div>
           </CardContent>
@@ -1820,15 +1965,16 @@ export function TelaRegistroLinhas() {
                 </div>
 
                 <Badge className="border-[var(--qc-border-strong)] bg-white px-3 py-1 text-[11px] font-black tracking-[0.14em] text-[var(--qc-primary)]">
-                  {Math.min(ruaIndex + 1, totalRuas || 1)}/{totalRuas || 0}
+                  {formatarNumeroDoisDigitos(Math.min(ruaIndex + 1, totalRuas || 1))}/
+                  {formatarNumeroDoisDigitos(totalRuas || 0)}
                 </Badge>
               </div>
 
               <div className="mx-auto mt-4 grid w-full max-w-[22rem] grid-cols-[minmax(0,1fr),clamp(52px,16vw,64px),minmax(0,1fr)] items-center justify-items-center gap-3">
                 <RuaNumeroCard label="Início" value={ruaAtual?.linhaInicial} />
 
-                <div className="flex h-[clamp(52px,16vw,64px)] w-[clamp(52px,16vw,64px)] items-center justify-center rounded-[18px] border border-[var(--qc-border-strong)] bg-[var(--qc-primary)] text-[clamp(1.6rem,6vw,2rem)] font-black text-white shadow-[0_14px_24px_-20px_rgba(0,107,68,0.36)]">
-                  →
+                <div className="flex h-[clamp(52px,16vw,64px)] w-[clamp(52px,16vw,64px)] items-center justify-center rounded-[18px] border border-[var(--qc-border-strong)] bg-[var(--qc-primary)] text-[clamp(1.3rem,5vw,1.7rem)] font-black text-white shadow-[0_14px_24px_-20px_rgba(0,107,68,0.36)]">
+                  -
                 </div>
 
                 <RuaNumeroCard label="Fim" value={ruaAtual?.linhaFinal} />
@@ -1859,10 +2005,10 @@ export function TelaRegistroLinhas() {
                         {rua ? (
                           <button
                             type="button"
-                            className="mt-1 block w-full text-center text-[10px] font-black leading-tight tabular-nums sm:text-sm"
+                            className="mt-1 block w-full whitespace-nowrap text-center text-[10px] font-black leading-tight tabular-nums sm:text-sm"
                             onClick={() => navegarParaRua(index)}
                           >
-                            {rua.linhaInicial}→{rua.linhaFinal}
+                            {formatarFaixaRuaDisplay(rua.linhaInicial, rua.linhaFinal)}
                           </button>
                         ) : (
                           <p className="mt-1 text-[10px] font-black leading-tight tabular-nums sm:text-sm">
@@ -2075,7 +2221,7 @@ export function TelaRegistroLinhas() {
               : obterProximaRuaPendente(ruaIndex) == null
                 ? 'Salvar'
                 : 'Salvar e Próxima'}
-            <ChevronRight className="h-5 w-5" />
+            {!edicaoConcluidaLiberada ? <ChevronRight className="h-5 w-5" /> : null}
           </Button>
         </div>
       </div>
@@ -2147,7 +2293,7 @@ export function TelaRegistroLinhas() {
                         className="h-11 rounded-2xl font-bold"
                         onClick={() => setObservacaoDetalhadaLinha(String(linha))}
                       >
-                        Linha {linha}
+                        Linha {formatarNumeroDoisDigitos(linha)}
                       </Button>
                     ))}
                 </div>
@@ -2269,7 +2415,7 @@ export function TelaRegistroLinhas() {
                       className="rounded-full border border-[var(--qc-border)] bg-[var(--qc-surface-muted)] px-3 py-1 text-xs font-semibold text-[var(--qc-secondary)]"
                       onClick={() => removerObservacaoDetalhada(index)}
                     >
-                      {item.tipo} • Linha {item.linha} • Planta {item.planta}
+                      {item.tipo} • Linha {formatarNumeroDoisDigitos(item.linha)} • Planta {formatarNumeroDoisDigitos(item.planta)}
                     </button>
                   ))}
                 </div>
@@ -2289,12 +2435,31 @@ export function TelaRegistroLinhas() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showResumoParcelaModal}>
+      <Dialog
+        open={showResumoParcelaModal}
+        onOpenChange={(open) => {
+          if (!open && resumoParcelaModalObrigatorio) {
+            return;
+          }
+
+          if (!open) {
+            fecharResumoParcelaModal();
+          }
+        }}
+      >
         <DialogContent
           className="p-0 sm:max-w-lg"
-          showClose={false}
-          onPointerDownOutside={(event: Event) => event.preventDefault()}
-          onEscapeKeyDown={(event: Event) => event.preventDefault()}
+          showClose={!resumoParcelaModalObrigatorio}
+          onPointerDownOutside={(event: Event) => {
+            if (resumoParcelaModalObrigatorio) {
+              event.preventDefault();
+            }
+          }}
+          onEscapeKeyDown={(event: Event) => {
+            if (resumoParcelaModalObrigatorio) {
+              event.preventDefault();
+            }
+          }}
         >
           <DialogHeader className="border-b border-[var(--qc-border)] px-6 py-5">
             <DialogTitle className="text-xl font-black tracking-tight text-[var(--qc-text)]">
@@ -2309,8 +2474,9 @@ export function TelaRegistroLinhas() {
                   Parcela {resumoParcelaDraft?.parcelaCodigo || '--'}
                 </p>
                 <p className="text-sm text-[var(--qc-text-muted)]">
-                  Escolha uma única sigla por equipe. Ela será exibida uma única vez no
-                  fechamento da parcela no relatório.
+                  {resumoParcelaJaRegistrado
+                    ? 'Edite a sigla por equipe. A alteração ficará registrada no histórico da avaliação.'
+                    : 'Escolha uma única sigla por equipe. Ela será exibida uma única vez no fechamento da parcela no relatório.'}
                 </p>
               </div>
 
@@ -2349,7 +2515,7 @@ export function TelaRegistroLinhas() {
                           Equipe {equipe}
                         </p>
                         <Badge variant={siglaAtual ? 'emerald' : 'amber'}>
-                          {siglaAtual || 'Pendente'}
+                          {siglaAtual ? formatarSiglaResumoParcelaLabel(siglaAtual) : 'Pendente'}
                         </Badge>
                       </div>
 
@@ -2397,6 +2563,16 @@ export function TelaRegistroLinhas() {
           </div>
 
           <DialogFooter className="border-t border-[var(--qc-border)] px-6 py-4">
+            {!resumoParcelaModalObrigatorio ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="h-12 w-full font-bold"
+                onClick={fecharResumoParcelaModal}
+              >
+                Fechar
+              </Button>
+            ) : null}
             <Button
               className="h-14 w-full rounded-2xl font-bold"
               disabled={
@@ -2407,8 +2583,12 @@ export function TelaRegistroLinhas() {
               onClick={() => saveResumoParcelaMutation.mutate()}
             >
               {saveResumoParcelaMutation.isPending
-                ? 'Salvando sigla da parcela'
-                : 'Salvar sigla da parcela'}
+                ? resumoParcelaJaRegistrado
+                  ? 'Salvando edição do fechamento'
+                  : 'Salvando sigla da parcela'
+                : resumoParcelaJaRegistrado
+                  ? 'Salvar edição do fechamento'
+                  : 'Salvar sigla da parcela'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2451,10 +2631,10 @@ export function TelaRegistroLinhas() {
                       setShowAllRuas(false);
                     }}
                   >
-                    <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-stretch justify-between gap-3">
                       <div className="min-w-0 flex-1">
-                        <p className="text-[2.2rem] font-black tracking-[-0.06em] tabular-nums text-[var(--qc-text)]">
-                          {rua.linhaInicial} → {rua.linhaFinal}
+                        <p className="whitespace-nowrap text-[clamp(1.9rem,8vw,2.2rem)] font-black leading-none tracking-[-0.06em] tabular-nums text-[var(--qc-text)]">
+                          {formatarFaixaRuaDisplay(rua.linhaInicial, rua.linhaFinal)}
                         </p>
                         <p className="mt-1 text-sm font-semibold text-[var(--qc-secondary)]">
                           Parcela {parcelasMap.get(rua.avaliacaoParcelaId)?.parcelaCodigo || '--'} •
@@ -2472,64 +2652,68 @@ export function TelaRegistroLinhas() {
                       </div>
 
                       {rua.tipoFalha ? (
-                        <Badge variant="red">{formatarTipoFalha(rua.tipoFalha)}</Badge>
+                        <Badge variant="red" className="self-start">
+                          {formatarTipoFalha(rua.tipoFalha)}
+                        </Badge>
                       ) : temRegistro ? (
-                        <div className="w-[132px] shrink-0">
-                          <div className="grid grid-cols-2 gap-2">
-                            <RuaResumoMetric
-                              label="Cacho"
-                              value={
-                                resumoRegistro?.faltaColher
-                                  ? 'F.C'
-                                  : resumoRegistro?.cachos3 || 0
-                              }
-                            />
-                            <RuaResumoMetric
-                              label="Coco"
-                              value={
-                                resumoRegistro?.faltaColher
-                                  ? '--'
-                                  : resumoRegistro?.faltaTropear
-                                  ? 'F.T'
-                                  : resumoRegistro?.quantidade || 0
-                              }
-                            />
+                        <div className="flex w-[132px] shrink-0 self-stretch flex-col items-end justify-between">
+                          <div className="w-full">
+                            <div className="grid grid-cols-2 gap-2">
+                              <RuaResumoMetric
+                                label="Cacho"
+                                value={
+                                  resumoRegistro?.faltaColher
+                                    ? 'F.C'
+                                    : resumoRegistro?.cachos3 || 0
+                                }
+                              />
+                              <RuaResumoMetric
+                                label="Coco"
+                                value={
+                                  resumoRegistro?.faltaColher
+                                    ? '--'
+                                    : resumoRegistro?.faltaTropear
+                                    ? 'F.T'
+                                    : resumoRegistro?.quantidade || 0
+                                }
+                              />
+                            </div>
+
+                            {temExtras ? (
+                              <div className="mt-2 flex flex-wrap justify-end gap-1.5">
+                                {resumoRegistro && resumoRegistro.plantasEsquecidas > 0 ? (
+                                  <RuaResumoChip
+                                    label="Plantas"
+                                    value={resumoRegistro.plantasEsquecidas}
+                                  />
+                                ) : null}
+                                {resumoRegistro && resumoRegistro.abelhas > 0 ? (
+                                  <RuaResumoChip
+                                    label="Abelhas"
+                                    value={resumoRegistro.abelhas}
+                                  />
+                                ) : null}
+                                {resumoRegistro && resumoRegistro.tapios > 0 ? (
+                                  <RuaResumoChip
+                                    label="Tapio"
+                                    value={resumoRegistro.tapios}
+                                  />
+                                ) : null}
+                              </div>
+                            ) : null}
                           </div>
 
-                          {temExtras ? (
-                            <div className="mt-2 flex flex-wrap justify-end gap-1.5">
-                              {resumoRegistro && resumoRegistro.plantasEsquecidas > 0 ? (
-                                <RuaResumoChip
-                                  label="Plantas"
-                                  value={resumoRegistro.plantasEsquecidas}
-                                />
-                              ) : null}
-                              {resumoRegistro && resumoRegistro.abelhas > 0 ? (
-                                <RuaResumoChip
-                                  label="Abelhas"
-                                  value={resumoRegistro.abelhas}
-                                />
-                              ) : null}
-                              {resumoRegistro && resumoRegistro.tapios > 0 ? (
-                                <RuaResumoChip
-                                  label="Tapio"
-                                  value={resumoRegistro.tapios}
-                                />
-                              ) : null}
-                            </div>
-                          ) : null}
-
-                          <div className="mt-2 flex items-center justify-end gap-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--qc-primary)]">
+                          <div className="flex items-center justify-end gap-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--qc-primary)]">
                             <CheckCircle2 className="h-4 w-4" />
                             Feita
                           </div>
                         </div>
                       ) : isFeita ? (
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[rgba(0,107,68,0.12)] bg-[rgba(0,107,68,0.08)]">
+                        <div className="flex h-10 w-10 shrink-0 self-start items-center justify-center rounded-full border border-[rgba(0,107,68,0.12)] bg-[rgba(0,107,68,0.08)]">
                           <CheckCircle2 className="h-5 w-5 text-[var(--qc-primary)]" />
                         </div>
                       ) : (
-                        <Info className="mt-2 h-6 w-6 shrink-0 text-[rgba(93,98,78,0.42)]" />
+                        <Info className="mt-2 h-6 w-6 shrink-0 self-start text-[rgba(93,98,78,0.42)]" />
                       )}
                     </div>
                   </button>
@@ -2556,8 +2740,13 @@ export function TelaRegistroLinhas() {
                     <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--qc-secondary)]">
                       Rua atual
                     </p>
-                    <p className="mt-2 text-lg font-black tracking-tight text-[var(--qc-text)]">
-                      {ruaAtual ? `${ruaAtual.linhaInicial} → ${ruaAtual.linhaFinal}` : '--'}
+                    <p className="mt-2 whitespace-nowrap text-lg font-black tracking-tight text-[var(--qc-text)]">
+                      {ruaAtual
+                        ? formatarFaixaRuaDisplay(
+                            ruaAtual.linhaInicial,
+                            ruaAtual.linhaFinal,
+                          )
+                        : '--'}
                     </p>
                     <p className="mt-1 text-sm text-[var(--qc-text-muted)]">
                       Ajuste rápido e pontual somente na rua em andamento.

@@ -7,6 +7,7 @@ import {
 } from 'firebase/auth';
 import {
   collection,
+  deleteField,
   deleteDoc,
   doc,
   getDoc,
@@ -80,6 +81,10 @@ type UpsertOptions = {
 const CLOUD_PAGE_SIZE = 50;
 const PUBLIC_COLABORADORES_PAGE_SIZE = 200;
 const authListeners = new Set<CloudAuthListener>();
+const REMOTE_FIELDS_TO_DELETE_BY_COLLECTION: Record<string, string[]> = {
+  avaliacoes: ['inicio_em', 'fim_em'],
+  avaliacao_retoques: ['data_inicio', 'data_fim'],
+};
 
 const createCloudError = (
   message: string,
@@ -172,6 +177,24 @@ const pickFields = (row: Record<string, unknown>, fields?: string) => {
   return Object.fromEntries(
     Object.entries(row).filter(([key]) => required.has(key)),
   );
+};
+
+const applyDeletedFieldsForCollection = (
+  collectionName: string,
+  payload: Record<string, unknown>,
+) => {
+  const fields = REMOTE_FIELDS_TO_DELETE_BY_COLLECTION[collectionName] || [];
+  if (fields.length === 0) {
+    return payload;
+  }
+
+  const nextPayload = { ...payload };
+  fields.forEach((field) => {
+    if (!(field in nextPayload)) {
+      nextPayload[field] = deleteField();
+    }
+  });
+  return nextPayload;
 };
 
 const withDocIdentity = (
@@ -523,10 +546,10 @@ class FirebaseQueryBuilder {
         conflictDoc?.id ||
         (typeof payload.id === 'string' && payload.id.trim() ? payload.id : crypto.randomUUID());
       const ref = doc(firestoreDb!, this.collectionName, targetId);
-      const nextPayload = {
+      const nextPayload = applyDeletedFieldsForCollection(this.collectionName, {
         ...payload,
         id: targetId,
-      };
+      });
 
       await setDoc(ref, nextPayload, { merge: true });
       const saved = await getDoc(ref);
@@ -811,10 +834,10 @@ export const pushCloudMutation = async ({
         crypto.randomUUID(),
     ).trim();
   const ref = doc(firestoreDb!, collectionName, targetId);
-  const documentPayload = {
+  const documentPayload = applyDeletedFieldsForCollection(collectionName, {
     ...normalizedPayload,
     id: targetId,
-  };
+  });
 
   await setDoc(ref, documentPayload, { merge: true });
   const saved = await getDoc(ref);

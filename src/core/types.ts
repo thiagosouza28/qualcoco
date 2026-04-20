@@ -164,8 +164,6 @@ export interface Avaliacao extends BaseEntity {
   equipeNome?: string;
   responsavelPrincipalId?: string | null;
   responsavelPrincipalNome?: string;
-  inicioEm?: string;
-  fimEm?: string | null;
   encerradoPorId?: string | null;
   encerradoPorNome?: string;
   marcadoRetoquePorId?: string | null;
@@ -211,8 +209,6 @@ export interface AvaliacaoRetoque extends BaseEntity {
   quantidadeBags: number;
   quantidadeCargas: number;
   dataRetoque: string;
-  dataInicio?: string;
-  dataFim?: string | null;
   observacao: string;
   finalizadoPorId?: string | null;
   finalizadoPorNome?: string;

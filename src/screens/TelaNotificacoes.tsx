@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bell, BellRing, CheckCheck, ChevronRight } from 'lucide-react';
+import { Bell, BellRing, CheckCheck, ChevronRight, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { LayoutMobile } from '@/components/LayoutMobile';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useCampoApp } from '@/core/AppProvider';
 import {
+  limparNotificacoesDoUsuario,
   listarNotificacoesDoUsuario,
   marcarNotificacaoComoLida,
   marcarTodasNotificacoesComoLidas,
@@ -24,6 +25,13 @@ export function TelaNotificacoes() {
 
   const marcarTodasMutation = useMutation({
     mutationFn: () => marcarTodasNotificacoesComoLidas(usuarioAtual?.id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['notificacoes'] });
+    },
+  });
+
+  const limparTodasMutation = useMutation({
+    mutationFn: () => limparNotificacoesDoUsuario(usuarioAtual?.id),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['notificacoes'] });
     },
@@ -54,16 +62,32 @@ export function TelaNotificacoes() {
       showBottomNav
       action={
         notificacoes.length > 0 ? (
-          <Button
-            type="button"
-            variant="outline"
-            className="rounded-2xl"
-            onClick={() => marcarTodasMutation.mutate()}
-            disabled={marcarTodasMutation.isPending || naoLidas === 0}
-          >
-            <CheckCheck className="h-4 w-4" />
-            Ler tudo
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-2xl"
+              onClick={() => marcarTodasMutation.mutate()}
+              disabled={marcarTodasMutation.isPending || naoLidas === 0}
+            >
+              <CheckCheck className="h-4 w-4" />
+              Ler tudo
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-2xl"
+              onClick={() => {
+                if (confirm('Limpar todas as notificações desta lista?')) {
+                  limparTodasMutation.mutate();
+                }
+              }}
+              disabled={limparTodasMutation.isPending}
+            >
+              <Trash2 className="h-4 w-4" />
+              Limpar
+            </Button>
+          </div>
         ) : null
       }
     >

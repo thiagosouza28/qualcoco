@@ -2,6 +2,7 @@ import { nowIso } from '@/core/date';
 import { getOrCreateDevice } from '@/core/device';
 import {
   limparMarcacaoNotificacaoNativa,
+  limparTodasNotificacoesNativas,
   publicarNotificacaoNativa,
 } from '@/core/nativeNotifications';
 import { createEntity, repository, saveEntity } from '@/core/repositories';
@@ -123,6 +124,28 @@ export const marcarTodasNotificacoesComoLidas = async (usuarioId?: string) => {
     await marcarNotificacaoComoLida(notificacao.id, usuarioId);
   }
 
+  return notificacoes.length;
+};
+
+export const limparNotificacoesDoUsuario = async (usuarioId?: string) => {
+  const notificacoes = await listarNotificacoesDoUsuario(usuarioId);
+  const deletedAt = nowIso();
+
+  for (const notificacao of notificacoes) {
+    const next: Notificacao = {
+      ...notificacao,
+      lida: true,
+      lidaEm: notificacao.lidaEm || deletedAt,
+      deletadoEm: deletedAt,
+      atualizadoEm: deletedAt,
+      syncStatus: 'pending_sync',
+      versao: notificacao.versao + 1,
+    };
+    await saveEntity('notificacoes', next);
+    limparMarcacaoNotificacaoNativa(notificacao.id);
+  }
+
+  await limparTodasNotificacoesNativas();
   return notificacoes.length;
 };
 

@@ -5,6 +5,7 @@ import {
   STORE_NAMES,
 } from '@/core/constants';
 import { gerarCatalogoParcelas } from '@/core/plots';
+import { sanitizeStoreRecord } from '@/core/storeSanitizers';
 import type {
   BaseEntity,
   Parcela,
@@ -103,18 +104,20 @@ export const getById = async <T>(storeName: StoreName, id: string) => {
 
 export const putRecord = async <T>(storeName: StoreName, record: T) => {
   const db = await dbPromise;
-  await db.put(storeName, record);
-  return record;
+  const sanitizedRecord = sanitizeStoreRecord(storeName, record);
+  await db.put(storeName, sanitizedRecord);
+  return sanitizedRecord;
 };
 
 export const bulkPut = async <T>(storeName: StoreName, records: T[]) => {
   const db = await dbPromise;
   const tx = db.transaction(storeName, 'readwrite');
-  for (const record of records) {
+  const sanitizedRecords = records.map((record) => sanitizeStoreRecord(storeName, record));
+  for (const record of sanitizedRecords) {
     tx.store.put(record);
   }
   await tx.done;
-  return records;
+  return sanitizedRecords;
 };
 
 const getOrCreateSeedDeviceId = () => {

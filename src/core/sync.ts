@@ -223,8 +223,6 @@ const remoteFieldsByStore: Partial<Record<StoreName, string[]>> = {
     'equipeNome',
     'responsavelPrincipalId',
     'responsavelPrincipalNome',
-    'inicioEm',
-    'fimEm',
     'encerradoPorId',
     'encerradoPorNome',
     'marcadoRetoquePorId',
@@ -284,8 +282,6 @@ const remoteFieldsByStore: Partial<Record<StoreName, string[]>> = {
     'quantidadeBags',
     'quantidadeCargas',
     'dataRetoque',
-    'dataInicio',
-    'dataFim',
     'observacao',
     'finalizadoPorId',
     'finalizadoPorNome',
@@ -967,7 +963,22 @@ const normalizarFilaSync = async (
 };
 
 const getCloudStoreSyncStorageKey = (storeName: StoreName) =>
-  `${STORAGE_KEYS.cloudSyncAtPrefix}:${storeName}`;
+  `${STORAGE_KEYS.cloudSyncAtPrefix}:${getCurrentSyncScopeKey()}:${storeName}`;
+
+const getCurrentSyncScopeKey = () => {
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEYS.sessao);
+    if (!raw) {
+      return 'anon';
+    }
+
+    const parsed = JSON.parse(raw) as { colaboradorId?: string | null };
+    const colaboradorId = String(parsed?.colaboradorId || '').trim();
+    return colaboradorId || 'anon';
+  } catch {
+    return 'anon';
+  }
+};
 
 const getLastCloudStoreSyncAt = (storeName: StoreName) =>
   window.localStorage.getItem(getCloudStoreSyncStorageKey(storeName));
@@ -977,10 +988,13 @@ const setLastCloudStoreSyncAt = (storeName: StoreName, value: string) => {
 };
 
 const getLastWebAccessSyncAt = () =>
-  window.localStorage.getItem(STORAGE_KEYS.webAcessosSyncAt);
+  window.localStorage.getItem(`${STORAGE_KEYS.webAcessosSyncAt}:${getCurrentSyncScopeKey()}`);
 
 const setLastWebAccessSyncAt = (value: string) => {
-  window.localStorage.setItem(STORAGE_KEYS.webAcessosSyncAt, value);
+  window.localStorage.setItem(
+    `${STORAGE_KEYS.webAcessosSyncAt}:${getCurrentSyncScopeKey()}`,
+    value,
+  );
 };
 
 const businessKeyResolvers: Partial<

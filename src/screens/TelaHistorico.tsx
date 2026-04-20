@@ -25,6 +25,13 @@ import { useRolePermissions } from '@/core/useRolePermissions';
 
 const HISTORY_PAGE_SIZE = 20;
 
+const formatarResumoHistoricoEquipe = (equipes: string[]) => {
+  if (equipes.length === 0) return '';
+  if (equipes.length === 1) return `Equipe ${equipes[0]}`;
+  if (equipes.length === 2) return `Equipes ${equipes[0]} e ${equipes[1]}`;
+  return `Equipe ${equipes[0]} +${equipes.length - 1}`;
+};
+
 export function TelaHistorico() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -85,6 +92,12 @@ export function TelaHistorico() {
     staleTime: 30_000,
   });
 
+  const { data: avaliacaoRuas = [] } = useQuery({
+    queryKey: ['historico', 'avaliacaoRuas'],
+    queryFn: () => repository.list('avaliacaoRuas'),
+    staleTime: 30_000,
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (avaliacaoId: string) => excluirAvaliacaoCompleta(avaliacaoId),
     onSuccess: async () => {
@@ -139,6 +152,34 @@ export function TelaHistorico() {
         return acc;
       }, {}),
     [avaliacaoParcelas],
+  );
+
+  const equipeMap = useMemo(
+    () => {
+      const equipesPorAvaliacao = avaliacaoRuas.reduce<Record<string, string[]>>(
+        (acc, item) => {
+          if (item.deletadoEm || !item.equipeNome) return acc;
+          acc[item.avaliacaoId] = acc[item.avaliacaoId] || [];
+          if (!acc[item.avaliacaoId].includes(item.equipeNome)) {
+            acc[item.avaliacaoId].push(item.equipeNome);
+          }
+          return acc;
+        },
+        {},
+      );
+
+      return Object.entries(equipesPorAvaliacao).reduce<Record<string, string>>(
+        (acc, [avaliacaoId, equipes]) => {
+          const equipesOrdenadas = [...equipes].sort((a, b) =>
+            a.localeCompare(b, 'pt-BR', { numeric: true }),
+          );
+          acc[avaliacaoId] = formatarResumoHistoricoEquipe(equipesOrdenadas);
+          return acc;
+        },
+        {},
+      );
+    },
+    [avaliacaoRuas],
   );
 
   const parcelasAtivas = useMemo(
@@ -268,6 +309,10 @@ export function TelaHistorico() {
                     key={item.id}
                     avaliacao={item}
                     parcelas={parcelaMap[item.id] || []}
+                    equipeResumo={
+                      equipeMap[item.id] ||
+                      (item.equipeNome ? `Equipe ${item.equipeNome}` : '')
+                    }
                     participantes={participanteMap[item.id] || []}
                     onDelete={canManageUsers(usuarioAtual?.perfil) ? handleDelete : undefined}
                   />

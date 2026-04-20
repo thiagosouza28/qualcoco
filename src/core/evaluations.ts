@@ -20,7 +20,10 @@ import {
   listarParcelasPlanejadasPorAvaliacao,
   vincularParcelasPlanejadasAvaliacao,
 } from '@/core/plannedParcels';
-import { inferirAlinhamentoTipoPorLinha } from '@/core/plots';
+import {
+  gerarRuasDaParcela,
+  inferirAlinhamentoTipoPorLinha,
+} from '@/core/plots';
 import { normalizarContagemRua } from '@/core/registroRua';
 import { createEntity, repository, saveEntity } from '@/core/repositories';
 import { normalizeDateKey } from '@/core/date';
@@ -40,6 +43,7 @@ import type {
   RegistroColeta,
   SentidoRuas,
   PerfilUsuario,
+  SiglaResumoParcela,
 } from '@/core/types';
 
 export type AvaliacaoAtivaResumo = Avaliacao & {
@@ -300,11 +304,15 @@ const clonarPlanejamentoParaRetoque = async ({
   avaliacaoOriginalId,
   deviceId,
   dataAvaliacao,
+  equipeId,
+  equipeNome,
 }: {
   avaliacaoId: string;
   avaliacaoOriginalId: string;
   deviceId: string;
   dataAvaliacao: string;
+  equipeId?: string | null;
+  equipeNome?: string;
 }) => {
   const [parcelasOriginais, ruasOriginais] = await Promise.all([
     repository.filter(
@@ -320,14 +328,26 @@ const clonarPlanejamentoParaRetoque = async ({
   const parcelaIdMap = new Map<string, string>();
   const parcelas: AvaliacaoParcela[] = [];
   const ruas: AvaliacaoRua[] = [];
+  const ruasPorParcela = ruasOriginais.reduce<Record<string, AvaliacaoRua[]>>(
+    (acc, rua) => {
+      acc[rua.avaliacaoParcelaId] = acc[rua.avaliacaoParcelaId] || [];
+      acc[rua.avaliacaoParcelaId].push(rua);
+      return acc;
+    },
+    {},
+  );
 
   for (const parcela of parcelasOriginais) {
+    const ruasOriginaisParcela = (ruasPorParcela[parcela.id] || []).slice();
+    const linhaFinalRetoque = ruasOriginaisParcela.length
+      ? Math.max(...ruasOriginaisParcela.map((item) => Number(item.linhaFinal || 0)))
+      : parcela.linhaFinal;
     const novaParcela = await createEntity('avaliacaoParcelas', deviceId, {
       avaliacaoId,
       parcelaId: parcela.parcelaId,
       parcelaCodigo: parcela.parcelaCodigo,
       linhaInicial: parcela.linhaInicial,
-      linhaFinal: parcela.linhaFinal,
+      linhaFinal: Math.max(parcela.linhaInicial, linhaFinalRetoque),
       configuradaEm: nowIso(),
       faixasFalha: parcela.faixasFalha || [],
       siglasResumo: null,
@@ -336,25 +356,58 @@ const clonarPlanejamentoParaRetoque = async ({
     parcelas.push(novaParcela);
   }
 
-  for (const rua of ruasOriginais) {
-    const novoParcelaId = parcelaIdMap.get(rua.avaliacaoParcelaId);
+  for (const parcela of parcelasOriginais) {
+    const novoParcelaId = parcelaIdMap.get(parcela.id);
     if (!novoParcelaId) continue;
-    ruas.push(
-      await createEntity('avaliacaoRuas', deviceId, {
+
+    const ruasOriginaisParcela = (ruasPorParcela[parcela.id] || []).slice();
+    const ruasOriginaisOrdenadas = ordenarGrupoPorLinha(ruasOriginaisParcela);
+    const alinhamentoTipo =
+      ruasOriginaisOrdenadas[0]?.alinhamentoTipo ||
+      parcela.faixasFalha?.[0]?.alinhamentoTipo ||
+      inferirAlinhamentoTipoPorLinha(parcela.linhaInicial);
+    const sentidoRuas =
+      ruasOriginaisParcela.find(
+        (item) => item.sentidoRuas === 'inicio' || item.sentidoRuas === 'fim',
+      )?.sentidoRuas || inferirSentidoGrupo(ruasOriginaisOrdenadas);
+    const linhaFinalRetoque = Math.max(
+      parcela.linhaInicial,
+      ...ruasOriginaisParcela.map((item) => Number(item.linhaFinal || 0)),
+    );
+    const equipePadraoId =
+      equipeId ?? ruasOriginaisOrdenadas[0]?.equipeId ?? null;
+    const equipePadraoNome =
+      String(
+        equipeNome ||
+          ruasOriginaisOrdenadas[0]?.equipeNome ||
+          '',
+      ).trim();
+    const ruasSequenciais = gerarRuasDaParcela({
+      linhaInicial: parcela.linhaInicial,
+      linhaFinal: linhaFinalRetoque,
+      alinhamentoTipo,
+      faixasFalha: parcela.faixasFalha,
+      sentidoRuas,
+    });
+
+    for (const rua of ruasSequenciais) {
+      ruas.push(
+        await createEntity('avaliacaoRuas', deviceId, {
         avaliacaoId,
-        parcelaId: rua.parcelaId,
+        parcelaId: parcela.parcelaId,
         dataAvaliacao,
         avaliacaoParcelaId: novoParcelaId,
         ruaNumero: rua.ruaNumero,
         linhaInicial: rua.linhaInicial,
         linhaFinal: rua.linhaFinal,
-        alinhamentoTipo: rua.alinhamentoTipo,
-        sentidoRuas: rua.sentidoRuas,
-        equipeId: rua.equipeId,
-        equipeNome: rua.equipeNome,
+        alinhamentoTipo,
+        sentidoRuas,
+        equipeId: equipePadraoId,
+        equipeNome: equipePadraoNome,
         tipoFalha: null,
-      }),
-    );
+        }),
+      );
+    }
   }
 
   return { parcelas, ruas };
@@ -492,6 +545,92 @@ const formatarEquipeSiglaKey = (value: string | null | undefined) => {
 const ordenarEquipeSiglaKeys = (values: string[]) =>
   [...values].sort((a, b) => a.localeCompare(b, 'pt-BR', { numeric: true }));
 
+const SIGLAS_RESUMO_PARCELA_VALIDAS = new Set<SiglaResumoParcela>([
+  'A.C.R',
+  'A.N.C.R',
+  'A.C.N.R',
+  'A.N.C.N.R',
+]);
+
+const formatarSiglaResumoParcelaExibicao = (
+  value: SiglaResumoParcela | string | null | undefined,
+) => {
+  const normalized = String(value || '').trim();
+  if (!normalized) return '';
+  return normalized === 'A.N.C.R' ? 'A.R.N.C' : normalized;
+};
+
+const normalizarSiglasResumoParcelaRegistro = (
+  raw:
+    | AvaliacaoParcela['siglasResumo']
+    | Partial<Record<string, SiglaResumoParcela>>
+    | null
+    | undefined,
+) => {
+  if (!raw || typeof raw !== 'object') {
+    return {} as Partial<Record<string, SiglaResumoParcela>>;
+  }
+
+  return Object.entries(raw).reduce<Partial<Record<string, SiglaResumoParcela>>>(
+    (acc, [equipe, sigla]) => {
+      const equipeKey = formatarEquipeSiglaKey(equipe);
+      if (!equipeKey || !sigla || !SIGLAS_RESUMO_PARCELA_VALIDAS.has(sigla)) {
+        return acc;
+      }
+
+      acc[equipeKey] = sigla;
+      return acc;
+    },
+    {},
+  );
+};
+
+const siglasResumoParcelaSaoIguais = (
+  left:
+    | AvaliacaoParcela['siglasResumo']
+    | Partial<Record<string, SiglaResumoParcela>>
+    | null
+    | undefined,
+  right:
+    | AvaliacaoParcela['siglasResumo']
+    | Partial<Record<string, SiglaResumoParcela>>
+    | null
+    | undefined,
+) => {
+  const normalizedLeft = normalizarSiglasResumoParcelaRegistro(left);
+  const normalizedRight = normalizarSiglasResumoParcelaRegistro(right);
+  const leftKeys = ordenarEquipeSiglaKeys(Object.keys(normalizedLeft));
+  const rightKeys = ordenarEquipeSiglaKeys(Object.keys(normalizedRight));
+
+  if (leftKeys.length !== rightKeys.length) {
+    return false;
+  }
+
+  return leftKeys.every(
+    (key, index) =>
+      key === rightKeys[index] && normalizedLeft[key] === normalizedRight[key],
+  );
+};
+
+const formatarResumoSiglasParcelaLog = (
+  raw:
+    | AvaliacaoParcela['siglasResumo']
+    | Partial<Record<string, SiglaResumoParcela>>
+    | null
+    | undefined,
+) => {
+  const normalized = normalizarSiglasResumoParcelaRegistro(raw);
+  return ordenarEquipeSiglaKeys(Object.keys(normalized))
+    .map((equipe) => {
+      const sigla = normalized[equipe];
+      return sigla
+        ? `Equipe ${equipe}: ${formatarSiglaResumoParcelaExibicao(sigla)}`
+        : '';
+    })
+    .filter(Boolean)
+    .join(' • ');
+};
+
 const remapearSiglasResumoParcela = (
   siglasResumo: AvaliacaoParcela['siglasResumo'],
   equipeLabelsPlanejadas: string[],
@@ -543,6 +682,59 @@ const remapearSiglasResumoParcela = (
   });
 
   return Object.keys(resultado).length > 0 ? resultado : null;
+};
+
+export const salvarResumoParcelaAvaliacao = async (input: {
+  avaliacaoId: string;
+  avaliacaoParcelaId: string;
+  usuarioId?: string;
+  siglas: Partial<Record<string, SiglaResumoParcela>>;
+}) => {
+  const parcela = await repository.get('avaliacaoParcelas', input.avaliacaoParcelaId);
+
+  if (!parcela || parcela.deletadoEm) {
+    throw new Error('Parcela não encontrada para salvar o fechamento.');
+  }
+
+  if (parcela.avaliacaoId !== input.avaliacaoId) {
+    throw new Error('A parcela informada não pertence a esta avaliação.');
+  }
+
+  const siglasNormalizadas = normalizarSiglasResumoParcelaRegistro(input.siglas);
+  if (Object.keys(siglasNormalizadas).length === 0) {
+    throw new Error('Selecione ao menos uma sigla para o fechamento da parcela.');
+  }
+
+  if (siglasResumoParcelaSaoIguais(parcela.siglasResumo, siglasNormalizadas)) {
+    return parcela;
+  }
+
+  const nextParcela: AvaliacaoParcela = {
+    ...parcela,
+    siglasResumo: siglasNormalizadas,
+    atualizadoEm: nowIso(),
+    syncStatus: 'pending_sync',
+    versao: parcela.versao + 1,
+  };
+
+  await saveEntity('avaliacaoParcelas', nextParcela);
+
+  const resumoAnterior = formatarResumoSiglasParcelaLog(parcela.siglasResumo);
+  const resumoAtual = formatarResumoSiglasParcelaLog(siglasNormalizadas);
+
+  await criarLogAvaliacao({
+    avaliacaoId: input.avaliacaoId,
+    parcelaId: parcela.parcelaId,
+    colaboradorId: input.usuarioId || null,
+    acao: resumoAnterior
+      ? 'parcela_fechamento_editado'
+      : 'parcela_fechamento_registrado',
+    descricao: resumoAnterior
+      ? `Fechamento da parcela ${parcela.parcelaCodigo} editado. Antes: ${resumoAnterior}. Agora: ${resumoAtual}.`
+      : `Fechamento da parcela ${parcela.parcelaCodigo} registrado. Siglas: ${resumoAtual}.`,
+  });
+
+  return nextParcela;
 };
 
 const resolverStatusFinalPorMedia = (avaliacao: Avaliacao, input: {
@@ -730,7 +922,6 @@ export const criarAvaliacao = async (input: NovaAvaliacaoInput) => {
     equipeNome: input.equipeNome,
     planejamentoEquipes: input.planejamentoEquipes,
   });
-  const inicioEm = nowIso();
   const avaliacao = await createEntity('avaliacoes', device.id, {
     usuarioId: input.usuarioId,
     dispositivoId: input.dispositivoId,
@@ -744,8 +935,6 @@ export const criarAvaliacao = async (input: NovaAvaliacaoInput) => {
     equipeNome: equipePrincipal.equipeNome,
     responsavelPrincipalId: input.usuarioId,
     responsavelPrincipalNome: responsavel?.nome || '',
-    inicioEm,
-    fimEm: null,
     encerradoPorId: null,
     encerradoPorNome: '',
     marcadoRetoquePorId: null,
@@ -778,13 +967,6 @@ export const criarAvaliacao = async (input: NovaAvaliacaoInput) => {
     planejamentoEquipes: input.planejamentoEquipes,
     alinhamentoTipo: input.alinhamentoTipo,
     sentidoRuas: input.sentidoRuas,
-  });
-
-  await criarLogAvaliacao({
-    avaliacaoId: avaliacao.id,
-    colaboradorId: input.usuarioId,
-    acao: 'avaliacao_iniciada',
-    descricao: `Avaliação iniciada por ${responsavel?.primeiroNome || 'colaborador'}.`,
   });
 
   await registrarLogsParticipantes({
@@ -874,7 +1056,6 @@ export const criarRetoqueAvaliacao = async (input: {
     equipeId: input.equipeId || avaliacaoOriginal.equipeId,
     equipeNome: input.equipeNome || avaliacaoOriginal.equipeNome,
   });
-  const inicioEm = nowIso();
 
   const avaliacao = await createEntity('avaliacoes', device.id, {
     usuarioId: responsavelId,
@@ -889,8 +1070,6 @@ export const criarRetoqueAvaliacao = async (input: {
     equipeNome: equipePrincipal.equipeNome,
     responsavelPrincipalId: responsavelId,
     responsavelPrincipalNome: responsavel?.nome || '',
-    inicioEm,
-    fimEm: null,
     encerradoPorId: null,
     encerradoPorNome: '',
     marcadoRetoquePorId: avaliacaoOriginal.marcadoRetoquePorId || null,
@@ -921,14 +1100,10 @@ export const criarRetoqueAvaliacao = async (input: {
     avaliacaoOriginalId: avaliacaoOriginal.id,
     deviceId: device.id,
     dataAvaliacao: avaliacao.dataAvaliacao,
+    equipeId: equipePrincipal.equipeId,
+    equipeNome: equipePrincipal.equipeNome,
   });
 
-  await criarLogAvaliacao({
-    avaliacaoId: avaliacao.id,
-    colaboradorId: input.iniciadoPorId,
-    acao: 'retoque_iniciado',
-    descricao: `Retoque aberto por ${iniciadoPor?.nome || 'Usuário'} para execução de ${responsavel?.nome || 'Usuário'} em ${inicioEm}.`,
-  });
   await registrarLogsParticipantes({
     avaliacaoId: avaliacao.id,
     responsavelId,
@@ -950,8 +1125,6 @@ export const criarRetoqueAvaliacao = async (input: {
     quantidadeBags: 0,
     quantidadeCargas: 0,
     dataRetoque: '',
-    dataInicio: inicioEm,
-    dataFim: null,
     observacao: '',
     finalizadoPorId: null,
     finalizadoPorNome: '',
@@ -1892,7 +2065,6 @@ export const finalizarAvaliacao = async (
   const next: Avaliacao = {
     ...avaliacao,
     status: statusFinal,
-    fimEm: nowIso(),
     encerradoPorId: finalizadorId,
     encerradoPorNome: finalizador?.nome || '',
     atualizadoEm: nowIso(),
@@ -1928,7 +2100,6 @@ export const finalizarAvaliacao = async (
       await saveEntity('avaliacoes', {
         ...original,
         status: statusFinal === 'revisado' ? 'revisado' : 'refazer',
-        fimEm: next.fimEm,
         encerradoPorId: finalizadorId,
         encerradoPorNome: finalizador?.nome || '',
         atualizadoEm: nowIso(),
@@ -1956,16 +2127,6 @@ export const finalizarAvaliacao = async (
       }
     }
   }
-
-  await criarLogAvaliacao({
-    avaliacaoId,
-    colaboradorId: finalizadorId || responsavel.colaboradorId,
-    acao: 'avaliacao_finalizada',
-    descricao:
-      next.status === 'refazer'
-        ? 'Avaliação finalizada com retoque.'
-        : 'Avaliação finalizada com status OK.',
-  });
 
   return next;
 };
@@ -2230,12 +2391,6 @@ export const registrarRetoque = async (input: {
     quantidadeBags: Math.max(0, input.quantidadeBags),
     quantidadeCargas: Math.max(0, input.quantidadeCargas),
     dataRetoque: input.dataRetoque,
-    dataInicio:
-      existente[0]?.dataInicio ||
-      (isFluxoRetoqueLegado
-        ? avaliacao.inicioEm || agora
-        : avaliacao.marcadoRetoqueEm || agora),
-    dataFim: agora,
     observacao: input.observacao,
     finalizadoPorId: finalizadorId,
     finalizadoPorNome: finalizador?.nome || '',
@@ -2288,13 +2443,6 @@ export const registrarRetoque = async (input: {
     colaboradorId: finalizadorId,
     acao: 'retoque_quantidades_registradas',
     descricao: `Retoque informado para ${responsavel?.nome || 'Usuário'} com ${Math.max(0, input.quantidadeBags)} bag(s) e ${Math.max(0, input.quantidadeCargas)} carga(s).`,
-  });
-
-  await criarLogAvaliacao({
-    avaliacaoId: input.avaliacaoId,
-    colaboradorId: finalizadorId,
-    acao: 'retoque_finalizado',
-    descricao: `Retoque finalizado por ${payload.finalizadoPorNome || responsavel?.nome || 'Usuário'}. Executor registrado: ${responsavel?.nome || 'Usuário'}.`,
   });
 
   return record;

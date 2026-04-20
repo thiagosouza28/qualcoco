@@ -151,3 +151,21 @@ export const limparMarcacaoNotificacaoNativa = (notificacaoId?: string | null) =
 
   untrackDeliveredId(normalized);
 };
+
+export const limparTodasNotificacoesNativas = async () => {
+  saveDeliveredIds([]);
+
+  if (!canUseNativeNotifications()) {
+    return false;
+  }
+
+  const pending = await LocalNotifications.getPending();
+  if (pending.notifications.length > 0) {
+    await LocalNotifications.cancel({
+      notifications: pending.notifications.map((item) => ({ id: item.id })),
+    });
+  }
+
+  await LocalNotifications.removeAllDeliveredNotifications();
+  return true;
+};

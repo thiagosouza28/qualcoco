@@ -72,6 +72,9 @@ const formatObservacaoColunaPdf = (value = '') => {
   return normalized || '-';
 };
 
+const formatSiglaResumoParcelaPdf = (value = '') =>
+  String(value || '').trim() === 'A.N.C.R' ? 'A.R.N.C' : String(value || '').trim();
+
 const getReferenteEquipeLinhasPdf = (value = '') => {
   const itens = String(value || '')
     .replace(/\u00a0/g, ' ')
@@ -224,7 +227,7 @@ const createPdfRows = (page) => {
         row.parcelaCompleta !== false &&
         row.siglaResumoParcela
       ) {
-        responsavelLinhas.push(String(row.siglaResumoParcela).trim());
+        responsavelLinhas.push(formatSiglaResumoParcelaPdf(row.siglaResumoParcela));
       }
 
       const observacaoLayout = buildObservacaoLayoutPdf({

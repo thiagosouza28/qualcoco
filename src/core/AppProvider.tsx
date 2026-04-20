@@ -210,6 +210,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       options?: {
         refreshMode?: 'full' | 'queries-only';
         queryKeys?: readonly (readonly unknown[])[];
+        reuseActiveSync?: boolean;
       },
     ) => {
       if (!isCloudConfigured || !onlineRef.current) {
@@ -217,8 +218,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return null;
       }
 
-      if (syncPromiseRef.current) {
-        return await syncPromiseRef.current;
+      while (syncPromiseRef.current) {
+        const activeSync = syncPromiseRef.current;
+        if (options?.reuseActiveSync !== false) {
+          return await activeSync;
+        }
+
+        try {
+          await activeSync;
+        } catch {
+          // Sync explícita deve esperar a fila atual esvaziar antes de iniciar outra.
+        }
       }
 
       const runSync = (async () => {
@@ -274,10 +284,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return null;
       }
 
-      if (syncPromiseRef.current) {
-        return await syncPromiseRef.current;
-      }
-
       if (!force && !cloudSessionReady) {
         return null;
       }
@@ -297,6 +303,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         });
         lastSyncAtRef.current = Date.now();
         return result;
+      }, {
+        reuseActiveSync: !force,
       });
     },
     [atualizarEstadoOnline, cloudSessionReady, iniciarSincronizacao],
