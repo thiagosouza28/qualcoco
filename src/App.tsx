@@ -169,6 +169,39 @@ function RouteCloudSync() {
   return null;
 }
 
+function AppOpeningState({
+  badge,
+  title,
+  description,
+}: {
+  badge: string;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="boot-screen">
+      <div className="boot-screen__card">
+        <div className="boot-screen__brand">
+          <span className="app-mark">QC</span>
+          <div>
+            <span className="hero-badge">{badge}</span>
+            <h1>{title}</h1>
+          </div>
+        </div>
+        <p>{description}</p>
+        <div className="boot-screen__progress" aria-hidden="true">
+          <span />
+        </div>
+        <div className="boot-screen__meta">
+          <span>Offline</span>
+          <span>Sincronização</span>
+          <span>Campo</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ShellRoutes() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -273,12 +306,11 @@ function ShellRoutes() {
 
   if (!bootstrapped) {
     return (
-      <div className="boot-screen">
-        <div className="boot-screen__card">
-          <span className="hero-badge">QualCoco Campo</span>
-          <p>Preparando operação offline</p>
-        </div>
-      </div>
+      <AppOpeningState
+        badge="QualCoco Campo"
+        title="Preparando o app"
+        description="Carregando dados locais, sessão do aparelho e recursos para trabalho offline."
+      />
     );
   }
 
@@ -297,12 +329,11 @@ function ShellRoutes() {
       <SyncStatusBar />
       <Suspense
         fallback={
-          <div className="route-loader">
-            <div className="route-loader__card">
-              <span className="hero-badge">Carregando</span>
-              <p>Abrindo módulo de campo</p>
-            </div>
-          </div>
+          <AppOpeningState
+            badge="Carregando"
+            title="Abrindo módulo"
+            description="Preparando a próxima tela com os dados do campo."
+          />
         }
       >
         <Routes>

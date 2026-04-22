@@ -167,13 +167,19 @@ const sanitizeFileName = (value: string) => {
 const normalizeManifestFileName = (version: string, fileName?: string) =>
   sanitizeFileName(fileName || '') || getDefaultApkFileName(version);
 
+const getUpdateVersionDir = (version: string) =>
+  `${APP_UPDATE_DOWNLOAD_DIR}/${sanitizeVersionForFileName(version)}`;
+
 const getUpdateApkPath = (version: string, fileName?: string) =>
+  `${getUpdateVersionDir(version)}/${normalizeManifestFileName(version, fileName)}`;
+
+const getLegacyUpdateApkPath = (version: string, fileName?: string) =>
   `${APP_UPDATE_DOWNLOAD_DIR}/${normalizeManifestFileName(version, fileName)}`;
 
-const ensureUpdateDownloadDir = async () => {
+const ensureUpdateDownloadDir = async (version?: string) => {
   try {
     await Filesystem.mkdir({
-      path: APP_UPDATE_DOWNLOAD_DIR,
+      path: version ? getUpdateVersionDir(version) : APP_UPDATE_DOWNLOAD_DIR,
       directory: Directory.Cache,
       recursive: true,
     });
@@ -183,7 +189,7 @@ const ensureUpdateDownloadDir = async () => {
 };
 
 const getUpdateApkUri = async (version: string, fileName?: string) => {
-  await ensureUpdateDownloadDir();
+  await ensureUpdateDownloadDir(version);
   const { uri } = await Filesystem.getUri({
     path: getUpdateApkPath(version, fileName),
     directory: Directory.Cache,
@@ -434,7 +440,7 @@ export const checkForAppUpdate = async (
 
 const doesCachedUpdateExist = async (version: string, fileName?: string) => {
   try {
-    await ensureUpdateDownloadDir();
+    await ensureUpdateDownloadDir(version);
     const fileInfo = await Filesystem.stat({
       path: getUpdateApkPath(version, fileName),
       directory: Directory.Cache,
@@ -447,6 +453,26 @@ const doesCachedUpdateExist = async (version: string, fileName?: string) => {
 
 export const hasPreparedAppUpdate = async (version: string, fileName?: string) =>
   doesCachedUpdateExist(version, fileName);
+
+const deleteCachedUpdateFile = async (path: string) => {
+  try {
+    await Filesystem.deleteFile({
+      path,
+      directory: Directory.Cache,
+    });
+  } catch {
+    // Ignore missing cache files.
+  }
+};
+
+const clearLegacyCachedUpdate = async (version: string, fileName?: string) => {
+  const legacyPath = getLegacyUpdateApkPath(version, fileName);
+  if (legacyPath === getUpdateApkPath(version, fileName)) {
+    return;
+  }
+
+  await deleteCachedUpdateFile(legacyPath);
+};
 
 const openDownloadedUpdateInstaller = async (
   version: string,
@@ -547,6 +573,7 @@ export const downloadAndInstallAppUpdate = async ({
 
   try {
     onProgress?.(0);
+    await clearLegacyCachedUpdate(version, fileName);
 
     if (await doesCachedUpdateExist(version, fileName)) {
       return openDownloadedUpdateInstaller(version, fileName);
@@ -587,14 +614,7 @@ export const downloadAndInstallAppUpdate = async ({
       activeDownloadUrl = candidateUrl;
       onProgress?.(0);
 
-      try {
-        await Filesystem.deleteFile({
-          path: targetPath,
-          directory: Directory.Cache,
-        });
-      } catch {
-        // Ignore stale cache cleanup failures.
-      }
+      await deleteCachedUpdateFile(targetPath);
 
       try {
         await FileTransfer.downloadFile({

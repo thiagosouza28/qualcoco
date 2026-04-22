@@ -120,14 +120,24 @@ export function TelaLogin() {
   return (
     <main className="login-shell">
       <section className="login-hero">
-        <span className="hero-badge">QualCoco Campo</span>
+        <div className="login-hero__brand">
+          <span className="app-mark app-mark--sm">QC</span>
+          <div>
+            <span className="hero-badge">QualCoco Campo</span>
+            <p>Controle de qualidade de colheita</p>
+          </div>
+        </div>
         <h1 className="hero-title">
-          Coleta agrícola offline, segura e rápida.
+          Acesso rápido para o campo.
         </h1>
         <p className="hero-text">
-          Entre com sua matrícula e seu PIN numérico. O aplicativo continua
-          funcionando mesmo sem internet.
+          Entre com sua matrícula e PIN. Os dados do aparelho continuam
+          disponíveis mesmo sem internet.
         </p>
+        <div className="login-hero__status">
+          <span>{online ? 'Online' : 'Offline'}</span>
+          <span>{hasUsers ? 'Acessos prontos' : 'Aguardando acessos'}</span>
+        </div>
       </section>
 
       <Card className="login-card">

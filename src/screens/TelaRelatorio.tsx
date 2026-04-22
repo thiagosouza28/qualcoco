@@ -31,7 +31,7 @@ import {
 } from '@/core/date';
 
 const ROWS_PER_PAGE = 40;
-const DEFAULT_TEAM_SPACER_ROWS = 0;
+const DEFAULT_TEAM_SPACER_ROWS = 3;
 const MAX_TEAM_SPACER_ROWS = 8;
 const TEAM_HISTORY_DAYS = 7;
 const TEAM_HISTORY_ENTRIES = 4;

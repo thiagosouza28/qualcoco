@@ -331,7 +331,45 @@ a {
 }
 
 .login-hero {
-  padding: 22px 6px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px 6px 0;
+}
+
+.login-hero__brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.login-hero__brand p {
+  margin: 6px 0 0;
+  color: var(--qc-text-muted);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.app-mark {
+  display: inline-flex;
+  width: 58px;
+  height: 58px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  border-radius: 20px;
+  background: var(--qc-primary);
+  color: white;
+  font-size: 1.05rem;
+  font-weight: 900;
+  box-shadow: 0 18px 34px -24px rgba(0, 107, 68, 0.78);
+}
+
+.app-mark--sm {
+  width: 48px;
+  height: 48px;
+  border-radius: 17px;
+  font-size: 0.92rem;
 }
 
 .hero-badge {
@@ -348,7 +386,7 @@ a {
 }
 
 .hero-title {
-  margin: 18px 0 10px;
+  margin: 2px 0 0;
   font-size: clamp(2rem, 7vw, 3rem);
   line-height: 0.95;
   color: var(--qc-text);
@@ -358,6 +396,25 @@ a {
   margin: 0;
   font-size: 1rem;
   color: var(--qc-text-muted);
+}
+
+.login-hero__status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.login-hero__status span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  border: 1px solid rgba(183, 200, 188, 0.86);
+  border-radius: 999px;
+  background: rgba(244, 246, 244, 0.78);
+  padding: 0 12px;
+  color: var(--qc-secondary);
+  font-size: 0.78rem;
+  font-weight: 800;
 }
 
 .login-card {
@@ -643,16 +700,101 @@ a {
   display: grid;
   place-items: center;
   padding: 24px;
+  background:
+    linear-gradient(145deg, rgba(244, 246, 244, 0.98), rgba(226, 236, 228, 0.96)),
+    var(--qc-surface);
 }
 
 .boot-screen__card,
 .route-loader__card {
   width: min(100%, 360px);
+  position: relative;
+  overflow: hidden;
   padding: 28px;
   border-radius: 30px;
   background: rgba(244, 246, 244, 0.98);
   box-shadow: var(--shadow-soft);
-  text-align: center;
+  border: 1px solid rgba(183, 200, 188, 0.86);
+}
+
+.boot-screen__card::before,
+.route-loader__card::before {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 5px;
+  background: linear-gradient(90deg, var(--qc-primary), #d49b35, #1f61a4);
+  content: '';
+}
+
+.boot-screen__brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.boot-screen__card h1,
+.route-loader__card h1 {
+  margin: 10px 0 0;
+  color: var(--qc-text);
+  font-size: 1.5rem;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.boot-screen__card p,
+.route-loader__card p {
+  margin: 18px 0 0;
+  color: var(--qc-text-muted);
+  font-size: 0.95rem;
+  line-height: 1.45;
+  font-weight: 650;
+}
+
+.boot-screen__progress {
+  height: 8px;
+  margin-top: 20px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(207, 216, 209, 0.8);
+}
+
+.boot-screen__progress span {
+  display: block;
+  width: 46%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--qc-primary), #1f61a4);
+  animation: boot-progress 1.2s ease-in-out infinite;
+}
+
+.boot-screen__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.boot-screen__meta span {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  border-radius: 999px;
+  background: rgba(210, 231, 211, 0.62);
+  padding: 0 10px;
+  color: var(--qc-secondary);
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+@keyframes boot-progress {
+  0% {
+    transform: translateX(-110%);
+  }
+
+  55%,
+  100% {
+    transform: translateX(235%);
+  }
 }
 
 .app-bottom-nav {

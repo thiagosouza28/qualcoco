@@ -25,7 +25,7 @@ env:
   RELEASE_TAG: v1.0.${{ github.run_number }}
   RELEASE_APK_NAME: qualcoco.apk
   RELEASE_APK_URL: https://github.com/${{ github.repository }}/releases/download/v1.0.${{ github.run_number }}/qualcoco.apk
-  DRIVE_APK_NAME: qualcoco.apk
+  DRIVE_APK_NAME: appqualcoco1.0.${{ github.run_number }}.apk
 
 jobs:
   build-android:

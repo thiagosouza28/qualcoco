@@ -78,7 +78,7 @@ export function TelaDetalheAvaliacao() {
   const { id = '' } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { usuarioAtual } = useCampoApp();
+  const { usuarioAtual, sincronizarAgora } = useCampoApp();
   const { permissionMatrix } = useRolePermissions(usuarioAtual?.perfil);
   const [showMarcarModal, setShowMarcarModal] = useState(false);
   const [showRetoqueModal, setShowRetoqueModal] = useState(false);
@@ -92,6 +92,11 @@ export function TelaDetalheAvaliacao() {
   const retoqueExecutorId = retoqueExecutorIds[0] || '';
   const setRetoqueExecutorId = (value: string) =>
     setRetoqueExecutorIds(value ? [value] : []);
+  const sincronizarRetoqueEmSegundoPlano = () => {
+    void sincronizarAgora().catch((error) => {
+      console.warn('[Retoque] Falha ao sincronizar em segundo plano.', error);
+    });
+  };
 
   const { data, isFetched } = useQuery({
     queryKey: ['avaliacao', id, 'detalhe', usuarioAtual?.id],
@@ -303,48 +308,19 @@ export function TelaDetalheAvaliacao() {
         motivo: motivoRetoque,
       });
     },
-    onSuccess: async () => {
+    onSuccess: () => {
       setShowMarcarModal(false);
       setMotivoRetoque('');
       setRetoqueExecutorIds([]);
       setRetoqueEquipeId('');
-      await queryClient.invalidateQueries();
+      void queryClient.invalidateQueries();
+      sincronizarRetoqueEmSegundoPlano();
     },
     onError: (error) => {
       alert(
         error instanceof Error
           ? error.message
           : 'Não foi possível marcar a parcela para retoque.',
-      );
-    },
-  });
-
-  const marcarRetoqueFlexMutation = useMutation({
-    mutationFn: async () => {
-      if (retoqueExecutorIds.length === 0) {
-        throw new Error('Selecione ao menos um colaborador para o retoque.');
-      }
-
-      return marcarAvaliacaoParaRetoque({
-        avaliacaoId: id,
-        usuarioId: usuarioAtual?.id || '',
-        designadoParaIds: retoqueExecutorIds,
-        equipeId: retoqueEquipeId || null,
-        motivo: motivoRetoque,
-      });
-    },
-    onSuccess: async () => {
-      setShowMarcarModal(false);
-      setMotivoRetoque('');
-      setRetoqueExecutorIds([]);
-      setRetoqueEquipeId('');
-      await queryClient.invalidateQueries();
-    },
-    onError: (error) => {
-      alert(
-        error instanceof Error
-          ? error.message
-          : 'Nao foi possivel marcar a parcela para retoque.',
       );
     },
   });
@@ -383,13 +359,14 @@ export function TelaDetalheAvaliacao() {
         finalizadoPorId: usuarioAtual?.id || responsavelId,
       });
     },
-    onSuccess: async () => {
+    onSuccess: () => {
       setShowRetoqueModal(false);
       setRetoqueData(todayIso());
       setRetoqueBags('');
       setRetoqueCargas('');
       setRetoqueObservacao('');
-      await queryClient.invalidateQueries();
+      void queryClient.invalidateQueries();
+      sincronizarRetoqueEmSegundoPlano();
     },
     onError: (error) => {
       alert(
@@ -429,8 +406,9 @@ export function TelaDetalheAvaliacao() {
         equipeNome: data?.avaliacao?.retoqueEquipeNome || data?.avaliacao?.equipeNome || '',
       });
     },
-    onSuccess: async (result) => {
-      await queryClient.invalidateQueries();
+    onSuccess: (result) => {
+      void queryClient.invalidateQueries();
+      sincronizarRetoqueEmSegundoPlano();
       navigate(`/avaliacoes/${result.avaliacao.id}`);
     },
     onError: (error) => {
@@ -481,82 +459,60 @@ export function TelaDetalheAvaliacao() {
     >
       <div className="stack-lg">
         <Dialog open={showMarcarModal} onOpenChange={setShowMarcarModal}>
-          <DialogContent className="max-w-[420px]">
-            <DialogHeader>
+          <DialogContent className="flex max-w-[420px] flex-col p-0">
+            <DialogHeader className="shrink-0 px-6 pb-3 pr-12 pt-6">
               <DialogTitle>Marcar parcela para retoque</DialogTitle>
             </DialogHeader>
-            <div className="mb-3 rounded-[18px] border border-[rgba(93,98,78,0.16)] bg-[rgba(244,245,240,0.92)] px-4 py-3">
-              <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
-                Fiscal responsável
-              </p>
-              <p className="mt-1 text-sm font-semibold text-[var(--qc-text)]">
-                {usuarioAtual?.nome || 'Não informado'}
-              </p>
-            </div>
 
-            <Select value={retoqueExecutorId} onValueChange={setRetoqueExecutorId}>
-              <SelectTrigger className="mb-3">
-                <SelectValue placeholder="Selecione quem executará o retoque" />
-              </SelectTrigger>
-              <SelectContent>
-                {colaboradoresExecutoresRetoque.map((colaborador) => (
-                  <SelectItem key={colaborador.id} value={colaborador.id}>
-                    {colaborador.nome} • {colaborador.matricula}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={retoqueEquipeId} onValueChange={setRetoqueEquipeId}>
-              <SelectTrigger className="mb-3">
-                <SelectValue placeholder="Selecione a equipe do retoque" />
-              </SelectTrigger>
-              <SelectContent>
-                {equipesVisiveis.map((equipe) => (
-                  <SelectItem key={equipe.id} value={equipe.id}>
-                    {String(equipe.numero).padStart(2, '0')} • {equipe.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <div className="mb-3 stack-sm">
-              <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
-                Colaboradores adicionais
-              </p>
-              <div className="grid gap-2">
-                {colaboradoresExecutoresRetoque.map((colaborador) => {
-                  const ativo = retoqueExecutorIds.includes(colaborador.id);
-                  return (
-                    <Button
-                      key={colaborador.id}
-                      type="button"
-                      variant={ativo ? 'default' : 'outline'}
-                      className="h-11 justify-start rounded-2xl font-bold"
-                      onClick={() =>
-                        setRetoqueExecutorIds((current) =>
-                          current.includes(colaborador.id)
-                            ? current.filter((item) => item !== colaborador.id)
-                            : [...current, colaborador.id],
-                        )
-                      }
-                    >
-                      {colaborador.nome} • {colaborador.matricula}
-                    </Button>
-                  );
-                })}
+            <div className="shrink-0 space-y-3 px-6 pb-3">
+              <div className="rounded-[18px] border border-[rgba(93,98,78,0.16)] bg-[rgba(244,245,240,0.92)] px-4 py-3">
+                <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
+                  Fiscal responsável
+                </p>
+                <p className="mt-1 text-sm font-semibold text-[var(--qc-text)]">
+                  {usuarioAtual?.nome || 'Não informado'}
+                </p>
               </div>
+
+              <Select value={retoqueExecutorId} onValueChange={setRetoqueExecutorId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione quem executará o retoque" />
+                </SelectTrigger>
+                <SelectContent>
+                  {colaboradoresExecutoresRetoque.map((colaborador) => (
+                    <SelectItem key={colaborador.id} value={colaborador.id}>
+                      {colaborador.nome} • {colaborador.matricula}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={retoqueEquipeId} onValueChange={setRetoqueEquipeId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a equipe do retoque" />
+                </SelectTrigger>
+                <SelectContent>
+                  {equipesVisiveis.map((equipe) => (
+                    <SelectItem key={equipe.id} value={equipe.id}>
+                      {String(equipe.numero).padStart(2, '0')} • {equipe.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
-            <Textarea
-              rows={4}
-              placeholder="Motivo ou observação do envio para retoque"
-              value={motivoRetoque}
-              onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
-                setMotivoRetoque(event.target.value)
-              }
-            />
-            <DialogFooter className="gap-2">
+            <div className="min-h-0 flex-1 overflow-y-auto px-6 py-3">
+              <Textarea
+                rows={4}
+                placeholder="Motivo ou observação do envio para retoque"
+                value={motivoRetoque}
+                onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
+                  setMotivoRetoque(event.target.value)
+                }
+              />
+            </div>
+
+            <DialogFooter className="mt-0 shrink-0 border-t border-[var(--qc-border)] bg-[var(--qc-surface)] px-6 pb-6 pt-4">
               <Button variant="outline" onClick={() => setShowMarcarModal(false)}>
                 Cancelar
               </Button>

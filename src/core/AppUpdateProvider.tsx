@@ -111,11 +111,13 @@ export function AppUpdateProvider({
 
         setAvailableUpdate(result.update);
         setInstallReadyForAvailableUpdate(preparedUpdate);
-        setUpdateDialogOpen(result.update.required || !startedInstaller);
+        setUpdateDialogOpen(true);
         setUpdateMessage(
           preparedUpdate
-            ? 'O APK j\u00e1 foi baixado. Toque em Atualizar para reabrir o instalador.'
-            : null,
+            ? `O APK da vers\u00e3o ${result.update.latestVersion} j\u00e1 foi baixado. Toque em Atualizar para reabrir o instalador.`
+            : startedInstaller
+              ? 'A instala\u00e7\u00e3o anterior n\u00e3o foi conclu\u00edda. O app vai preparar novamente o APK correto.'
+              : null,
         );
       } else if (
         result.status === 'up-to-date' ||
@@ -153,6 +155,7 @@ export function AppUpdateProvider({
 
     try {
       const result = await downloadAndInstallAppUpdate({
+        url: targetUpdate.url,
         urls: targetUpdate.urls,
         version: targetUpdate.latestVersion,
         fileName: targetUpdate.fileName,
