@@ -417,6 +417,23 @@ a {
   font-weight: 800;
 }
 
+.login-logo-showcase {
+  display: flex;
+  flex: 1 1 120px;
+  min-height: clamp(86px, 20dvh, 190px);
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px 8px;
+}
+
+.login-logo-showcase img {
+  display: block;
+  width: clamp(150px, 46vw, 238px);
+  max-width: 72%;
+  height: auto;
+  object-fit: contain;
+}
+
 .login-card {
   border-radius: 32px;
   border: 1px solid var(--qc-border);
@@ -899,6 +916,10 @@ body.has-sync-status-bar .app-shell--no-header .app-scroll {
   .app-scroll,
   .login-shell {
     padding-inline: 12px;
+  }
+
+  .login-logo-showcase {
+    min-height: clamp(76px, 17dvh, 140px);
   }
 
   .stats-grid {

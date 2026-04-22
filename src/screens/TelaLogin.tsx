@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { WebUsersSyncDialog } from '@/components/WebUsersSyncDialog';
+import sococoLogo from '@/assets/sococo-logo.png';
 
 export function TelaLogin() {
   const {
@@ -139,6 +140,10 @@ export function TelaLogin() {
           <span>{hasUsers ? 'Acessos prontos' : 'Aguardando acessos'}</span>
         </div>
       </section>
+
+      <div className="login-logo-showcase" aria-label="Sococo">
+        <img src={sococoLogo} alt="Sococo" />
+      </div>
 
       <Card className="login-card">
         <CardContent className="space-y-5 p-6">
