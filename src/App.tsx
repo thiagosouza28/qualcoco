@@ -90,6 +90,7 @@ const ONLINE_SHARED_PULL_STORES = uniqueStores([
   'avaliacaoParcelas',
   'avaliacaoRuas',
   'avaliacaoRetoques',
+  'producoes',
   'avaliacaoLogs',
   'registrosColeta',
 ]);

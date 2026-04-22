@@ -8,8 +8,24 @@ import { repository } from '@/core/repositories';
 import type { Configuracao } from '@/core/types';
 
 export const DEFAULT_LIMITES_CONFIGURACAO = {
+  cocosPorBag: 600,
+  cargasPorBag: 6,
   limiteCocosChao: 19,
   limiteCachos3Cocos: 19,
+};
+
+const normalizarNumeroConfig = (
+  value: unknown,
+  fallback: number,
+  options: { min?: number; positive?: boolean } = {},
+) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+
+  const min = options.positive ? Number.MIN_VALUE : options.min ?? 0;
+  if (parsed < min) return fallback;
+
+  return parsed;
 };
 
 export const buildDefaultConfiguracao = (deviceId = getDeviceId()): Configuracao => ({
@@ -30,11 +46,23 @@ export const mergeConfiguracaoComPadrao = (
   deviceId = getDeviceId(),
 ): Configuracao => {
   const fallback = buildDefaultConfiguracao(deviceId);
+  const cocosPorBag = Number(config?.cocosPorBag);
+  const cargasPorBag = Number(config?.cargasPorBag);
   const limiteCocos = Number(config?.limiteCocosChao);
   const limiteCachos = Number(config?.limiteCachos3Cocos);
   return {
     ...fallback,
     ...(config || {}),
+    cocosPorBag: normalizarNumeroConfig(
+      cocosPorBag,
+      fallback.cocosPorBag,
+      { min: 0 },
+    ),
+    cargasPorBag: normalizarNumeroConfig(
+      cargasPorBag,
+      fallback.cargasPorBag,
+      { positive: true },
+    ),
     limiteCocosChao: Number.isFinite(limiteCocos)
       ? limiteCocos
       : fallback.limiteCocosChao,

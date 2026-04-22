@@ -12,6 +12,19 @@ const tones = {
     'from-[rgba(93,98,78,0.08)] to-white text-[var(--qc-secondary)] ring-[rgba(93,98,78,0.12)]',
 };
 
+const feedbackTones = {
+  low: 'from-[rgba(31,97,164,0.14)] to-white text-[#1f61a4] ring-[rgba(31,97,164,0.24)]',
+  medium:
+    'from-[rgba(236,181,43,0.2)] to-white text-[#8a6a08] ring-[rgba(236,181,43,0.34)]',
+  high: 'from-[rgba(197,58,53,0.18)] to-white text-[var(--qc-danger)] ring-[rgba(197,58,53,0.32)]',
+};
+
+const feedbackButtonTones = {
+  low: 'bg-[#1f61a4]',
+  medium: 'bg-[#8a6a08]',
+  high: 'bg-[var(--qc-danger)]',
+};
+
 interface CounterInputProps {
   label: string;
   value: number;
@@ -25,6 +38,7 @@ interface CounterInputProps {
   padWithZero?: boolean;
   disabled?: boolean;
   displayOverride?: string | null;
+  feedback?: 'low' | 'medium' | 'high' | null;
 }
 
 export function CounterInput({
@@ -40,6 +54,7 @@ export function CounterInput({
   padWithZero = false,
   disabled = false,
   displayOverride = null,
+  feedback = null,
 }: CounterInputProps) {
   const [inputValue, setInputValue] = useState(value.toString());
   const [isEditing, setIsEditing] = useState(false);
@@ -78,6 +93,14 @@ export function CounterInput({
       : padWithZero && !isEditing
         ? String(Math.max(min, Math.min(max, Number(value) || 0))).padStart(2, '0')
         : inputValue;
+  const activeTone = feedback ? feedbackTones[feedback] : tones[color];
+  const actionTone = feedback
+    ? feedbackButtonTones[feedback]
+    : color === 'amber'
+      ? 'bg-[#7f6b2b]'
+      : color === 'slate'
+        ? 'bg-[var(--qc-secondary)]'
+        : 'bg-[var(--qc-primary)]';
 
   return (
     <Card
@@ -89,8 +112,8 @@ export function CounterInput({
     >
       <CardContent
         className={cn(
-          'min-w-0 bg-gradient-to-br ring-1 ring-inset',
-          tones[color],
+          'min-w-0 bg-gradient-to-br ring-1 ring-inset transition-colors duration-300',
+          activeTone,
           compact ? 'p-3' : 'p-4',
         )}
       >
@@ -127,7 +150,10 @@ export function CounterInput({
             inputMode="numeric"
             data-counter-input="true"
             className={cn(
-              'min-w-0 flex-1 border-none bg-transparent p-0 text-center font-black leading-none tracking-[-0.04em] tabular-nums text-[var(--qc-text)] focus:ring-0',
+              'min-w-0 flex-1 border-none bg-transparent p-0 text-center font-black leading-none tracking-[-0.04em] tabular-nums text-[var(--qc-text)] transition-colors duration-300 focus:ring-0',
+              feedback === 'low' && 'text-[#1f61a4]',
+              feedback === 'medium' && 'text-[#8a6a08]',
+              feedback === 'high' && 'text-[var(--qc-danger)]',
               compact ? 'text-[1.95rem]' : 'text-[3.5rem]',
             )}
             value={displayValue}
@@ -147,11 +173,7 @@ export function CounterInput({
             className={cn(
               'shrink-0 rounded-2xl border-none text-white shadow-sm',
               compact ? 'h-10 w-10 rounded-[12px]' : 'h-12 w-12 rounded-[16px]',
-              color === 'amber'
-                ? 'bg-[#7f6b2b]'
-                : color === 'slate'
-                  ? 'bg-[var(--qc-secondary)]'
-                  : 'bg-[var(--qc-primary)]',
+              actionTone,
             )}
             disabled={disabled}
             onClick={() => setValue((Number(value) || 0) + 1)}

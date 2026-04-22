@@ -53,6 +53,11 @@ import {
   resolverEstadoColetaRua,
   serializarEstadoColetaRua,
 } from '@/core/registroRua';
+import {
+  calcularFaixaFeedback,
+  calcularProducaoPorCargas,
+  formatarProducaoNumero,
+} from '@/core/production';
 import { useRolePermissions } from '@/core/useRolePermissions';
 import type {
   ModoCalculo,
@@ -493,7 +498,7 @@ export function TelaRegistroLinhas() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { usuarioAtual } = useCampoApp();
-  const { permissionMatrix } = useRolePermissions(usuarioAtual?.perfil);
+  const { config, permissionMatrix } = useRolePermissions(usuarioAtual?.perfil);
 
   const [ruaIndex, setRuaIndex] = useState(0);
   const [quantidade, setQuantidade] = useState(0);
@@ -531,10 +536,7 @@ export function TelaRegistroLinhas() {
     'dashboard' | 'relatorio' | null
   >(null);
   const [showRetoqueModal, setShowRetoqueModal] = useState(false);
-  const [retoqueBags, setRetoqueBags] = useState('');
   const [retoqueCargas, setRetoqueCargas] = useState('');
-  const [retoqueData, setRetoqueData] = useState(nowIso().slice(0, 10));
-  const [retoqueObs, setRetoqueObs] = useState('');
   const [retoqueRegistrado, setRetoqueRegistrado] = useState(false);
   const [editRuaLinhaIni, setEditRuaLinhaIni] = useState('');
   const [editRuaLinhaFim, setEditRuaLinhaFim] = useState('');
@@ -557,10 +559,11 @@ export function TelaRegistroLinhas() {
   }, [data, isFetched, navigate]);
 
   const avaliacaoTipoAtual = data?.avaliacao?.tipo || 'normal';
+  const isFluxoRetoque = avaliacaoTipoAtual === 'retoque';
   const statusAtualAvaliacao = String(data?.avaliacao?.status || '').trim().toLowerCase();
   const retoqueFinalizado = data?.retoque?.status === 'finalizado';
   const precisaRegistrarEncerramentoRetoque =
-    avaliacaoTipoAtual === 'retoque' && !retoqueFinalizado && !retoqueRegistrado;
+    isFluxoRetoque && !retoqueFinalizado && !retoqueRegistrado;
   const edicaoConcluidaLiberada =
     ['completed', 'ok', 'refazer', 'revisado'].includes(statusAtualAvaliacao) &&
     canEditCompletedEvaluation(usuarioAtual?.perfil, permissionMatrix);
@@ -787,6 +790,16 @@ export function TelaRegistroLinhas() {
   const faltaTropearMarcada = estadoColeta === 'falta_tropear';
   const siglaCacho = faltaColherMarcada ? 'F.C' : null;
   const siglaCocos = faltaColherMarcada ? '--' : faltaTropearMarcada ? 'F.T' : null;
+  const producaoRetoque = useMemo(
+    () => calcularProducaoPorCargas(retoqueCargas, config),
+    [config, retoqueCargas],
+  );
+  const feedbackCachos = isFluxoRetoque
+    ? null
+    : calcularFaixaFeedback(cachos3, config?.limiteCachos3Cocos);
+  const feedbackCocos = isFluxoRetoque
+    ? null
+    : calcularFaixaFeedback(quantidade, config?.limiteCocosChao);
 
   const persistCurrentObservacoesDraft = () => {
     if (!id || !observacoesDraftRuaId || !observacoesDraftDirty) return;
@@ -890,6 +903,7 @@ export function TelaRegistroLinhas() {
   }, [id, ruas.length, ruasComFalhaIds, ruaIdsComRegistro]);
 
   useEffect(() => {
+    if (isFluxoRetoque) return;
     if (!parcelasStatus.length) return;
 
     const nextStatusMap = parcelasStatus.reduce<Record<string, ParcelaStatus>>(
@@ -918,7 +932,7 @@ export function TelaRegistroLinhas() {
     });
 
     parcelasStatusRef.current = nextStatusMap;
-  }, [parcelasStatus]);
+  }, [isFluxoRetoque, parcelasStatus]);
 
   useEffect(() => {
     if (!ruaAtual?.id) {
@@ -994,6 +1008,7 @@ export function TelaRegistroLinhas() {
   useEffect(() => {
     const handleHardwareVolume = (event: Event) => {
       if (
+        isFluxoRetoque ||
         showObs ||
         showAllRuas ||
         showEditRuas ||
@@ -1051,6 +1066,7 @@ export function TelaRegistroLinhas() {
     contadorVolumeAtivo,
     faltaColherMarcada,
     faltaTropearMarcada,
+    isFluxoRetoque,
     showAllRuas,
     showEditRuas,
     showFinalizacaoModal,
@@ -1156,11 +1172,13 @@ export function TelaRegistroLinhas() {
       completedIds.add(ruaAtual.id);
       const failedIds = new Set(ruasComFalhaIds);
       failedIds.delete(ruaAtual.id);
-      const coletaSerializada = serializarEstadoColetaRua({
-        estado: estadoColeta,
-        quantidade,
-        quantidadeCachos3: cachos3,
-      });
+      const coletaSerializada = isFluxoRetoque
+        ? { quantidade: 0, quantidadeCachos3: 0 }
+        : serializarEstadoColetaRua({
+            estado: estadoColeta,
+            quantidade,
+            quantidadeCachos3: cachos3,
+          });
 
       await salvarRegistroColeta({
         avaliacaoId: id,
@@ -1169,7 +1187,7 @@ export function TelaRegistroLinhas() {
         colaboradorId: usuarioAtual?.id || '',
         quantidade: coletaSerializada.quantidade,
         quantidadeCachos3: coletaSerializada.quantidadeCachos3,
-        observacoes: observacoesResumo,
+        observacoes: isFluxoRetoque ? '' : observacoesResumo,
       });
 
       return {
@@ -1325,6 +1343,7 @@ export function TelaRegistroLinhas() {
   }
 
   useEffect(() => {
+    if (isFluxoRetoque) return;
     if (showResumoParcelaModal) {
       return;
     }
@@ -1337,7 +1356,7 @@ export function TelaRegistroLinhas() {
     setUltimaParcelaConcluida(parcelaPendente.parcelaCodigo);
     setShowFinalizacaoModal(false);
     abrirResumoParcelaModal(parcelaPendente.parcelaId, { obrigatorio: true });
-  }, [parcelasStatus, showResumoParcelaModal]);
+  }, [isFluxoRetoque, parcelasStatus, showResumoParcelaModal]);
 
   const saveResumoParcelaMutation = useMutation({
     mutationFn: async () => {
@@ -1523,15 +1542,17 @@ export function TelaRegistroLinhas() {
   });
 
   const handleFinalizar = async () => {
-    const parcelaPendente = obterParcelaConcluidaComSiglaPendente();
-    if (parcelaPendente) {
-      setUltimaParcelaConcluida(parcelaPendente.parcelaCodigo);
-      setShowFinalizacaoModal(false);
-      abrirResumoParcelaModal(parcelaPendente.parcelaId, { obrigatorio: true });
-      alert(
-        `Selecione a sigla final da parcela ${parcelaPendente.parcelaCodigo} antes de finalizar a avaliação.`,
-      );
-      return;
+    if (!isFluxoRetoque) {
+      const parcelaPendente = obterParcelaConcluidaComSiglaPendente();
+      if (parcelaPendente) {
+        setUltimaParcelaConcluida(parcelaPendente.parcelaCodigo);
+        setShowFinalizacaoModal(false);
+        abrirResumoParcelaModal(parcelaPendente.parcelaId, { obrigatorio: true });
+        alert(
+          `Selecione a sigla final da parcela ${parcelaPendente.parcelaCodigo} antes de finalizar a avaliação.`,
+        );
+        return;
+      }
     }
 
     if (!confirm('Deseja finalizar esta avaliação?')) return;
@@ -1563,20 +1584,25 @@ export function TelaRegistroLinhas() {
     setCachos3(mediaRuasVizinhas.cachos3);
   };
 
-  const concluirColeta = async (destino: 'dashboard' | 'relatorio') => {
-    const parcelaPendente = obterParcelaConcluidaComSiglaPendente();
-    if (parcelaPendente) {
-      setUltimaParcelaConcluida(parcelaPendente.parcelaCodigo);
-      setShowFinalizacaoModal(false);
-      abrirResumoParcelaModal(parcelaPendente.parcelaId, { obrigatorio: true });
-      alert(
-        `Selecione a sigla final da parcela ${parcelaPendente.parcelaCodigo} antes de encerrar a coleta.`,
-      );
-      return;
+  const concluirColeta = async (
+    destino: 'dashboard' | 'relatorio',
+    options: { retoqueJaRegistrado?: boolean } = {},
+  ) => {
+    if (!isFluxoRetoque) {
+      const parcelaPendente = obterParcelaConcluidaComSiglaPendente();
+      if (parcelaPendente) {
+        setUltimaParcelaConcluida(parcelaPendente.parcelaCodigo);
+        setShowFinalizacaoModal(false);
+        abrirResumoParcelaModal(parcelaPendente.parcelaId, { obrigatorio: true });
+        alert(
+          `Selecione a sigla final da parcela ${parcelaPendente.parcelaCodigo} antes de encerrar a coleta.`,
+        );
+        return;
+      }
     }
 
     try {
-      if (precisaRegistrarEncerramentoRetoque) {
+      if (precisaRegistrarEncerramentoRetoque && !options.retoqueJaRegistrado) {
         setShowRetoqueModal(true);
         setFinalizandoDestino(destino);
         return;
@@ -1610,38 +1636,33 @@ export function TelaRegistroLinhas() {
       return;
     }
 
-    const bags = Number(retoqueBags || 0);
     const cargas = Number(retoqueCargas || 0);
-    if (!Number.isFinite(bags)) {
-      alert('Quantidade de bags inválida.');
-      return;
-    }
     if (!Number.isFinite(cargas)) {
       alert('Quantidade de cargas inválida.');
       return;
     }
-    if (bags <= 0 && cargas <= 0) {
-      alert('Informe a quantidade de bags ou cargas.');
-      return;
-    }
-    if (!retoqueData) {
-      alert('Informe a data do retoque.');
+    if (cargas <= 0) {
+      alert('Informe a quantidade de cargas.');
       return;
     }
 
     await registrarRetoque({
       avaliacaoId: id,
-      quantidadeBags: Math.max(0, bags),
-      quantidadeCargas: Math.max(0, cargas),
-      dataRetoque: retoqueData,
-      observacao: retoqueObs,
+      quantidadeBags: producaoRetoque.bags,
+      quantidadeCargas: producaoRetoque.cargas,
+      cocosEstimados: producaoRetoque.cocosEstimados,
+      dataRetoque: nowIso().slice(0, 10),
+      observacao: '',
       responsavelId,
       finalizadoPorId: usuarioAtual?.id,
     });
 
     setRetoqueRegistrado(true);
+    setRetoqueCargas('');
     setShowRetoqueModal(false);
-    await concluirColeta(finalizandoDestino || 'dashboard');
+    await concluirColeta(finalizandoDestino || 'dashboard', {
+      retoqueJaRegistrado: true,
+    });
   };
 
   if (isFetched && data && !podeEditarFluxoAtual) {
@@ -1700,43 +1721,44 @@ export function TelaRegistroLinhas() {
             </DialogHeader>
             <div className="stack-md">
               <p className="text-sm text-[var(--qc-text-muted)]">
-                Informe os dados obrigatórios do retoque antes de finalizar.
+                Informe apenas a quantidade de cargas. Bags e cocos estimados serão calculados pelas configurações atuais.
               </p>
               <Input
-                type="date"
-                value={retoqueData}
+                type="number"
+                min="0"
+                inputMode="numeric"
+                placeholder="Quantidade de cargas"
+                value={retoqueCargas}
                 onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                  setRetoqueData(event.target.value)
+                  setRetoqueCargas(event.target.value)
                 }
               />
-              <div className="grid grid-cols-2 gap-3">
-                <Input
-                  type="number"
-                  inputMode="numeric"
-                  placeholder="Bags"
-                  value={retoqueBags}
-                  onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                    setRetoqueBags(event.target.value)
-                  }
-                />
-                <Input
-                  type="number"
-                  inputMode="numeric"
-                  placeholder="Cargas"
-                  value={retoqueCargas}
-                  onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                    setRetoqueCargas(event.target.value)
-                  }
-                />
+              <div className="grid grid-cols-3 gap-2 rounded-[18px] border border-[var(--qc-border)] bg-[var(--qc-surface-muted)] p-3">
+                <div>
+                  <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
+                    Cargas
+                  </p>
+                  <p className="mt-1 text-lg font-black text-[var(--qc-text)]">
+                    {formatarProducaoNumero(producaoRetoque.cargas)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
+                    Bags
+                  </p>
+                  <p className="mt-1 text-lg font-black text-[var(--qc-text)]">
+                    {formatarProducaoNumero(producaoRetoque.bags)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
+                    Cocos
+                  </p>
+                  <p className="mt-1 text-lg font-black text-[var(--qc-text)]">
+                    {formatarProducaoNumero(producaoRetoque.cocosEstimados, 0)}
+                  </p>
+                </div>
               </div>
-              <Textarea
-                rows={3}
-                placeholder="Observação do retoque (opcional)"
-                value={retoqueObs}
-                onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) =>
-                  setRetoqueObs(event.target.value)
-                }
-              />
             </div>
             <DialogFooter className="gap-2">
               <Button variant="outline" onClick={() => setShowRetoqueModal(false)}>
@@ -1747,6 +1769,8 @@ export function TelaRegistroLinhas() {
           </DialogContent>
         </Dialog>
 
+        {!isFluxoRetoque ? (
+          <>
         <Card className="surface-card border-none shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-center justify-between gap-3">
@@ -1876,16 +1900,20 @@ export function TelaRegistroLinhas() {
             </div>
           </CardContent>
         </Card>
+          </>
+        ) : null}
 
         <Card className="surface-card overflow-hidden border-none shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <h2 className="text-[1.65rem] font-black tracking-tight text-[var(--qc-text)]">
-                  Rua Atual
+                  {isFluxoRetoque ? 'Linhas do retoque' : 'Rua Atual'}
                 </h2>
                 <p className="mt-1.5 text-sm leading-relaxed text-[var(--qc-text-muted)]">
-                  Linhas derivadas das ruas programadas.
+                  {isFluxoRetoque
+                    ? 'Ajuste apenas o alinhamento inicial e final.'
+                    : 'Linhas derivadas das ruas programadas.'}
                 </p>
               </div>
 
@@ -1895,7 +1923,7 @@ export function TelaRegistroLinhas() {
                 onClick={() => setShowAllRuas(true)}
               >
                 <ListChecks className="h-4 w-4" />
-                Ver todas
+                {isFluxoRetoque ? 'Ver linhas' : 'Ver todas'}
               </Button>
             </div>
 
@@ -1906,7 +1934,7 @@ export function TelaRegistroLinhas() {
                 onClick={() => setShowEditRuas(true)}
               >
                 <PencilLine className="h-5 w-5" />
-                Editar rua atual
+                {isFluxoRetoque ? 'Editar linhas' : 'Editar rua atual'}
               </Button>
               <Button
                 variant="outline"
@@ -1930,7 +1958,7 @@ export function TelaRegistroLinhas() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-[11px] font-extrabold uppercase tracking-[0.26em] text-[var(--qc-secondary)]">
-                    Rua Atual
+                    {isFluxoRetoque ? 'Linhas' : 'Rua Atual'}
                   </p>
                   <p className="mt-1.5 text-sm leading-relaxed text-[var(--qc-text-muted)]">
                     Faixa ativa da coleta para esta etapa.
@@ -1940,7 +1968,9 @@ export function TelaRegistroLinhas() {
                       <Badge variant="emerald">Parcela {parcelaAtual.parcelaCodigo}</Badge>
                     ) : null}
                     <Badge variant="slate">Equipe {equipeAtual}</Badge>
-                    <Badge variant="slate">{formatarModoCalculo(modoCalculo)}</Badge>
+                    {!isFluxoRetoque ? (
+                      <Badge variant="slate">{formatarModoCalculo(modoCalculo)}</Badge>
+                    ) : null}
                     {statusParcelaAtual ? (
                       <Badge
                         variant={
@@ -2029,12 +2059,12 @@ export function TelaRegistroLinhas() {
               onClick={handlePrevRua}
               disabled={ruaIndex === 0}
             >
-              Rua anterior
+              {isFluxoRetoque ? 'Linha anterior' : 'Rua anterior'}
             </Button>
           </CardContent>
         </Card>
 
-        {modoCalculo === 'media_vizinhas' ? (
+        {modoCalculo === 'media_vizinhas' && !isFluxoRetoque ? (
           <Card className="surface-card border-none shadow-sm">
             <CardContent className="flex items-center justify-between gap-4 p-5">
               <div>
@@ -2060,7 +2090,7 @@ export function TelaRegistroLinhas() {
           </Card>
         ) : null}
 
-        {ruaAtual?.tipoFalha ? (
+        {ruaAtual?.tipoFalha && !isFluxoRetoque ? (
           <Card className="surface-card border-none shadow-sm">
             <CardContent className="flex items-center justify-between gap-4 p-5">
               <div>
@@ -2084,6 +2114,7 @@ export function TelaRegistroLinhas() {
           </Card>
         ) : null}
 
+        {!isFluxoRetoque ? (
         <div className="grid grid-cols-2 gap-4">
           <CounterInput
             label="Cacho"
@@ -2096,6 +2127,7 @@ export function TelaRegistroLinhas() {
             compact
             centerLabel
             padWithZero
+            feedback={feedbackCachos}
           />
           <CounterInput
             label="Cocos no Chão"
@@ -2108,9 +2140,33 @@ export function TelaRegistroLinhas() {
             compact
             centerLabel
             padWithZero
+            feedback={feedbackCocos}
           />
         </div>
+        ) : (
+          <Card className="surface-card border-none shadow-sm">
+            <CardContent className="grid gap-3 p-5 sm:grid-cols-2">
+              <div>
+                <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[var(--qc-secondary)]">
+                  Linha inicial
+                </p>
+                <p className="mt-1 text-2xl font-black tabular-nums text-[var(--qc-text)]">
+                  {formatarNumeroDoisDigitos(ruaAtual?.linhaInicial || 0)}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[var(--qc-secondary)]">
+                  Linha final
+                </p>
+                <p className="mt-1 text-2xl font-black tabular-nums text-[var(--qc-text)]">
+                  {formatarNumeroDoisDigitos(ruaAtual?.linhaFinal || 0)}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
+        {!isFluxoRetoque ? (
         <Card className="surface-card border-none shadow-sm">
           <CardContent className="p-5">
             <div className="flex items-start justify-between gap-4">
@@ -2160,7 +2216,9 @@ export function TelaRegistroLinhas() {
             </div>
           </CardContent>
         </Card>
+        ) : null}
 
+        {!isFluxoRetoque ? (
         <Card className="surface-card border-none shadow-sm">
           <button
             type="button"
@@ -2195,6 +2253,7 @@ export function TelaRegistroLinhas() {
             </span>
           </button>
         </Card>
+        ) : null}
 
         <div className="grid grid-cols-2 gap-4 pt-1">
           <Button

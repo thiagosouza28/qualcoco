@@ -38,6 +38,7 @@ import type {
   Colaborador,
   FiltrosHistorico,
   ParcelaPlanejada,
+  Producao,
   TipoFalhaRua,
   NovaAvaliacaoInput,
   RegistroColeta,
@@ -2286,6 +2287,7 @@ export const registrarRetoque = async (input: {
   avaliacaoId: string;
   quantidadeBags: number;
   quantidadeCargas: number;
+  cocosEstimados?: number;
   dataRetoque: string;
   observacao: string;
   responsavelId: string;
@@ -2373,6 +2375,9 @@ export const registrarRetoque = async (input: {
             '',
         }));
   const agora = nowIso();
+  const quantidadeBags = Math.max(0, Number(input.quantidadeBags) || 0);
+  const quantidadeCargas = Math.max(0, Number(input.quantidadeCargas) || 0);
+  const cocosEstimados = Math.max(0, Number(input.cocosEstimados) || 0);
 
   const payload = {
     avaliacaoId: input.avaliacaoId,
@@ -2388,8 +2393,9 @@ export const registrarRetoque = async (input: {
     ajudanteNomes: ajudantes
       .map((item) => item.colaboradorNome || item.colaboradorPrimeiroNome || '')
       .filter(Boolean),
-    quantidadeBags: Math.max(0, input.quantidadeBags),
-    quantidadeCargas: Math.max(0, input.quantidadeCargas),
+    quantidadeBags,
+    quantidadeCargas,
+    cocosEstimados,
     dataRetoque: input.dataRetoque,
     observacao: input.observacao,
     finalizadoPorId: finalizadorId,
@@ -2409,6 +2415,36 @@ export const registrarRetoque = async (input: {
     await saveEntity('avaliacaoRetoques', record);
   } else {
     record = await createEntity('avaliacaoRetoques', device.id, payload);
+  }
+
+  const producoesExistentes = await repository.filter(
+    'producoes',
+    (item) =>
+      !item.deletadoEm &&
+      (item.retoqueId === record.id || item.avaliacaoId === input.avaliacaoId),
+  );
+  const producaoPayload = {
+    avaliacaoId: input.avaliacaoId,
+    retoqueId: record.id,
+    equipeId: payload.equipeId,
+    equipeNome: payload.equipeNome,
+    cargas: quantidadeCargas,
+    bags: quantidadeBags,
+    cocosEstimados,
+    data: input.dataRetoque || todayIso(),
+  };
+
+  if (producoesExistentes[0]) {
+    const producao: Producao = {
+      ...producoesExistentes[0],
+      ...producaoPayload,
+      atualizadoEm: agora,
+      syncStatus: 'pending_sync',
+      versao: producoesExistentes[0].versao + 1,
+    };
+    await saveEntity('producoes', producao);
+  } else {
+    await createEntity('producoes', device.id, producaoPayload);
   }
 
   if (!isFluxoRetoqueLegado) {
@@ -2442,7 +2478,7 @@ export const registrarRetoque = async (input: {
     avaliacaoId: input.avaliacaoId,
     colaboradorId: finalizadorId,
     acao: 'retoque_quantidades_registradas',
-    descricao: `Retoque informado para ${responsavel?.nome || 'Usuário'} com ${Math.max(0, input.quantidadeBags)} bag(s) e ${Math.max(0, input.quantidadeCargas)} carga(s).`,
+    descricao: `Retoque informado para ${responsavel?.nome || 'Usuário'} com ${quantidadeBags} bag(s), ${quantidadeCargas} carga(s) e ${cocosEstimados} coco(s) estimado(s).`,
   });
 
   return record;

@@ -44,6 +44,10 @@ import {
   normalizePerfilUsuario,
 } from '@/core/permissions';
 import { useRolePermissions } from '@/core/useRolePermissions';
+import {
+  calcularProducaoPorCargas,
+  formatarProducaoNumero,
+} from '@/core/production';
 
 const formatDateOnly = (value?: string | null) => {
   if (!value) return '-';
@@ -70,6 +74,7 @@ type HistoricoRetoqueItem = {
   dataRetoque?: string | null;
   quantidadeBags: number;
   quantidadeCargas: number;
+  cocosEstimados: number;
   observacao: string;
   finalizadoPorNome: string;
 };
@@ -79,16 +84,13 @@ export function TelaDetalheAvaliacao() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { usuarioAtual, sincronizarAgora } = useCampoApp();
-  const { permissionMatrix } = useRolePermissions(usuarioAtual?.perfil);
+  const { config, permissionMatrix } = useRolePermissions(usuarioAtual?.perfil);
   const [showMarcarModal, setShowMarcarModal] = useState(false);
   const [showRetoqueModal, setShowRetoqueModal] = useState(false);
   const [motivoRetoque, setMotivoRetoque] = useState('');
   const [retoqueExecutorIds, setRetoqueExecutorIds] = useState<string[]>([]);
   const [retoqueEquipeId, setRetoqueEquipeId] = useState('');
-  const [retoqueData, setRetoqueData] = useState(todayIso());
-  const [retoqueBags, setRetoqueBags] = useState('');
   const [retoqueCargas, setRetoqueCargas] = useState('');
-  const [retoqueObservacao, setRetoqueObservacao] = useState('');
   const retoqueExecutorId = retoqueExecutorIds[0] || '';
   const setRetoqueExecutorId = (value: string) =>
     setRetoqueExecutorIds(value ? [value] : []);
@@ -152,6 +154,10 @@ export function TelaDetalheAvaliacao() {
     data?.avaliacao?.retoqueDesignadoParaNome ||
     data?.retoque?.responsavelNome ||
     '';
+  const producaoRetoque = useMemo(
+    () => calcularProducaoPorCargas(retoqueCargas, config),
+    [config, retoqueCargas],
+  );
   const podeInformarRetoque = canOperateAssignedRetoque({
     perfil: usuarioAtual?.perfil,
     usuarioId: usuarioAtual?.id,
@@ -211,6 +217,7 @@ export function TelaDetalheAvaliacao() {
         dataRetoque: data.retoque.dataRetoque,
         quantidadeBags: Number(data.retoque.quantidadeBags || 0),
         quantidadeCargas: Number(data.retoque.quantidadeCargas || 0),
+        cocosEstimados: Number(data.retoque.cocosEstimados || 0),
         observacao: data.retoque.observacao || '',
         finalizadoPorNome: data.retoque.finalizadoPorNome || '',
       });
@@ -240,6 +247,7 @@ export function TelaDetalheAvaliacao() {
         dataRetoque: detalhe?.dataRetoque || item.avaliacao.dataAvaliacao,
         quantidadeBags: Number(detalhe?.quantidadeBags || 0),
         quantidadeCargas: Number(detalhe?.quantidadeCargas || 0),
+        cocosEstimados: Number(detalhe?.cocosEstimados || 0),
         observacao: detalhe?.observacao || '',
         finalizadoPorNome: detalhe?.finalizadoPorNome || '',
       });
@@ -274,22 +282,12 @@ export function TelaDetalheAvaliacao() {
 
   useEffect(() => {
     if (!showRetoqueModal) return;
-    setRetoqueData(data?.retoque?.dataRetoque || todayIso());
-    setRetoqueBags(
-      data?.retoque?.quantidadeBags
-        ? String(data.retoque.quantidadeBags)
-        : '',
-    );
     setRetoqueCargas(
       data?.retoque?.quantidadeCargas
         ? String(data.retoque.quantidadeCargas)
         : '',
     );
-    setRetoqueObservacao(data?.retoque?.observacao || '');
   }, [
-    data?.retoque?.dataRetoque,
-    data?.retoque?.observacao,
-    data?.retoque?.quantidadeBags,
     data?.retoque?.quantidadeCargas,
     showRetoqueModal,
   ]);
@@ -337,34 +335,27 @@ export function TelaDetalheAvaliacao() {
         throw new Error('Defina quem executou o retoque.');
       }
 
-      const bags = Number(retoqueBags || 0);
       const cargas = Number(retoqueCargas || 0);
-      if (!Number.isFinite(bags) || !Number.isFinite(cargas)) {
-        throw new Error('Informe valores válidos para bags e cargas.');
+      if (!Number.isFinite(cargas)) {
+        throw new Error('Informe um valor valido para cargas.');
       }
-      if (bags <= 0 && cargas <= 0) {
-        throw new Error('Informe a quantidade de bags ou de cargas.');
+      if (cargas <= 0) {
+        throw new Error('Informe a quantidade de cargas.');
       }
-      if (!retoqueData) {
-        throw new Error('Informe a data do retoque.');
-      }
-
       return registrarRetoque({
         avaliacaoId: id,
-        quantidadeBags: Math.max(0, bags),
-        quantidadeCargas: Math.max(0, cargas),
-        dataRetoque: retoqueData,
-        observacao: retoqueObservacao,
+        quantidadeBags: producaoRetoque.bags,
+        quantidadeCargas: producaoRetoque.cargas,
+        cocosEstimados: producaoRetoque.cocosEstimados,
+        dataRetoque: todayIso(),
+        observacao: '',
         responsavelId,
         finalizadoPorId: usuarioAtual?.id || responsavelId,
       });
     },
     onSuccess: () => {
       setShowRetoqueModal(false);
-      setRetoqueData(todayIso());
-      setRetoqueBags('');
       setRetoqueCargas('');
-      setRetoqueObservacao('');
       void queryClient.invalidateQueries();
       sincronizarRetoqueEmSegundoPlano();
     },
@@ -561,36 +552,10 @@ export function TelaDetalheAvaliacao() {
                 </p>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-3">
                 <div className="stack-xs">
                   <span className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
-                    Data do retoque
-                  </span>
-                  <Input
-                    type="date"
-                    value={retoqueData}
-                    onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                      setRetoqueData(event.target.value)
-                    }
-                  />
-                </div>
-                <div className="stack-xs">
-                  <span className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
-                    Bags
-                  </span>
-                  <Input
-                    type="number"
-                    min="0"
-                    inputMode="numeric"
-                    value={retoqueBags}
-                    onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                      setRetoqueBags(event.target.value)
-                    }
-                  />
-                </div>
-                <div className="stack-xs sm:col-span-2">
-                  <span className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
-                    Cargas
+                    Quantidade de cargas
                   </span>
                   <Input
                     type="number"
@@ -604,14 +569,32 @@ export function TelaDetalheAvaliacao() {
                 </div>
               </div>
 
-              <Textarea
-                rows={4}
-                placeholder="Observações do retoque"
-                value={retoqueObservacao}
-                onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
-                  setRetoqueObservacao(event.target.value)
-                }
-              />
+              <div className="grid grid-cols-3 gap-2 rounded-[18px] border border-[var(--qc-border)] bg-[var(--qc-surface-muted)] p-3">
+                <div>
+                  <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
+                    Cargas
+                  </p>
+                  <p className="mt-1 text-lg font-black text-[var(--qc-text)]">
+                    {formatarProducaoNumero(producaoRetoque.cargas)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
+                    Bags
+                  </p>
+                  <p className="mt-1 text-lg font-black text-[var(--qc-text)]">
+                    {formatarProducaoNumero(producaoRetoque.bags)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
+                    Cocos
+                  </p>
+                  <p className="mt-1 text-lg font-black text-[var(--qc-text)]">
+                    {formatarProducaoNumero(producaoRetoque.cocosEstimados, 0)}
+                  </p>
+                </div>
+              </div>
             </div>
             <DialogFooter className="gap-2">
               <Button variant="outline" onClick={() => setShowRetoqueModal(false)}>
@@ -872,6 +855,12 @@ export function TelaDetalheAvaliacao() {
                     Bags / cargas:{' '}
                     <strong className="text-[var(--qc-text)]">
                       {item.quantidadeBags} / {item.quantidadeCargas}
+                    </strong>
+                  </p>
+                  <p className="mt-1 text-sm text-[var(--qc-text-muted)]">
+                    Cocos estimados:{' '}
+                    <strong className="text-[var(--qc-text)]">
+                      {formatarProducaoNumero(item.cocosEstimados, 0)}
                     </strong>
                   </p>
                   {item.observacao ? (

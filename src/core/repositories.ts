@@ -25,6 +25,7 @@ import type {
   Equipe,
   Parcela,
   ParcelaPlanejada,
+  Producao,
   RegistroColeta,
   StoreName,
   SyncLog,
@@ -47,6 +48,7 @@ type EntityByStore = {
   avaliacaoParcelas: AvaliacaoParcela;
   avaliacaoRuas: AvaliacaoRua;
   avaliacaoRetoques: AvaliacaoRetoque;
+  producoes: Producao;
   avaliacaoLogs: AvaliacaoLog;
   registrosColeta: RegistroColeta;
   dispositivos: Dispositivo;
@@ -69,6 +71,7 @@ const syncableStores = new Set<StoreName>([
   'avaliacaoParcelas',
   'avaliacaoRuas',
   'avaliacaoRetoques',
+  'producoes',
   'avaliacaoLogs',
   'registrosColeta',
   'dispositivos',

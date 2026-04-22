@@ -203,6 +203,8 @@ create table if not exists public.tentativas_login (
 create table if not exists public.configuracoes (
   id text primary key,
   local_id text not null unique,
+  cocos_por_bag numeric not null default 600 check (cocos_por_bag >= 0),
+  cargas_por_bag numeric not null default 6 check (cargas_por_bag > 0),
   limite_cocos_chao numeric not null default 19 check (limite_cocos_chao >= 0),
   limite_cachos_3_cocos numeric not null default 19 check (limite_cachos_3_cocos >= 0),
   criado_em timestamptz not null default now(),
@@ -417,6 +419,7 @@ create table if not exists public.avaliacao_retoques (
   ajudante_nomes jsonb not null default '[]'::jsonb,
   quantidade_bags numeric not null default 0 check (quantidade_bags >= 0),
   quantidade_cargas numeric not null default 0 check (quantidade_cargas >= 0),
+  cocos_estimados numeric not null default 0 check (cocos_estimados >= 0),
   data_retoque date,
   data_inicio timestamptz,
   data_fim timestamptz,
@@ -449,3 +452,29 @@ create table if not exists public.avaliacao_logs (
   versao integer not null default 1 check (versao >= 1),
   origem_dispositivo_id uuid not null
 );
+
+create table if not exists public.producao (
+  id uuid primary key default gen_random_uuid(),
+  local_id text not null,
+  equipe_id uuid references public.equipes(id),
+  equipe_nome text not null default '',
+  avaliacao_id uuid references public.avaliacoes(id) on delete set null,
+  retoque_id uuid references public.avaliacao_retoques(id) on delete set null,
+  cargas numeric not null default 0 check (cargas >= 0),
+  bags numeric not null default 0 check (bags >= 0),
+  cocos_estimados numeric not null default 0 check (cocos_estimados >= 0),
+  data date not null,
+  criado_em timestamptz not null default now(),
+  atualizado_em timestamptz not null default now(),
+  deletado_em timestamptz,
+  sync_status text not null default 'synced' check (sync_status in ('local', 'pending_sync', 'synced', 'conflict', 'error')),
+  versao integer not null default 1 check (versao >= 1),
+  origem_dispositivo_id uuid not null
+);
+
+create index if not exists producao_equipe_data_idx on public.producao (equipe_id, data desc);
+create index if not exists producao_avaliacao_idx on public.producao (avaliacao_id);
+create index if not exists producao_retoque_idx on public.producao (retoque_id);
+create index if not exists producao_sync_status_idx on public.producao (sync_status, atualizado_em desc);
+
+alter table public.producao replica identity full;

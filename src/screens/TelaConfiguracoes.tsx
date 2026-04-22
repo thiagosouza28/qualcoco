@@ -18,7 +18,10 @@ import {
 } from '@/core/permissions';
 import { saveEntity } from '@/core/repositories';
 import { nowIso } from '@/core/date';
-import { buildDefaultConfiguracao } from '@/core/appConfig';
+import {
+  DEFAULT_LIMITES_CONFIGURACAO,
+  buildDefaultConfiguracao,
+} from '@/core/appConfig';
 import type {
   Configuracao,
   PerfilConfiguravel,
@@ -52,6 +55,8 @@ export function TelaConfiguracoes() {
 
   const [limiteCocos, setLimiteCocos] = useState(19);
   const [limiteCachos, setLimiteCachos] = useState(19);
+  const [cocosPorBag, setCocosPorBag] = useState(600);
+  const [cargasPorBag, setCargasPorBag] = useState(6);
   const [perfilLiberacaoAtual, setPerfilLiberacaoAtual] =
     useState<PerfilConfiguravel>('colaborador');
   const [permissionDraft, setPermissionDraft] = useState<MatrizPermissoesPerfis>(
@@ -60,6 +65,8 @@ export function TelaConfiguracoes() {
 
   useEffect(() => {
     if (!config) return;
+    setCocosPorBag(config.cocosPorBag);
+    setCargasPorBag(config.cargasPorBag);
     setLimiteCocos(config.limiteCocosChao);
     setLimiteCachos(config.limiteCachos3Cocos);
     setPermissionDraft(normalizePermissoesPerfisConfig(config.permissoesPerfis));
@@ -79,6 +86,8 @@ export function TelaConfiguracoes() {
 
       const next: Configuracao = {
         ...existing,
+        cocosPorBag,
+        cargasPorBag,
         limiteCocosChao: limiteCocos,
         limiteCachos3Cocos: limiteCachos,
         permissoesPerfis: podeGerenciarPermissoes
@@ -130,6 +139,13 @@ export function TelaConfiguracoes() {
     [grantedPermissions],
   );
 
+  const restaurarPadrao = () => {
+    setCocosPorBag(DEFAULT_LIMITES_CONFIGURACAO.cocosPorBag);
+    setCargasPorBag(DEFAULT_LIMITES_CONFIGURACAO.cargasPorBag);
+    setLimiteCocos(DEFAULT_LIMITES_CONFIGURACAO.limiteCocosChao);
+    setLimiteCachos(DEFAULT_LIMITES_CONFIGURACAO.limiteCachos3Cocos);
+  };
+
   const handleUpdateAction = async () => {
     const result = await refreshAndOpenUpdate();
 
@@ -176,6 +192,43 @@ export function TelaConfiguracoes() {
       <div className="stack-lg min-w-0 overflow-x-hidden">
         {podeEditarLimites ? (
           <>
+            <Card className="surface-card border-none shadow-sm">
+              <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-black tracking-tight text-[var(--qc-text)]">
+                    Producao e limites
+                  </p>
+                  <p className="mt-1 text-sm leading-relaxed text-[var(--qc-text-muted)]">
+                    Valores aplicados nos calculos, alertas e relatorios.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-11 rounded-[16px] font-bold"
+                  onClick={restaurarPadrao}
+                >
+                  Restaurar padrao
+                </Button>
+              </CardContent>
+            </Card>
+
+            <CounterInput
+              label="Cocos por Bag"
+              value={cocosPorBag}
+              onChange={setCocosPorBag}
+              color="slate"
+              max={9999}
+            />
+
+            <CounterInput
+              label="Cargas por Bag"
+              value={cargasPorBag}
+              onChange={setCargasPorBag}
+              color="emerald"
+              min={1}
+              max={999}
+            />
             <CounterInput
               label="Limite - Cocos no Chão"
               value={limiteCocos}
@@ -197,6 +250,22 @@ export function TelaConfiguracoes() {
                 Limites operacionais
               </p>
               <div className="grid grid-cols-2 gap-3">
+                <div className="flex min-h-[124px] flex-col justify-between rounded-[18px] border border-[var(--qc-border)] bg-[var(--qc-surface-muted)] p-4">
+                  <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-[var(--qc-secondary)]">
+                    Cocos por bag
+                  </p>
+                  <p className="mt-3 text-[clamp(2.4rem,8vw,3.4rem)] font-black leading-none tracking-[-0.06em] text-[var(--qc-text)]">
+                    {cocosPorBag}
+                  </p>
+                </div>
+                <div className="flex min-h-[124px] flex-col justify-between rounded-[18px] border border-[var(--qc-border)] bg-[var(--qc-surface-muted)] p-4">
+                  <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-[var(--qc-secondary)]">
+                    Cargas por bag
+                  </p>
+                  <p className="mt-3 text-[clamp(2.4rem,8vw,3.4rem)] font-black leading-none tracking-[-0.06em] text-[var(--qc-text)]">
+                    {cargasPorBag}
+                  </p>
+                </div>
                 <div className="flex min-h-[124px] flex-col justify-between rounded-[18px] border border-[var(--qc-border)] bg-[var(--qc-surface-muted)] p-4">
                   <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-[var(--qc-secondary)]">
                     Cocos no chão

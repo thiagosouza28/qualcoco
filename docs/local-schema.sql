@@ -204,6 +204,8 @@ create table dispositivos (
 create table configuracoes (
   local_id text primary key,
   id text not null unique,
+  cocos_por_bag numeric not null default 600,
+  cargas_por_bag numeric not null default 6,
   limite_cocos_chao numeric not null default 19,
   limite_cachos_3_cocos numeric not null default 19,
   permissoes_perfis text not null default '{}',
@@ -257,6 +259,7 @@ create table avaliacao_retoques (
   ajudante_nomes text not null,
   quantidade_bags real not null default 0,
   quantidade_cargas real not null default 0,
+  cocos_estimados real not null default 0,
   data_retoque text,
   data_inicio text,
   data_fim text,
@@ -264,6 +267,25 @@ create table avaliacao_retoques (
   finalizado_por_id text,
   finalizado_por_nome text,
   status text not null default 'em_retoque',
+  criado_em text not null,
+  atualizado_em text not null,
+  deletado_em text,
+  sync_status text not null,
+  versao integer not null default 1,
+  origem_dispositivo_id text not null
+);
+
+create table producao (
+  local_id text primary key,
+  id text not null unique,
+  equipe_id text,
+  equipe_nome text not null,
+  avaliacao_id text,
+  retoque_id text,
+  cargas real not null default 0,
+  bags real not null default 0,
+  cocos_estimados real not null default 0,
+  data text not null,
   criado_em text not null,
   atualizado_em text not null,
   deletado_em text,

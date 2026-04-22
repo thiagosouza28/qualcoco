@@ -11,6 +11,7 @@ export type StoreName =
   | 'avaliacaoParcelas'
   | 'avaliacaoRuas'
   | 'avaliacaoRetoques'
+  | 'producoes'
   | 'avaliacaoLogs'
   | 'registrosColeta'
   | 'syncQueue'
@@ -208,11 +209,23 @@ export interface AvaliacaoRetoque extends BaseEntity {
   ajudanteNomes?: string[];
   quantidadeBags: number;
   quantidadeCargas: number;
+  cocosEstimados?: number;
   dataRetoque: string;
   observacao: string;
   finalizadoPorId?: string | null;
   finalizadoPorNome?: string;
   status?: 'em_retoque' | 'finalizado';
+}
+
+export interface Producao extends BaseEntity {
+  equipeId?: string | null;
+  equipeNome: string;
+  avaliacaoId?: string | null;
+  retoqueId?: string | null;
+  cargas: number;
+  bags: number;
+  cocosEstimados: number;
+  data: string;
 }
 
 export interface AvaliacaoLog extends BaseEntity {
@@ -295,6 +308,8 @@ export interface TentativaLogin extends BaseEntity {
 }
 
 export interface Configuracao extends BaseEntity {
+  cocosPorBag: number;
+  cargasPorBag: number;
   limiteCocosChao: number;
   limiteCachos3Cocos: number;
   permissoesPerfis?: MatrizPermissoesPerfisParcial | null;
