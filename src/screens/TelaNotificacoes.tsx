@@ -52,11 +52,11 @@ export function TelaNotificacoes() {
 
   return (
     <LayoutMobile
-      title="Notificacoes"
+      title="Notificações"
       subtitle={
         naoLidas > 0
-          ? `${naoLidas} pendente(s) para voce`
-          : 'Historico de alertas e atribuicoes'
+          ? `${naoLidas} pendente(s) para você`
+          : 'Histórico de alertas e atribuições'
       }
       onBack={() => navigate('/dashboard')}
       showBottomNav
@@ -100,10 +100,10 @@ export function TelaNotificacoes() {
               </div>
               <div className="stack-xs">
                 <p className="text-lg font-black tracking-tight text-[var(--qc-text)]">
-                  Nenhuma notificacao por enquanto
+                  Nenhuma notificação por enquanto
                 </p>
                 <p className="text-sm leading-relaxed text-[var(--qc-text-muted)]">
-                  Quando houver nova parcela, alerta de retoque ou atribuicao, ela aparecera aqui.
+                  Quando houver nova parcela, alerta de retoque ou atribuição, ela aparecerá aqui.
                 </p>
               </div>
             </CardContent>

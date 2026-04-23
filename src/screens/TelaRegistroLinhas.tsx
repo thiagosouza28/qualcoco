@@ -607,6 +607,17 @@ export function TelaRegistroLinhas() {
     data?.parcelas[0] ||
     null;
   const equipeAtual = ruaAtual?.equipeNome || '01';
+  const parcelasResumoRetoque = useMemo(() => {
+    const codigos = (data?.parcelas || [])
+      .map((item) => item.parcelaCodigo)
+      .filter(Boolean);
+
+    if (codigos.length > 0) {
+      return codigos.join(' • ');
+    }
+
+    return parcelaAtual?.parcelaCodigo || data?.avaliacao?.parcelaCodigo || '--';
+  }, [data?.avaliacao?.parcelaCodigo, data?.parcelas, parcelaAtual?.parcelaCodigo]);
   const registrosMap = useMemo(
     () => new Map((data?.registros || []).map((item) => [item.ruaId, item])),
     [data?.registros],
@@ -1991,6 +2002,47 @@ export function TelaRegistroLinhas() {
               </Button>
             ) : null}
 
+            {isFluxoRetoque ? (
+              <div className="mt-4 rounded-[22px] border border-[var(--qc-border-strong)] bg-white p-4 shadow-sm">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-[18px] border border-[var(--qc-border)] bg-[var(--qc-soft)] p-3.5">
+                    <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-[var(--qc-secondary)]">
+                      Equipe
+                    </p>
+                    <p className="mt-1.5 text-xl font-black tabular-nums text-[var(--qc-primary)]">
+                      {formatarEquipeResumoParcela(equipeAtual)}
+                    </p>
+                  </div>
+
+                  <div className="rounded-[18px] border border-[var(--qc-border)] bg-[var(--qc-soft)] p-3.5">
+                    <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-[var(--qc-secondary)]">
+                      Parcelas
+                    </p>
+                    <p className="mt-1.5 text-xl font-black text-[var(--qc-primary)]">
+                      {parcelasResumoRetoque}
+                    </p>
+                  </div>
+
+                  <div className="rounded-[18px] border border-[var(--qc-border)] bg-[var(--qc-soft)] p-3.5">
+                    <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-[var(--qc-secondary)]">
+                      Linha inicial
+                    </p>
+                    <p className="mt-1.5 text-3xl font-black tabular-nums text-[var(--qc-primary)]">
+                      {ruaAtual ? formatarNumeroDoisDigitos(ruaAtual.linhaInicial) : '--'}
+                    </p>
+                  </div>
+
+                  <div className="rounded-[18px] border border-[var(--qc-border)] bg-[var(--qc-soft)] p-3.5">
+                    <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-[var(--qc-secondary)]">
+                      Linha final
+                    </p>
+                    <p className="mt-1.5 text-3xl font-black tabular-nums text-[var(--qc-primary)]">
+                      {ruaAtual ? formatarNumeroDoisDigitos(ruaAtual.linhaFinal) : '--'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
             <div className="mt-4 overflow-hidden rounded-[22px] border border-[var(--qc-border-strong)] bg-[linear-gradient(135deg,rgba(210,231,211,0.92),rgba(255,255,255,0.98))] p-4 shadow-[0_18px_30px_-24px_rgba(0,107,68,0.16)]">
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -2091,6 +2143,7 @@ export function TelaRegistroLinhas() {
                 </div>
               ) : null}
             </div>
+            )}
 
             {!isFluxoRetoque ? (
               <Button

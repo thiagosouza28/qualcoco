@@ -37,7 +37,7 @@ const normalizarInputParcelaPlanejada = (input: ParcelaPlanejadaInput) => {
   const equipeId = String(input.equipeId || '').trim() || null;
 
   if (!normalizedCodigo) {
-    throw new Error('Informe o codigo da parcela.');
+    throw new Error('Informe o código da parcela.');
   }
   if (!equipeId) {
     throw new Error('Selecione a equipe da parcela.');
@@ -52,10 +52,10 @@ const normalizarInputParcelaPlanejada = (input: ParcelaPlanejadaInput) => {
     input.alinhamentoFinal <= 0 ||
     input.alinhamentoFinal < input.alinhamentoInicial
   ) {
-    throw new Error('Informe um alinhamento inicial e final valido.');
+    throw new Error('Informe um alinhamento inicial e final válido.');
   }
   if (!input.criadoPor) {
-    throw new Error('Usuario responsavel nao informado para o cadastro.');
+    throw new Error('Usuário responsável não informado para o cadastro.');
   }
 
   return {
@@ -86,7 +86,7 @@ const validarDuplicidadeParcelaPlanejada = async (
   );
   if (existentes[0]) {
     throw new Error(
-      'Ja existe uma parcela planejada ativa com este codigo para a mesma equipe e data.',
+      'Já existe uma parcela planejada ativa com este código para a mesma equipe e data.',
     );
   }
 };
@@ -94,7 +94,7 @@ const validarDuplicidadeParcelaPlanejada = async (
 export const garantirParcelaCatalogo = async (codigo: string) => {
   const normalizedCodigo = normalizarCodigoParcela(codigo);
   if (!normalizedCodigo) {
-    throw new Error('Informe o codigo da parcela.');
+    throw new Error('Informe o código da parcela.');
   }
 
   const existentes = await repository.filter(
@@ -142,7 +142,7 @@ export const cadastrarParcelaPlanejada = async (input: {
     perfilCriador !== 'fiscal_chefe' &&
     perfilCriador !== 'administrador'
   ) {
-    throw new Error('A origem fiscal exige um usuario com perfil autorizado.');
+    throw new Error('A origem fiscal exige um usuário com perfil autorizado.');
   }
 
   await validarDuplicidadeParcelaPlanejada(normalizedInput);
@@ -209,10 +209,10 @@ export const atualizarParcelaPlanejada = async (
 ) => {
   const atual = await repository.get('parcelasPlanejadas', parcelaPlanejadaId);
   if (!atual || atual.deletadoEm) {
-    throw new Error('Parcela planejada nao encontrada.');
+    throw new Error('Parcela planejada não encontrada.');
   }
   if (atual.status !== 'disponivel' || atual.avaliacaoId) {
-    throw new Error('So e possivel editar parcelas planejadas ainda disponiveis.');
+    throw new Error('Só é possível editar parcelas planejadas ainda disponíveis.');
   }
 
   const normalizedInput = normalizarInputParcelaPlanejada({
@@ -258,13 +258,13 @@ export const excluirParcelaPlanejada = async (
 ) => {
   const atual = await repository.get('parcelasPlanejadas', parcelaPlanejadaId);
   if (!atual || atual.deletadoEm) {
-    throw new Error('Parcela planejada nao encontrada.');
+    throw new Error('Parcela planejada não encontrada.');
   }
   const actorPerfil = normalizePerfilUsuario(options.actorPerfil);
   const podeExcluirEmQualquerStatus = actorPerfil === 'administrador';
 
   if (!podeExcluirEmQualquerStatus && (atual.status !== 'disponivel' || atual.avaliacaoId)) {
-    throw new Error('So e possivel excluir parcelas planejadas ainda disponiveis.');
+    throw new Error('Só é possível excluir parcelas planejadas ainda disponíveis.');
   }
 
   const next: ParcelaPlanejada = {

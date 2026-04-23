@@ -95,7 +95,7 @@ export const marcarNotificacaoComoLida = async (
   }
 
   if (usuarioId && notificacao.usuarioId !== usuarioId) {
-    throw new Error('Esta notificacao nao pertence ao usuario informado.');
+    throw new Error('Esta notificação não pertence ao usuário informado.');
   }
 
   if (notificacao.lida) {
@@ -283,8 +283,8 @@ export const notificarNovaParcela = async (input: {
   return await criarNotificacoesParaUsuarios({
     usuarioIds: colaboradores.map((item) => item.id),
     tipo: 'nova_parcela',
-    titulo: 'Nova parcela disponivel',
-    mensagem: `Nova parcela disponivel: ${input.codigo}${equipeResumo ? ` - ${equipeResumo}` : ''}`,
+    titulo: 'Nova parcela disponível',
+    mensagem: `Nova parcela disponível: ${input.codigo}${equipeResumo ? ` - ${equipeResumo}` : ''}`,
     referenciaId: input.parcelaPlanejadaId,
     referenciaTipo: 'parcela_planejada',
     acaoPath: '/dashboard',
@@ -308,12 +308,12 @@ export const notificarPossivelRetoque = async (input: {
   return await criarNotificacoesParaUsuarios({
     usuarioIds: fiscais.map((item) => item.id),
     tipo: 'possivel_retoque',
-    titulo: 'Possivel retoque',
+    titulo: 'Possível retoque',
     mensagem: `Parcela ${input.codigo} pode precisar de retoque${equipeResumo ? ` - ${equipeResumo}` : ''}`,
     referenciaId: input.avaliacaoId,
     referenciaTipo: 'avaliacao',
     acaoPath: `/detalhe/${input.avaliacaoId}`,
-    acaoLabel: 'Abrir avaliacao',
+    acaoLabel: 'Abrir avaliação',
     equipeId: input.equipeId || null,
   });
 };
@@ -330,8 +330,8 @@ export const notificarRetoqueAtribuido = async (input: {
   return await criarNotificacoesParaUsuarios({
     usuarioIds: input.usuarioIds,
     tipo: 'retoque_atribuido',
-    titulo: 'Retoque atribuido',
-    mensagem: `Voce foi designado para o retoque da parcela ${input.codigo}${
+    titulo: 'Retoque atribuído',
+    mensagem: `Você foi designado para o retoque da parcela ${input.codigo}${
       equipeResumo ? ` - ${equipeResumo}` : ''
     }`,
     referenciaId: input.avaliacaoId,

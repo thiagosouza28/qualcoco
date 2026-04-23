@@ -51,7 +51,7 @@ const criarResultadoSemPendencias = (): SyncExecutionResult => ({
   recebido: 0,
   conflitos: 0,
   erro: '',
-  avisos: ['Nenhuma pendencia para sincronizar.'],
+  avisos: ['Nenhuma pendência para sincronizar.'],
   duracaoMs: 0,
 });
 

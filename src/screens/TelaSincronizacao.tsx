@@ -126,11 +126,11 @@ export function TelaSincronizacao() {
   if (!canViewSync(usuarioAtual?.perfil, permissionMatrix)) {
     return (
       <LayoutMobile
-        title="Sincronizacao"
+        title="Sincronização"
         subtitle="Acesso restrito"
         onBack={() => navigate('/dashboard')}
       >
-        <AccessDeniedCard description="A tela de sincronizacao so aparece quando essa operacao esta liberada para o seu perfil pelo administrador." />
+        <AccessDeniedCard description="A tela de sincronização só aparece quando essa operação está liberada para o seu perfil pelo administrador." />
       </LayoutMobile>
     );
   }

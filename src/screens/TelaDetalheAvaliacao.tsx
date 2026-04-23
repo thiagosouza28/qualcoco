@@ -337,7 +337,7 @@ export function TelaDetalheAvaliacao() {
 
       const cargas = Number(retoqueCargas || 0);
       if (!Number.isFinite(cargas)) {
-        throw new Error('Informe um valor valido para cargas.');
+        throw new Error('Informe um valor válido para cargas.');
       }
       if (cargas <= 0) {
         throw new Error('Informe a quantidade de cargas.');

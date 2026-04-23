@@ -2089,7 +2089,7 @@ export const finalizarAvaliacao = async (
     if (statusFinal === 'refazer') {
       await notificarPossivelRetoque({
         avaliacaoId,
-        codigo: codigosParcelas.join(', ') || avaliacao.parcelaCodigo || 'sem codigo',
+        codigo: codigosParcelas.join(', ') || avaliacao.parcelaCodigo || 'sem código',
         equipeId: avaliacao.equipeId || null,
       });
     }
@@ -2310,7 +2310,7 @@ export const registrarRetoque = async (input: {
   const isFluxoRetoqueLegado =
     avaliacao.tipo === 'retoque' && Boolean(avaliacao.avaliacaoOriginalId);
   if (!isFluxoRetoqueLegado && avaliacao.status !== 'em_retoque') {
-    throw new Error('A avaliacao precisa estar marcada como em retoque antes do fechamento.');
+    throw new Error('A avaliação precisa estar marcada como em retoque antes do fechamento.');
   }
 
   const designadoIds = Array.from(
@@ -2349,7 +2349,7 @@ export const registrarRetoque = async (input: {
     })
   ) {
     throw new Error(
-      'Este retoque foi designado para outro colaborador. Apenas o designado, o fiscal chefe ou o administrador podem informar sua execucao.',
+      'Este retoque foi designado para outro colaborador. Apenas o designado, o fiscal chefe ou o administrador podem informar sua execução.',
     );
   }
   const existente = await repository.filter(

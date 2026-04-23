@@ -1222,7 +1222,7 @@ export function TelaRelatorio() {
   if (!canViewReports(usuarioAtual?.perfil, permissionMatrix)) {
     return (
       <LayoutMobile
-        title="Relatorio"
+        title="Relatório"
         subtitle="Acesso restrito"
         onBack={() => navigate('/dashboard')}
       >
