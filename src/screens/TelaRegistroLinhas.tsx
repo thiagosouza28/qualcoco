@@ -1417,7 +1417,11 @@ export function TelaRegistroLinhas() {
         linhaFinal > 136 ||
         linhaFinal <= linhaInicial
       ) {
-        throw new Error('Informe uma faixa válida para a rua atual.');
+        throw new Error(
+          isFluxoRetoque
+            ? 'Informe uma faixa válida para as linhas do retoque.'
+            : 'Informe uma faixa válida para a rua atual.',
+        );
       }
 
       const ruasDaParcelaAtual = ruas.filter(
@@ -1430,7 +1434,11 @@ export function TelaRegistroLinhas() {
           linhaFinal >= item.linhaInicial,
       );
       if (conflitaComOutraRua) {
-        throw new Error('A faixa informada conflita com outra rua desta parcela.');
+        throw new Error(
+          isFluxoRetoque
+            ? 'A faixa informada conflita com outra linha desta parcela.'
+            : 'A faixa informada conflita com outra rua desta parcela.',
+        );
       }
 
       const alinhamentoTipo = inferirAlinhamentoTipoPorLinha(
@@ -1450,7 +1458,9 @@ export function TelaRegistroLinhas() {
         faixaMudou &&
         registroExistente &&
         !confirm(
-          'Esta rua já possui registro. Atualizar apenas a rua atual e manter os dados lançados?',
+          isFluxoRetoque
+            ? 'Esta linha já possui registro. Atualizar apenas as linhas do retoque e manter os dados lançados?'
+            : 'Esta rua já possui registro. Atualizar apenas a rua atual e manter os dados lançados?',
         )
       ) {
         return { cancelled: true };
@@ -1487,7 +1497,9 @@ export function TelaRegistroLinhas() {
       alert(
         error instanceof Error
           ? error.message
-          : 'Não foi possível atualizar a rua atual.',
+          : isFluxoRetoque
+            ? 'Não foi possível atualizar as linhas do retoque.'
+            : 'Não foi possível atualizar a rua atual.',
       );
     },
   });
@@ -1927,7 +1939,12 @@ export function TelaRegistroLinhas() {
               </Button>
             </div>
 
-            <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
+            <div
+              className={cn(
+                'mt-3 grid gap-2.5',
+                isFluxoRetoque ? 'grid-cols-1' : 'sm:grid-cols-2',
+              )}
+            >
               <Button
                 variant="outline"
                 className="h-12 w-full rounded-[18px] text-base font-bold"
@@ -1936,23 +1953,27 @@ export function TelaRegistroLinhas() {
                 <PencilLine className="h-5 w-5" />
                 {isFluxoRetoque ? 'Editar linhas' : 'Editar rua atual'}
               </Button>
-              <Button
-                variant="outline"
-                className="h-12 w-full rounded-[18px] text-base font-bold"
-                onClick={() => navigate(`/avaliacoes/${id}/editar`)}
-              >
-                Editar programação completa
-              </Button>
+              {!isFluxoRetoque ? (
+                <Button
+                  variant="outline"
+                  className="h-12 w-full rounded-[18px] text-base font-bold"
+                  onClick={() => navigate(`/avaliacoes/${id}/editar`)}
+                >
+                  Editar programação completa
+                </Button>
+              ) : null}
             </div>
 
-            <Button
-              variant="outline"
-              className="mt-2.5 h-11 w-full rounded-[18px] font-bold"
-              disabled={!ruaAtual || ruasParcelaAtual.length < 2}
-              onClick={() => setShowInvertParcela(true)}
-            >
-              Inverter ordem da parcela atual
-            </Button>
+            {!isFluxoRetoque ? (
+              <Button
+                variant="outline"
+                className="mt-2.5 h-11 w-full rounded-[18px] font-bold"
+                disabled={!ruaAtual || ruasParcelaAtual.length < 2}
+                onClick={() => setShowInvertParcela(true)}
+              >
+                Inverter ordem da parcela atual
+              </Button>
+            ) : null}
 
             <div className="mt-4 overflow-hidden rounded-[22px] border border-[var(--qc-border-strong)] bg-[linear-gradient(135deg,rgba(210,231,211,0.92),rgba(255,255,255,0.98))] p-4 shadow-[0_18px_30px_-24px_rgba(0,107,68,0.16)]">
               <div className="flex items-start justify-between gap-3">
@@ -1971,7 +1992,7 @@ export function TelaRegistroLinhas() {
                     {!isFluxoRetoque ? (
                       <Badge variant="slate">{formatarModoCalculo(modoCalculo)}</Badge>
                     ) : null}
-                    {statusParcelaAtual ? (
+                    {!isFluxoRetoque && statusParcelaAtual ? (
                       <Badge
                         variant={
                           statusParcelaAtual.status === 'concluida'
@@ -1985,19 +2006,21 @@ export function TelaRegistroLinhas() {
                           ? 'Parcela concluída'
                           : statusParcelaAtual.status === 'em_andamento'
                             ? 'Parcela em andamento'
-                            : 'Parcela pendente'}
+                          : 'Parcela pendente'}
                       </Badge>
                     ) : null}
-                    {ruaAtual?.tipoFalha ? (
+                    {!isFluxoRetoque && ruaAtual?.tipoFalha ? (
                       <Badge variant="red">{formatarTipoFalha(ruaAtual.tipoFalha)}</Badge>
                     ) : null}
                   </div>
                 </div>
 
-                <Badge className="border-[var(--qc-border-strong)] bg-white px-3 py-1 text-[11px] font-black tracking-[0.14em] text-[var(--qc-primary)]">
-                  {formatarNumeroDoisDigitos(Math.min(ruaIndex + 1, totalRuas || 1))}/
-                  {formatarNumeroDoisDigitos(totalRuas || 0)}
-                </Badge>
+                {!isFluxoRetoque ? (
+                  <Badge className="border-[var(--qc-border-strong)] bg-white px-3 py-1 text-[11px] font-black tracking-[0.14em] text-[var(--qc-primary)]">
+                    {formatarNumeroDoisDigitos(Math.min(ruaIndex + 1, totalRuas || 1))}/
+                    {formatarNumeroDoisDigitos(totalRuas || 0)}
+                  </Badge>
+                ) : null}
               </div>
 
               <div className="mx-auto mt-4 grid w-full max-w-[22rem] grid-cols-[minmax(0,1fr),clamp(52px,16vw,64px),minmax(0,1fr)] items-center justify-items-center gap-3">
@@ -2657,7 +2680,7 @@ export function TelaRegistroLinhas() {
         <DialogContent className="max-h-[86dvh] p-0 sm:max-w-md">
           <DialogHeader className="shrink-0 border-b border-[var(--qc-border)] px-6 py-5">
             <DialogTitle className="text-xl font-black tracking-tight text-[var(--qc-text)]">
-              Todas as ruas
+              {isFluxoRetoque ? 'Todas as linhas' : 'Todas as ruas'}
             </DialogTitle>
           </DialogHeader>
 
@@ -2700,80 +2723,84 @@ export function TelaRegistroLinhas() {
                           {' '}Equipe {rua.equipeNome || '--'}
                         </p>
                         <p className="mt-1 text-sm text-[var(--qc-text-muted)]">
-                          {rua.tipoFalha
-                            ? `${formatarTipoFalha(rua.tipoFalha)}`
-                            : temRegistro
-                              ? temExtras
-                                ? 'Rua feita com observações registradas'
-                                : 'Rua já registrada'
-                            : 'Toque para abrir esta rua'}
+                          {isFluxoRetoque
+                            ? 'Toque para abrir esta linha'
+                            : rua.tipoFalha
+                              ? `${formatarTipoFalha(rua.tipoFalha)}`
+                              : temRegistro
+                                ? temExtras
+                                  ? 'Rua feita com observações registradas'
+                                  : 'Rua já registrada'
+                                : 'Toque para abrir esta rua'}
                         </p>
                       </div>
 
-                      {rua.tipoFalha ? (
-                        <Badge variant="red" className="self-start">
-                          {formatarTipoFalha(rua.tipoFalha)}
-                        </Badge>
-                      ) : temRegistro ? (
-                        <div className="flex w-[132px] shrink-0 self-stretch flex-col items-end justify-between">
-                          <div className="w-full">
-                            <div className="grid grid-cols-2 gap-2">
-                              <RuaResumoMetric
-                                label="Cacho"
-                                value={
-                                  resumoRegistro?.faltaColher
-                                    ? 'F.C'
-                                    : resumoRegistro?.cachos3 || 0
-                                }
-                              />
-                              <RuaResumoMetric
-                                label="Coco"
-                                value={
-                                  resumoRegistro?.faltaColher
-                                    ? '--'
-                                    : resumoRegistro?.faltaTropear
-                                    ? 'F.T'
-                                    : resumoRegistro?.quantidade || 0
-                                }
-                              />
+                      {!isFluxoRetoque ? (
+                        rua.tipoFalha ? (
+                          <Badge variant="red" className="self-start">
+                            {formatarTipoFalha(rua.tipoFalha)}
+                          </Badge>
+                        ) : temRegistro ? (
+                          <div className="flex w-[132px] shrink-0 self-stretch flex-col items-end justify-between">
+                            <div className="w-full">
+                              <div className="grid grid-cols-2 gap-2">
+                                <RuaResumoMetric
+                                  label="Cacho"
+                                  value={
+                                    resumoRegistro?.faltaColher
+                                      ? 'F.C'
+                                      : resumoRegistro?.cachos3 || 0
+                                  }
+                                />
+                                <RuaResumoMetric
+                                  label="Coco"
+                                  value={
+                                    resumoRegistro?.faltaColher
+                                      ? '--'
+                                      : resumoRegistro?.faltaTropear
+                                      ? 'F.T'
+                                      : resumoRegistro?.quantidade || 0
+                                  }
+                                />
+                              </div>
+
+                              {temExtras ? (
+                                <div className="mt-2 flex flex-wrap justify-end gap-1.5">
+                                  {resumoRegistro && resumoRegistro.plantasEsquecidas > 0 ? (
+                                    <RuaResumoChip
+                                      label="Plantas"
+                                      value={resumoRegistro.plantasEsquecidas}
+                                    />
+                                  ) : null}
+                                  {resumoRegistro && resumoRegistro.abelhas > 0 ? (
+                                    <RuaResumoChip
+                                      label="Abelhas"
+                                      value={resumoRegistro.abelhas}
+                                    />
+                                  ) : null}
+                                  {resumoRegistro && resumoRegistro.tapios > 0 ? (
+                                    <RuaResumoChip
+                                      label="Tapio"
+                                      value={resumoRegistro.tapios}
+                                    />
+                                  ) : null}
+                                </div>
+                              ) : null}
                             </div>
 
-                            {temExtras ? (
-                              <div className="mt-2 flex flex-wrap justify-end gap-1.5">
-                                {resumoRegistro && resumoRegistro.plantasEsquecidas > 0 ? (
-                                  <RuaResumoChip
-                                    label="Plantas"
-                                    value={resumoRegistro.plantasEsquecidas}
-                                  />
-                                ) : null}
-                                {resumoRegistro && resumoRegistro.abelhas > 0 ? (
-                                  <RuaResumoChip
-                                    label="Abelhas"
-                                    value={resumoRegistro.abelhas}
-                                  />
-                                ) : null}
-                                {resumoRegistro && resumoRegistro.tapios > 0 ? (
-                                  <RuaResumoChip
-                                    label="Tapio"
-                                    value={resumoRegistro.tapios}
-                                  />
-                                ) : null}
-                              </div>
-                            ) : null}
+                            <div className="flex items-center justify-end gap-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--qc-primary)]">
+                              <CheckCircle2 className="h-4 w-4" />
+                              Feita
+                            </div>
                           </div>
-
-                          <div className="flex items-center justify-end gap-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--qc-primary)]">
-                            <CheckCircle2 className="h-4 w-4" />
-                            Feita
+                        ) : isFeita ? (
+                          <div className="flex h-10 w-10 shrink-0 self-start items-center justify-center rounded-full border border-[rgba(0,107,68,0.12)] bg-[rgba(0,107,68,0.08)]">
+                            <CheckCircle2 className="h-5 w-5 text-[var(--qc-primary)]" />
                           </div>
-                        </div>
-                      ) : isFeita ? (
-                        <div className="flex h-10 w-10 shrink-0 self-start items-center justify-center rounded-full border border-[rgba(0,107,68,0.12)] bg-[rgba(0,107,68,0.08)]">
-                          <CheckCircle2 className="h-5 w-5 text-[var(--qc-primary)]" />
-                        </div>
-                      ) : (
-                        <Info className="mt-2 h-6 w-6 shrink-0 self-start text-[rgba(93,98,78,0.42)]" />
-                      )}
+                        ) : (
+                          <Info className="mt-2 h-6 w-6 shrink-0 self-start text-[rgba(93,98,78,0.42)]" />
+                        )
+                      ) : null}
                     </div>
                   </button>
                 );
@@ -2787,7 +2814,7 @@ export function TelaRegistroLinhas() {
         <DialogContent className="max-h-[88dvh] p-0 sm:max-w-md">
           <DialogHeader className="shrink-0 border-b border-[var(--qc-border)] px-6 py-5">
             <DialogTitle className="text-xl font-black tracking-tight text-[var(--qc-text)]">
-              Editar rua atual
+              {isFluxoRetoque ? 'Editar linhas' : 'Editar rua atual'}
             </DialogTitle>
           </DialogHeader>
 
@@ -2797,7 +2824,7 @@ export function TelaRegistroLinhas() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--qc-secondary)]">
-                      Rua atual
+                      {isFluxoRetoque ? 'Linhas do retoque' : 'Rua atual'}
                     </p>
                     <p className="mt-2 whitespace-nowrap text-lg font-black tracking-tight text-[var(--qc-text)]">
                       {ruaAtual
@@ -2808,13 +2835,17 @@ export function TelaRegistroLinhas() {
                         : '--'}
                     </p>
                     <p className="mt-1 text-sm text-[var(--qc-text-muted)]">
-                      Ajuste rápido e pontual somente na rua em andamento.
+                      {isFluxoRetoque
+                        ? 'Ajuste somente o alinhamento inicial e final.'
+                        : 'Ajuste rápido e pontual somente na rua em andamento.'}
                     </p>
                   </div>
 
-                  <Badge variant={registroExistente ? 'slate' : 'emerald'}>
-                    {registroExistente ? 'Com registro' : 'Sem registro'}
-                  </Badge>
+                  {!isFluxoRetoque ? (
+                    <Badge variant={registroExistente ? 'slate' : 'emerald'}>
+                      {registroExistente ? 'Com registro' : 'Sem registro'}
+                    </Badge>
+                  ) : null}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -2851,20 +2882,24 @@ export function TelaRegistroLinhas() {
                   >
                     {applyRuaAtualMutation.isPending
                       ? 'Salvando ajuste'
-                      : 'Salvar ajuste da rua atual'}
+                      : isFluxoRetoque
+                        ? 'Salvar linhas do retoque'
+                        : 'Salvar ajuste da rua atual'}
                   </Button>
                 </div>
               </div>
 
-              <div className="stack-xs rounded-[24px] border border-[var(--qc-border)] bg-white p-4">
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--qc-secondary)]">
-                  Escopo desta edição rápida
-                </p>
-                <p className="text-sm text-[var(--qc-text-muted)]">
-                  Ela altera somente o alinhamento atual. A programação completa e a
-                  inversão da parcela ficam em ações separadas nesta tela.
-                </p>
-              </div>
+              {!isFluxoRetoque ? (
+                <div className="stack-xs rounded-[24px] border border-[var(--qc-border)] bg-white p-4">
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--qc-secondary)]">
+                    Escopo desta edição rápida
+                  </p>
+                  <p className="text-sm text-[var(--qc-text-muted)]">
+                    Ela altera somente o alinhamento atual. A programação completa e a
+                    inversão da parcela ficam em ações separadas nesta tela.
+                  </p>
+                </div>
+              ) : null}
             </div>
           </div>
 

@@ -196,10 +196,10 @@ export function TelaConfiguracoes() {
               <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm font-black tracking-tight text-[var(--qc-text)]">
-                    Producao e limites
+                    Produção e limites
                   </p>
                   <p className="mt-1 text-sm leading-relaxed text-[var(--qc-text-muted)]">
-                    Valores aplicados nos calculos, alertas e relatorios.
+                    Valores aplicados nos cálculos, alertas e relatórios.
                   </p>
                 </div>
                 <Button
@@ -208,7 +208,7 @@ export function TelaConfiguracoes() {
                   className="h-11 rounded-[16px] font-bold"
                   onClick={restaurarPadrao}
                 >
-                  Restaurar padrao
+                  Restaurar padrão
                 </Button>
               </CardContent>
             </Card>
@@ -237,7 +237,7 @@ export function TelaConfiguracoes() {
             />
 
             <CounterInput
-              label="Limite - Cachos com 3 Cocos"
+              label="Limite - Cachos"
               value={limiteCachos}
               onChange={setLimiteCachos}
               color="emerald"
@@ -276,7 +276,7 @@ export function TelaConfiguracoes() {
                 </div>
                 <div className="flex min-h-[124px] flex-col justify-between rounded-[18px] border border-[var(--qc-border)] bg-[var(--qc-surface-muted)] p-4">
                   <p className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-[var(--qc-secondary)]">
-                    Cachos com 3 cocos
+                    Cachos
                   </p>
                   <p className="mt-3 text-[clamp(2.4rem,8vw,3.4rem)] font-black leading-none tracking-[-0.06em] text-[var(--qc-text)]">
                     {limiteCachos}

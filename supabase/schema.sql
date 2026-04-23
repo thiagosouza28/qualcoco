@@ -476,5 +476,106 @@ create index if not exists producao_equipe_data_idx on public.producao (equipe_i
 create index if not exists producao_avaliacao_idx on public.producao (avaliacao_id);
 create index if not exists producao_retoque_idx on public.producao (retoque_id);
 create index if not exists producao_sync_status_idx on public.producao (sync_status, atualizado_em desc);
+create index if not exists colaboradores_perfil_idx on public.colaboradores (perfil);
+create index if not exists usuario_equipes_usuario_idx on public.usuario_equipes (usuario_id);
+create index if not exists usuario_equipes_equipe_idx on public.usuario_equipes (equipe_id);
+create index if not exists avaliacoes_tipo_idx on public.avaliacoes (tipo);
+create index if not exists avaliacoes_original_idx on public.avaliacoes (avaliacao_original_id);
+create index if not exists avaliacoes_equipe_idx on public.avaliacoes (equipe_id);
+create index if not exists avaliacao_retoques_avaliacao_idx on public.avaliacao_retoques (avaliacao_id);
+create index if not exists avaliacao_retoques_original_idx on public.avaliacao_retoques (avaliacao_original_id);
+create index if not exists avaliacao_logs_avaliacao_idx on public.avaliacao_logs (avaliacao_id, criado_em desc);
 
 alter table public.producao replica identity full;
+alter table public.usuario_equipes replica identity full;
+alter table public.avaliacao_retoques replica identity full;
+alter table public.avaliacao_logs replica identity full;
+
+do $$
+declare
+  target_table text;
+  target_tables text[] := array[
+    'usuario_equipes',
+    'avaliacao_retoques',
+    'avaliacao_logs',
+    'producao'
+  ];
+begin
+  if exists (
+    select 1
+    from pg_publication
+    where pubname = 'supabase_realtime'
+  ) then
+    foreach target_table in array target_tables loop
+      begin
+        execute format(
+          'alter publication supabase_realtime add table public.%I',
+          target_table
+        );
+      exception
+        when duplicate_object then
+          null;
+      end;
+    end loop;
+  end if;
+end $$;
+
+drop trigger if exists set_usuario_equipes_atualizado_em on public.usuario_equipes;
+create trigger set_usuario_equipes_atualizado_em
+before update on public.usuario_equipes
+for each row execute function public.set_atualizado_em();
+
+drop trigger if exists set_avaliacao_retoques_atualizado_em on public.avaliacao_retoques;
+create trigger set_avaliacao_retoques_atualizado_em
+before update on public.avaliacao_retoques
+for each row execute function public.set_atualizado_em();
+
+drop trigger if exists set_avaliacao_logs_atualizado_em on public.avaliacao_logs;
+create trigger set_avaliacao_logs_atualizado_em
+before update on public.avaliacao_logs
+for each row execute function public.set_atualizado_em();
+
+drop trigger if exists set_producao_atualizado_em on public.producao;
+create trigger set_producao_atualizado_em
+before update on public.producao
+for each row execute function public.set_atualizado_em();
+
+do $$
+declare
+  target_table text;
+  target_tables text[] := array[
+    'usuario_equipes',
+    'avaliacao_retoques',
+    'avaliacao_logs',
+    'producao'
+  ];
+begin
+  foreach target_table in array target_tables loop
+    execute format('grant select, insert, update, delete on table public.%I to anon, authenticated', target_table);
+    execute format('alter table public.%I enable row level security', target_table);
+
+    execute format('drop policy if exists sync_select on public.%I', target_table);
+    execute format(
+      'create policy sync_select on public.%I for select to anon, authenticated using (true)',
+      target_table
+    );
+
+    execute format('drop policy if exists sync_insert on public.%I', target_table);
+    execute format(
+      'create policy sync_insert on public.%I for insert to anon, authenticated with check (true)',
+      target_table
+    );
+
+    execute format('drop policy if exists sync_update on public.%I', target_table);
+    execute format(
+      'create policy sync_update on public.%I for update to anon, authenticated using (true) with check (true)',
+      target_table
+    );
+
+    execute format('drop policy if exists sync_delete on public.%I', target_table);
+    execute format(
+      'create policy sync_delete on public.%I for delete to anon, authenticated using (true)',
+      target_table
+    );
+  end loop;
+end $$;

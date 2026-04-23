@@ -59,6 +59,7 @@ const PERIODOS_RELATORIO: Array<{
   { value: 'semestral', label: 'Semestral' },
   { value: 'anual', label: 'Anual' },
 ];
+const MEDALHAS_RANKING = ['🥇', '🥈', '🥉'];
 
 const formatDateKeyRelatorio = (date: Date) =>
   [
@@ -481,6 +482,62 @@ const LinhaEvolucaoBags = ({
             : '-'}
         </span>
       </div>
+    </div>
+  );
+};
+
+const GraficoEficienciaCocosChao = ({
+  data,
+}: {
+  data: RelatorioEquipeAvancado[];
+}) => {
+  const sorted = data
+    .slice()
+    .sort((a, b) => {
+      if (a.indiceCocosChao !== b.indiceCocosChao) {
+        return a.indiceCocosChao - b.indiceCocosChao;
+      }
+      return b.totalBags - a.totalBags;
+    })
+    .slice(0, 8);
+  const max = Math.max(1, ...sorted.map((item) => item.indiceCocosChao));
+
+  return (
+    <div className="stack-sm">
+      {sorted.map((item, index) => {
+        const ratio = item.indiceCocosChao / max;
+        const color =
+          index === 0
+            ? '#006b44'
+            : ratio <= 0.5
+              ? '#1f61a4'
+              : ratio <= 0.8
+                ? '#9a7a12'
+                : '#c53a35';
+
+        return (
+          <div
+            key={item.equipe}
+            className="grid grid-cols-[4.5rem_minmax(0,1fr)_4.75rem] items-center gap-2"
+          >
+            <span className="text-xs font-black text-[var(--qc-text)]">
+              Eq. {item.equipe}
+            </span>
+            <div className="h-3 overflow-hidden rounded-full bg-[var(--qc-surface-muted)]">
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{
+                  width: `${Math.max(3, ratio * 100)}%`,
+                  backgroundColor: color,
+                }}
+              />
+            </div>
+            <span className="text-right text-xs font-bold tabular-nums text-[var(--qc-secondary)]">
+              {formatarProducaoNumero(item.indiceCocosChao)}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 };
@@ -1720,7 +1777,7 @@ export function TelaRelatorio() {
                         >
                           <div>
                             <p className="text-sm font-black text-[var(--qc-text)]">
-                              {index + 1}º lugar · Equipe {item.equipe}
+                              {MEDALHAS_RANKING[index] || `${index + 1}º`} {index + 1}º lugar · Equipe {item.equipe}
                             </p>
                             <p className="text-xs text-[var(--qc-text-muted)]">
                               Coco chão {formatarProducaoNumero(item.indiceCocosChao)} · Cachos {formatarProducaoNumero(item.indiceCachos)}
@@ -1729,6 +1786,90 @@ export function TelaRelatorio() {
                           <span className="text-sm font-black tabular-nums text-[#1f61a4]">
                             {formatarProducaoNumero(item.totalBags)} bags
                           </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-[20px] border border-[var(--qc-border)] bg-white p-4">
+                    <p className="text-sm font-black tracking-tight text-[var(--qc-text)]">
+                      Eficiência - menor coco no chão
+                    </p>
+                    <div className="mt-4">
+                      <GraficoEficienciaCocosChao data={relatorioEquipesAvancado} />
+                    </div>
+                  </div>
+
+                  <div className="rounded-[20px] border border-[var(--qc-border)] bg-white p-4">
+                    <p className="text-sm font-black tracking-tight text-[var(--qc-text)]">
+                      Dados por equipe
+                    </p>
+                    <div className="mt-3 stack-sm">
+                      {relatorioEquipesAvancado.map((item) => (
+                        <div
+                          key={item.equipe}
+                          className="rounded-[16px] border border-[var(--qc-border)] bg-[var(--qc-surface-muted)] p-3"
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="text-sm font-black text-[var(--qc-text)]">
+                              Equipe {item.equipe}
+                            </p>
+                            <span className="text-sm font-black tabular-nums text-[#1f61a4]">
+                              {formatarProducaoNumero(item.totalBags)} bags
+                            </span>
+                          </div>
+                          <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
+                            <div>
+                              <p className="font-extrabold uppercase text-[var(--qc-secondary)]">
+                                Cargas
+                              </p>
+                              <p className="font-black tabular-nums text-[var(--qc-text)]">
+                                {formatarProducaoNumero(item.totalCargas)}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="font-extrabold uppercase text-[var(--qc-secondary)]">
+                                Cocos
+                              </p>
+                              <p className="font-black tabular-nums text-[var(--qc-text)]">
+                                {formatarProducaoNumero(item.totalCocos, 0)}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="font-extrabold uppercase text-[var(--qc-secondary)]">
+                                Média/bag
+                              </p>
+                              <p className="font-black tabular-nums text-[var(--qc-text)]">
+                                {formatarProducaoNumero(item.mediaCocosPorBag, 0)}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="font-extrabold uppercase text-[var(--qc-secondary)]">
+                                Coco chão
+                              </p>
+                              <p className="font-black tabular-nums text-[var(--qc-text)]">
+                                {formatarProducaoNumero(item.indiceCocosChao)}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="font-extrabold uppercase text-[var(--qc-secondary)]">
+                                Cachos
+                              </p>
+                              <p className="font-black tabular-nums text-[var(--qc-text)]">
+                                {formatarProducaoNumero(item.indiceCachos)}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="font-extrabold uppercase text-[var(--qc-secondary)]">
+                                Registros
+                              </p>
+                              <p className="font-black tabular-nums text-[var(--qc-text)]">
+                                {formatarProducaoNumero(item.registros, 0)}
+                              </p>
+                            </div>
+                          </div>
                         </div>
                       ))}
                     </div>
