@@ -1572,6 +1572,11 @@ export function TelaRegistroLinhas() {
     setShowFinalizacaoModal(true);
   };
 
+  const handleFinalizarRetoque = async () => {
+    if (!confirm('Deseja finalizar este retoque?')) return;
+    await concluirColeta('dashboard');
+  };
+
   const handleNextRua = async () => {
     await saveMutation.mutateAsync({
       next: !edicaoConcluidaLiberada,
@@ -1677,6 +1682,11 @@ export function TelaRegistroLinhas() {
     });
   };
 
+  const cancelarFinalizacaoRetoque = () => {
+    setShowRetoqueModal(false);
+    setFinalizandoDestino(null);
+  };
+
   if (isFetched && data && !podeEditarFluxoAtual) {
     return (
       <LayoutMobile
@@ -1726,7 +1736,16 @@ export function TelaRegistroLinhas() {
           </Card>
         ) : null}
 
-        <Dialog open={showRetoqueModal} onOpenChange={setShowRetoqueModal}>
+        <Dialog
+          open={showRetoqueModal}
+          onOpenChange={(open) => {
+            if (open) {
+              setShowRetoqueModal(true);
+              return;
+            }
+            cancelarFinalizacaoRetoque();
+          }}
+        >
           <DialogContent className="max-w-[420px]">
             <DialogHeader>
               <DialogTitle>Finalização do retoque</DialogTitle>
@@ -1773,7 +1792,7 @@ export function TelaRegistroLinhas() {
               </div>
             </div>
             <DialogFooter className="gap-2">
-              <Button variant="outline" onClick={() => setShowRetoqueModal(false)}>
+              <Button variant="outline" onClick={cancelarFinalizacaoRetoque}>
                 Cancelar
               </Button>
               <Button onClick={salvarRetoqueEFinalizar}>Salvar e finalizar</Button>
@@ -1929,31 +1948,28 @@ export function TelaRegistroLinhas() {
                 </p>
               </div>
 
-              <Button
-                variant="outline"
-                className="h-11 rounded-[16px] px-4 font-bold"
-                onClick={() => setShowAllRuas(true)}
-              >
-                <ListChecks className="h-4 w-4" />
-                {isFluxoRetoque ? 'Ver linhas' : 'Ver todas'}
-              </Button>
+              {!isFluxoRetoque ? (
+                <Button
+                  variant="outline"
+                  className="h-11 rounded-[16px] px-4 font-bold"
+                  onClick={() => setShowAllRuas(true)}
+                >
+                  <ListChecks className="h-4 w-4" />
+                  Ver todas
+                </Button>
+              ) : null}
             </div>
 
-            <div
-              className={cn(
-                'mt-3 grid gap-2.5',
-                isFluxoRetoque ? 'grid-cols-1' : 'sm:grid-cols-2',
-              )}
-            >
-              <Button
-                variant="outline"
-                className="h-12 w-full rounded-[18px] text-base font-bold"
-                onClick={() => setShowEditRuas(true)}
-              >
-                <PencilLine className="h-5 w-5" />
-                {isFluxoRetoque ? 'Editar linhas' : 'Editar rua atual'}
-              </Button>
-              {!isFluxoRetoque ? (
+            {!isFluxoRetoque ? (
+              <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
+                <Button
+                  variant="outline"
+                  className="h-12 w-full rounded-[18px] text-base font-bold"
+                  onClick={() => setShowEditRuas(true)}
+                >
+                  <PencilLine className="h-5 w-5" />
+                  Editar rua atual
+                </Button>
                 <Button
                   variant="outline"
                   className="h-12 w-full rounded-[18px] text-base font-bold"
@@ -1961,8 +1977,8 @@ export function TelaRegistroLinhas() {
                 >
                   Editar programação completa
                 </Button>
-              ) : null}
-            </div>
+              </div>
+            ) : null}
 
             {!isFluxoRetoque ? (
               <Button
@@ -2033,7 +2049,7 @@ export function TelaRegistroLinhas() {
                 <RuaNumeroCard label="Fim" value={ruaAtual?.linhaFinal} />
               </div>
 
-              {ruasContexto.length > 0 ? (
+              {!isFluxoRetoque && ruasContexto.length > 0 ? (
                 <div className="mx-auto mt-3 w-full max-w-[28rem] overflow-hidden">
                   <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
                   {ruasContexto.map(({ key, rua, index, label, offset }) => {
@@ -2076,14 +2092,16 @@ export function TelaRegistroLinhas() {
               ) : null}
             </div>
 
-            <Button
-              variant="outline"
-              className="mt-3 h-12 w-full rounded-[18px] text-base font-bold"
-              onClick={handlePrevRua}
-              disabled={ruaIndex === 0}
-            >
-              {isFluxoRetoque ? 'Linha anterior' : 'Rua anterior'}
-            </Button>
+            {!isFluxoRetoque ? (
+              <Button
+                variant="outline"
+                className="mt-3 h-12 w-full rounded-[18px] text-base font-bold"
+                onClick={handlePrevRua}
+                disabled={ruaIndex === 0}
+              >
+                Rua anterior
+              </Button>
+            ) : null}
           </CardContent>
         </Card>
 
@@ -2166,28 +2184,7 @@ export function TelaRegistroLinhas() {
             feedback={feedbackCocos}
           />
         </div>
-        ) : (
-          <Card className="surface-card border-none shadow-sm">
-            <CardContent className="grid gap-3 p-5 sm:grid-cols-2">
-              <div>
-                <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[var(--qc-secondary)]">
-                  Linha inicial
-                </p>
-                <p className="mt-1 text-2xl font-black tabular-nums text-[var(--qc-text)]">
-                  {formatarNumeroDoisDigitos(ruaAtual?.linhaInicial || 0)}
-                </p>
-              </div>
-              <div>
-                <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-[var(--qc-secondary)]">
-                  Linha final
-                </p>
-                <p className="mt-1 text-2xl font-black tabular-nums text-[var(--qc-text)]">
-                  {formatarNumeroDoisDigitos(ruaAtual?.linhaFinal || 0)}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        ) : null}
 
         {!isFluxoRetoque ? (
         <Card className="surface-card border-none shadow-sm">
@@ -2278,6 +2275,18 @@ export function TelaRegistroLinhas() {
         </Card>
         ) : null}
 
+        {isFluxoRetoque ? (
+          <div className="pt-1">
+            <Button
+              size="lg"
+              className="h-14 w-full rounded-[18px] text-base font-bold"
+              disabled={finalizandoDestino !== null}
+              onClick={handleFinalizarRetoque}
+            >
+              {finalizandoDestino ? 'Finalizando retoque' : 'Finalizar retoque'}
+            </Button>
+          </div>
+        ) : (
         <div className="grid grid-cols-2 gap-4 pt-1">
           <Button
             variant="outline"
@@ -2306,6 +2315,7 @@ export function TelaRegistroLinhas() {
             {!edicaoConcluidaLiberada ? <ChevronRight className="h-5 w-5" /> : null}
           </Button>
         </div>
+        )}
       </div>
 
       <Dialog open={showObs} onOpenChange={setShowObs}>

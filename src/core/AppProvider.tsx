@@ -46,6 +46,15 @@ const AUTO_SYNC_REMOTE_REFRESH_MS = 60_000;
 const AUTO_SYNC_WEB_ACCESS_REFRESH_MS = 5 * 60_000;
 const AUTO_SYNC_BACKGROUND_REFRESH_MS = 90_000;
 
+const criarResultadoSemPendencias = (): SyncExecutionResult => ({
+  enviado: 0,
+  recebido: 0,
+  conflitos: 0,
+  erro: '',
+  avisos: ['Nenhuma pendencia para sincronizar.'],
+  duracaoMs: 0,
+});
+
 type AppContextShape = {
   bootstrapped: boolean;
   session: SessaoCampo | null;
@@ -291,6 +300,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const pendencias = await contarPendenciasSync({ repair: false });
       setPendenciasSync(pendencias);
 
+      if (pendencias <= 0) {
+        lastSyncAtRef.current = Date.now();
+        return criarResultadoSemPendencias();
+      }
+
       if (!force && Date.now() - lastSyncAtRef.current < AUTO_SYNC_PENDING_INTERVAL_MS) {
         return null;
       }
@@ -377,6 +391,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const conectado = await detectarEstadoRede();
       if (!bootstrapped || !conectado || !isCloudConfigured) {
         return null;
+      }
+
+      const pendencias = await contarPendenciasSync({ repair: false });
+      setPendenciasSync(pendencias);
+      if (pendencias <= 0) {
+        lastSyncAtRef.current = Date.now();
+        return criarResultadoSemPendencias();
       }
 
       await garantirSessaoCloudDispositivo(dispositivo);
@@ -630,8 +651,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   ]);
 
   useEffect(() => {
-    if (bootstrapped && online && session && cloudSessionReady) {
-      agendarAutoSync(pendenciasSync > 0 ? 1800 : 2500);
+    if (bootstrapped && online && session && cloudSessionReady && pendenciasSync > 0) {
+      agendarAutoSync(1800);
     }
   }, [agendarAutoSync, bootstrapped, cloudSessionReady, online, pendenciasSync, session]);
 
