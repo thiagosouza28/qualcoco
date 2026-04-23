@@ -1,10 +1,10 @@
 {
-  "version": "1.0.89",
+  "version": "1.0.90",
   "required": false,
-  "fileName": "appqualcoco1.0.89.apk",
-  "url": "https://github.com/thiagosouza28/qualcoco/releases/download/v1.0.89/qualcoco.apk",
+  "fileName": "appqualcoco1.0.90.apk",
+  "url": "https://github.com/thiagosouza28/qualcoco/releases/download/v1.0.90/qualcoco.apk",
   "urls": [
-    "https://github.com/thiagosouza28/qualcoco/releases/download/v1.0.89/qualcoco.apk"
+    "https://github.com/thiagosouza28/qualcoco/releases/download/v1.0.90/qualcoco.apk"
   ],
-  "githubUrl": "https://github.com/thiagosouza28/qualcoco/releases/download/v1.0.89/qualcoco.apk"
+  "githubUrl": "https://github.com/thiagosouza28/qualcoco/releases/download/v1.0.90/qualcoco.apk"
 }
