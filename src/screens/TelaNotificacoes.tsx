@@ -58,7 +58,7 @@ export function TelaNotificacoes() {
           ? `${naoLidas} pendente(s) para você`
           : 'Histórico de alertas e atribuições'
       }
-      onBack={() => navigate('/dashboard')}
+      onBack={() => navigate(-1)}
       showBottomNav
       action={
         notificacoes.length > 0 ? (

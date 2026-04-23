@@ -43,6 +43,7 @@ import {
   normalizePapelAvaliacao,
   normalizePerfilUsuario,
 } from '@/core/permissions';
+import { obterApresentacaoEstadoColetaRua } from '@/core/registroRua';
 import { useRolePermissions } from '@/core/useRolePermissions';
 import {
   calcularProducaoPorCargas,
@@ -54,6 +55,23 @@ const formatDateOnly = (value?: string | null) => {
   const date = new Date(`${value}T12:00:00`);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleDateString('pt-BR');
+};
+
+const formatarNumeroResumoRua = (value?: number | string | null) => {
+  const normalized = String(value ?? '').trim();
+  if (!normalized) return '--';
+  return /^\d+$/.test(normalized) ? normalized.padStart(2, '0') : normalized;
+};
+
+const formatarFaixaRuaResumo = (
+  linhaInicial?: number | string | null,
+  linhaFinal?: number | string | null,
+) => `${formatarNumeroResumoRua(linhaInicial)}-${formatarNumeroResumoRua(linhaFinal)}`;
+
+const formatarTipoFalhaRua = (value?: string | null) => {
+  if (value === 'linha_invalida') return 'Linha inválida';
+  if (value === 'rua_com_falha') return 'Rua com falha';
+  return 'Falha';
 };
 
 const HIDDEN_AUDIT_ACTIONS = new Set([
@@ -77,6 +95,18 @@ type HistoricoRetoqueItem = {
   cocosEstimados: number;
   observacao: string;
   finalizadoPorNome: string;
+};
+
+type ResumoRuaEquipeItem = {
+  id: string;
+  faixa: string;
+  parcelaCodigo: string;
+  equipeNome: string;
+  statusLabel: string;
+  statusVariant: 'emerald' | 'amber' | 'red';
+  tipoFalha: string | null;
+  cachoDisplay: string;
+  cocosDisplay: string;
 };
 
 export function TelaDetalheAvaliacao() {
@@ -195,6 +225,85 @@ export function TelaDetalheAvaliacao() {
     statusAtual === 'em_retoque' &&
     podeInformarRetoque &&
     canStartRetoque(usuarioAtual?.perfil, permissionMatrix);
+  const parcelasPorId = useMemo(
+    () => new Map((data?.parcelas || []).map((item) => [item.id, item])),
+    [data?.parcelas],
+  );
+  const registrosPorRua = useMemo(
+    () => new Map((data?.registros || []).map((item) => [item.ruaId, item])),
+    [data?.registros],
+  );
+  const ruasComFalhaIds = useMemo(
+    () =>
+      new Set(
+        (data?.ruas || [])
+          .filter(
+            (item) =>
+              item.tipoFalha === 'rua_com_falha' || item.tipoFalha === 'linha_invalida',
+          )
+          .map((item) => item.id),
+      ),
+    [data?.ruas],
+  );
+  const hasPendingStreets = useMemo(() => {
+    const ruas = data?.ruas || [];
+    if (ruas.length === 0) return false;
+
+    return ruas.some(
+      (rua) => !registrosPorRua.has(rua.id) && !ruasComFalhaIds.has(rua.id),
+    );
+  }, [data?.ruas, registrosPorRua, ruasComFalhaIds]);
+  const resumoEquipeDisponivel = Boolean(data) && !hasPendingStreets;
+  const ruasResumoEquipe = useMemo<ResumoRuaEquipeItem[]>(() => {
+    return (data?.ruas || [])
+      .map((rua) => {
+        const registro = registrosPorRua.get(rua.id) || null;
+        const tipoFalha = rua.tipoFalha || null;
+        const isFalha =
+          tipoFalha === 'rua_com_falha' || tipoFalha === 'linha_invalida';
+
+        if (!registro && !isFalha) {
+          return null;
+        }
+
+        const apresentacao = registro
+          ? obterApresentacaoEstadoColetaRua({
+              quantidade: registro.quantidade,
+              quantidadeCachos3: registro.quantidadeCachos3,
+              observacoes: registro.observacoes,
+            })
+          : null;
+        const statusLabel = isFalha
+          ? formatarTipoFalhaRua(tipoFalha)
+          : apresentacao?.faltaColher
+            ? 'Falta colher'
+            : apresentacao?.faltaTropear
+              ? 'Falta tropear'
+              : 'Coletada';
+
+        return {
+          id: rua.id,
+          faixa: formatarFaixaRuaResumo(rua.linhaInicial, rua.linhaFinal),
+          parcelaCodigo:
+            parcelasPorId.get(rua.avaliacaoParcelaId)?.parcelaCodigo || '--',
+          equipeNome: rua.equipeNome || data?.avaliacao?.equipeNome || '--',
+          statusLabel,
+          statusVariant: isFalha
+            ? 'red'
+            : apresentacao?.faltaColher || apresentacao?.faltaTropear
+              ? 'amber'
+              : 'emerald',
+          tipoFalha: isFalha ? formatarTipoFalhaRua(tipoFalha) : null,
+          cachoDisplay: apresentacao?.siglaCacho
+            ? apresentacao.siglaCacho
+            : formatarNumeroResumoRua(apresentacao?.quantidadeCachos3 || 0),
+          cocosDisplay: apresentacao?.siglaCocos
+            ? apresentacao.siglaCocos
+            : formatarNumeroResumoRua(apresentacao?.quantidade || 0),
+        };
+      })
+      .filter((item): item is ResumoRuaEquipeItem => Boolean(item));
+  }, [data?.avaliacao?.equipeNome, data?.ruas, parcelasPorId, registrosPorRua]);
 
   const historicoRetoques = useMemo<HistoricoRetoqueItem[]>(() => {
     const items: HistoricoRetoqueItem[] = [];
@@ -416,7 +525,7 @@ export function TelaDetalheAvaliacao() {
       <LayoutMobile
         title="Detalhe da avaliação"
         subtitle="Acesso restrito"
-        onBack={() => navigate('/dashboard')}
+        onBack={() => navigate(-1)}
       >
         <AccessDeniedCard description="A consulta detalhada da avaliação só aparece quando o administrador libera histórico para o seu perfil." />
       </LayoutMobile>
@@ -428,7 +537,7 @@ export function TelaDetalheAvaliacao() {
       <LayoutMobile
         title="Detalhe da avaliação"
         subtitle="Registro não disponível"
-        onBack={() => navigate('/historico')}
+        onBack={() => navigate(-1)}
       >
         <Card className="surface-card">
           <CardContent className="p-5">
@@ -446,7 +555,7 @@ export function TelaDetalheAvaliacao() {
     <LayoutMobile
       title="Detalhe da avaliação"
       subtitle={statusMeta.label}
-      onBack={() => navigate('/historico')}
+      onBack={() => navigate(-1)}
     >
       <div className="stack-lg">
         <Dialog open={showMarcarModal} onOpenChange={setShowMarcarModal}>
@@ -719,9 +828,80 @@ export function TelaDetalheAvaliacao() {
           </CardContent>
         </Card>
 
+        {resumoEquipeDisponivel ? (
+          <Card className="surface-card">
+            <CardContent className="stack-md p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-black tracking-tight text-[var(--qc-text)]">
+                    Ruas avaliadas
+                  </p>
+                  <p className="mt-1 text-sm text-[var(--qc-text-muted)]">
+                    Resumo somente leitura por rua, sem reabrir o fluxo de avaliação.
+                  </p>
+                </div>
+                <Badge variant="emerald">{ruasResumoEquipe.length}</Badge>
+              </div>
+
+              {ruasResumoEquipe.length > 0 ? (
+                <div className="stack-sm">
+                  {ruasResumoEquipe.map((item) => (
+                    <div
+                      key={item.id}
+                      className="rounded-[24px] border border-[var(--qc-border)] bg-white p-4"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
+                            Parcela {item.parcelaCodigo} • Equipe {item.equipeNome}
+                          </p>
+                          <p className="mt-2 whitespace-nowrap text-[clamp(1.8rem,7vw,2.2rem)] font-black leading-none tracking-[-0.05em] tabular-nums text-[var(--qc-text)]">
+                            {item.faixa}
+                          </p>
+                        </div>
+
+                        <Badge variant={item.statusVariant}>{item.statusLabel}</Badge>
+                      </div>
+
+                      {item.tipoFalha ? (
+                        <p className="mt-4 text-sm text-[var(--qc-text-muted)]">
+                          Esta rua foi marcada como falha e não entrou no cálculo final.
+                        </p>
+                      ) : (
+                        <div className="mt-4 grid grid-cols-2 gap-3">
+                          <div className="rounded-[22px] border border-[rgba(0,107,68,0.14)] bg-[linear-gradient(135deg,rgba(210,231,211,0.92)_0%,rgba(255,255,255,0.98)_100%)] p-4">
+                            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
+                              Cacho
+                            </p>
+                            <p className="mt-2 text-[1.9rem] font-black leading-none tracking-[-0.04em] tabular-nums text-[var(--qc-primary)]">
+                              {item.cachoDisplay}
+                            </p>
+                          </div>
+                          <div className="rounded-[22px] border border-[rgba(138,106,8,0.14)] bg-[linear-gradient(135deg,rgba(251,245,232,0.96)_0%,rgba(255,255,255,0.98)_100%)] p-4">
+                            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
+                              Cocos no chão
+                            </p>
+                            <p className="mt-2 text-[1.9rem] font-black leading-none tracking-[-0.04em] tabular-nums text-[#7f6b2b]">
+                              {item.cocosDisplay}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-[var(--qc-text-muted)]">
+                  Nenhuma rua com dados finalizados foi encontrada nesta equipe.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        ) : null}
+
         {data?.avaliacao?.tipo !== 'retoque' ? (
           <div className="grid gap-3 sm:grid-cols-2">
-            {data?.avaliacao?.status === 'in_progress' ? (
+            {data?.avaliacao?.status === 'in_progress' && hasPendingStreets ? (
               <Button onClick={() => navigate(`/avaliacoes/${id}`)}>
                 <ClipboardList className="h-4 w-4" />
                 Continuar avaliação

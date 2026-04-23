@@ -55,6 +55,7 @@ import {
 } from '@/core/registroRua';
 import {
   calcularFaixaFeedback,
+  calcularProgressoFeedback,
   calcularProducaoPorCargas,
   formatarProducaoNumero,
 } from '@/core/production';
@@ -533,7 +534,7 @@ export function TelaRegistroLinhas() {
   const [resumoParcelaDraft, setResumoParcelaDraft] =
     useState<ResumoParcelaSiglaDraft | null>(null);
   const [finalizandoDestino, setFinalizandoDestino] = useState<
-    'dashboard' | 'relatorio' | null
+    'historico' | null
   >(null);
   const [showRetoqueModal, setShowRetoqueModal] = useState(false);
   const [retoqueCargas, setRetoqueCargas] = useState('');
@@ -811,6 +812,14 @@ export function TelaRegistroLinhas() {
   const feedbackCocos = isFluxoRetoque
     ? null
     : calcularFaixaFeedback(quantidade, config?.limiteCocosChao);
+  const progressoVisualCachos =
+    isFluxoRetoque || faltaColherMarcada
+      ? null
+      : calcularProgressoFeedback(cachos3, config?.limiteCachos3Cocos);
+  const progressoVisualCocos =
+    isFluxoRetoque || faltaTropearMarcada || faltaColherMarcada
+      ? null
+      : calcularProgressoFeedback(quantidade, config?.limiteCocosChao);
 
   const persistCurrentObservacoesDraft = () => {
     if (!id || !observacoesDraftRuaId || !observacoesDraftDirty) return;
@@ -1159,15 +1168,8 @@ export function TelaRegistroLinhas() {
   };
 
   const voltarParaTelaAnterior = useCallback(() => {
-    if (typeof window !== 'undefined' && window.history.length > 1) {
-      navigate(-1);
-      return;
-    }
-
-    navigate(edicaoConcluidaLiberada ? `/detalhe/${id}` : '/dashboard', {
-      replace: true,
-    });
-  }, [edicaoConcluidaLiberada, id, navigate]);
+    navigate(-1);
+  }, [navigate]);
 
   const saveMutation = useMutation({
     mutationFn: async ({
@@ -1585,7 +1587,7 @@ export function TelaRegistroLinhas() {
 
   const handleFinalizarRetoque = async () => {
     if (!confirm('Deseja finalizar este retoque?')) return;
-    await concluirColeta('dashboard');
+    await concluirColeta();
   };
 
   const handleNextRua = async () => {
@@ -1612,10 +1614,7 @@ export function TelaRegistroLinhas() {
     setCachos3(mediaRuasVizinhas.cachos3);
   };
 
-  const concluirColeta = async (
-    destino: 'dashboard' | 'relatorio',
-    options: { retoqueJaRegistrado?: boolean } = {},
-  ) => {
+  const concluirColeta = async (options: { retoqueJaRegistrado?: boolean } = {}) => {
     if (!isFluxoRetoque) {
       const parcelaPendente = obterParcelaConcluidaComSiglaPendente();
       if (parcelaPendente) {
@@ -1632,21 +1631,13 @@ export function TelaRegistroLinhas() {
     try {
       if (precisaRegistrarEncerramentoRetoque && !options.retoqueJaRegistrado) {
         setShowRetoqueModal(true);
-        setFinalizandoDestino(destino);
+        setFinalizandoDestino('historico');
         return;
       }
-      setFinalizandoDestino(destino);
+      setFinalizandoDestino('historico');
       await finalizarAvaliacao(id, usuarioAtual?.id);
       await queryClient.invalidateQueries();
-
-      if (destino === 'relatorio') {
-        navigate('/relatorios', {
-          state: { dataFiltro: data?.avaliacao?.dataAvaliacao || undefined },
-        });
-        return;
-      }
-
-      navigate('/dashboard');
+      navigate('/historico');
     } finally {
       setFinalizandoDestino(null);
       setShowFinalizacaoModal(false);
@@ -1688,7 +1679,7 @@ export function TelaRegistroLinhas() {
     setRetoqueRegistrado(true);
     setRetoqueCargas('');
     setShowRetoqueModal(false);
-    await concluirColeta(finalizandoDestino || 'dashboard', {
+    await concluirColeta({
       retoqueJaRegistrado: true,
     });
   };
@@ -1703,7 +1694,7 @@ export function TelaRegistroLinhas() {
       <LayoutMobile
         title="Registro"
         subtitle="Acesso restrito"
-        onBack={() => navigate('/dashboard')}
+        onBack={() => navigate(-1)}
       >
         <AccessDeniedCard description="A edição deste fluxo de avaliação foi bloqueada para o seu perfil. Se necessário, o administrador pode liberar essa função nas configurações." />
       </LayoutMobile>
@@ -1728,9 +1719,7 @@ export function TelaRegistroLinhas() {
         </span>
       }
       headerContentAlignment="center"
-      onBack={() =>
-        navigate(edicaoConcluidaLiberada ? `/detalhe/${id}` : '/dashboard')
-      }
+      onBack={() => navigate(-1)}
     >
       <div className="stack-lg">
         {edicaoConcluidaLiberada ? (
@@ -2222,6 +2211,7 @@ export function TelaRegistroLinhas() {
             centerLabel
             padWithZero
             feedback={feedbackCachos}
+            visualProgress={progressoVisualCachos}
           />
           <CounterInput
             label="Cocos no Chão"
@@ -2235,6 +2225,7 @@ export function TelaRegistroLinhas() {
             centerLabel
             padWithZero
             feedback={feedbackCocos}
+            visualProgress={progressoVisualCocos}
           />
         </div>
         ) : null}
@@ -3086,7 +3077,7 @@ export function TelaRegistroLinhas() {
 
           <div className="px-6 py-5">
             <p className="text-sm leading-relaxed text-[var(--qc-text-muted)]">
-              Não há mais ruas válidas pendentes nesta coleta. Escolha a ação final para encerrar o fluxo sem voltar manualmente.
+              Não há mais ruas válidas pendentes nesta coleta. Ao finalizar, o app abre o histórico para manter o fluxo da equipe.
             </p>
           </div>
 
@@ -3094,20 +3085,9 @@ export function TelaRegistroLinhas() {
             <Button
               className="h-14 w-full rounded-2xl font-bold"
               disabled={finalizandoDestino !== null}
-              onClick={() => concluirColeta('dashboard')}
+              onClick={() => concluirColeta()}
             >
-              {finalizandoDestino === 'dashboard' ? 'Salvando saída' : 'Salvar e sair'}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              className="h-14 w-full rounded-2xl font-bold"
-              disabled={finalizandoDestino !== null}
-              onClick={() => concluirColeta('relatorio')}
-            >
-              {finalizandoDestino === 'relatorio'
-                ? 'Abrindo relatório'
-                : 'Salvar e ver relatório'}
+              {finalizandoDestino ? 'Abrindo histórico' : 'Salvar e ir para histórico'}
             </Button>
           </DialogFooter>
         </DialogContent>

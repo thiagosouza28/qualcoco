@@ -17,13 +17,15 @@ import {
 } from '@/components/ui/select';
 import { listarColaboradoresAtivos } from '@/core/auth';
 import { useCampoApp } from '@/core/AppProvider';
-import { excluirAvaliacaoCompleta, listarHistorico } from '@/core/evaluations';
 import { normalizeDateKey, todayIso } from '@/core/date';
+import { isEvaluationFinalStatus } from '@/core/evaluationStatus';
+import { excluirAvaliacaoCompleta, listarHistorico } from '@/core/evaluations';
 import { canManageUsers, canViewHistory } from '@/core/permissions';
 import { repository } from '@/core/repositories';
 import { useRolePermissions } from '@/core/useRolePermissions';
 
 const HISTORY_PAGE_SIZE = 20;
+const RUA_FALHA_TIPOS = new Set(['rua_com_falha', 'linha_invalida']);
 
 const formatarResumoHistoricoEquipe = (equipes: string[]) => {
   if (equipes.length === 0) return '';
@@ -98,6 +100,12 @@ export function TelaHistorico() {
     staleTime: 30_000,
   });
 
+  const { data: registrosColeta = [] } = useQuery({
+    queryKey: ['historico', 'registrosColeta'],
+    queryFn: () => repository.list('registrosColeta'),
+    staleTime: 30_000,
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (avaliacaoId: string) => excluirAvaliacaoCompleta(avaliacaoId),
     onSuccess: async () => {
@@ -127,11 +135,8 @@ export function TelaHistorico() {
   const participanteMap = useMemo(() => {
     return participantes.reduce<Record<string, string[]>>((acc, item) => {
       if (item.deletadoEm) return acc;
-      const colaborador = colaboradores.find(
-        (row) => row.id === item.colaboradorId,
-      );
-      const nome =
-        item.colaboradorPrimeiroNome || colaborador?.primeiroNome || '';
+      const colaborador = colaboradores.find((row) => row.id === item.colaboradorId);
+      const nome = item.colaboradorPrimeiroNome || colaborador?.primeiroNome || '';
       if (!nome) return acc;
       acc[item.avaliacaoId] = acc[item.avaliacaoId] || [];
       if (!acc[item.avaliacaoId].includes(nome)) {
@@ -154,33 +159,30 @@ export function TelaHistorico() {
     [avaliacaoParcelas],
   );
 
-  const equipeMap = useMemo(
-    () => {
-      const equipesPorAvaliacao = avaliacaoRuas.reduce<Record<string, string[]>>(
-        (acc, item) => {
-          if (item.deletadoEm || !item.equipeNome) return acc;
-          acc[item.avaliacaoId] = acc[item.avaliacaoId] || [];
-          if (!acc[item.avaliacaoId].includes(item.equipeNome)) {
-            acc[item.avaliacaoId].push(item.equipeNome);
-          }
-          return acc;
-        },
-        {},
-      );
+  const equipeMap = useMemo(() => {
+    const equipesPorAvaliacao = avaliacaoRuas.reduce<Record<string, string[]>>(
+      (acc, item) => {
+        if (item.deletadoEm || !item.equipeNome) return acc;
+        acc[item.avaliacaoId] = acc[item.avaliacaoId] || [];
+        if (!acc[item.avaliacaoId].includes(item.equipeNome)) {
+          acc[item.avaliacaoId].push(item.equipeNome);
+        }
+        return acc;
+      },
+      {},
+    );
 
-      return Object.entries(equipesPorAvaliacao).reduce<Record<string, string>>(
-        (acc, [avaliacaoId, equipes]) => {
-          const equipesOrdenadas = [...equipes].sort((a, b) =>
-            a.localeCompare(b, 'pt-BR', { numeric: true }),
-          );
-          acc[avaliacaoId] = formatarResumoHistoricoEquipe(equipesOrdenadas);
-          return acc;
-        },
-        {},
-      );
-    },
-    [avaliacaoRuas],
-  );
+    return Object.entries(equipesPorAvaliacao).reduce<Record<string, string>>(
+      (acc, [avaliacaoId, equipes]) => {
+        const equipesOrdenadas = [...equipes].sort((a, b) =>
+          a.localeCompare(b, 'pt-BR', { numeric: true }),
+        );
+        acc[avaliacaoId] = formatarResumoHistoricoEquipe(equipesOrdenadas);
+        return acc;
+      },
+      {},
+    );
+  }, [avaliacaoRuas]);
 
   const parcelasAtivas = useMemo(
     () =>
@@ -217,12 +219,72 @@ export function TelaHistorico() {
     );
   }, [historicoVisivel]);
 
+  const hasPendingStreetsMap = useMemo(() => {
+    const grouped = new Map<
+      string,
+      {
+        total: number;
+        completedRuaIds: Set<string>;
+      }
+    >();
+
+    avaliacaoRuas.forEach((item) => {
+      if (item.deletadoEm) return;
+
+      const current = grouped.get(item.avaliacaoId) || {
+        total: 0,
+        completedRuaIds: new Set<string>(),
+      };
+      current.total += 1;
+
+      if (RUA_FALHA_TIPOS.has(String(item.tipoFalha || ''))) {
+        current.completedRuaIds.add(item.id);
+      }
+
+      grouped.set(item.avaliacaoId, current);
+    });
+
+    registrosColeta.forEach((item) => {
+      if (item.deletadoEm) return;
+
+      const current = grouped.get(item.avaliacaoId) || {
+        total: 0,
+        completedRuaIds: new Set<string>(),
+      };
+      current.completedRuaIds.add(item.ruaId);
+      grouped.set(item.avaliacaoId, current);
+    });
+
+    return Array.from(grouped.entries()).reduce<Record<string, boolean>>(
+      (acc, [avaliacaoId, value]) => {
+        acc[avaliacaoId] = value.total > value.completedRuaIds.size;
+        return acc;
+      },
+      {},
+    );
+  }, [avaliacaoRuas, registrosColeta]);
+
+  const resolveHistoryTarget = (avaliacaoId: string, status: string) => {
+    const hasPendingStreets =
+      hasPendingStreetsMap[avaliacaoId] ?? !isEvaluationFinalStatus(status);
+
+    return hasPendingStreets
+      ? {
+          path: `/avaliacoes/${avaliacaoId}`,
+          label: 'Continuar avaliação',
+        }
+      : {
+          path: `/detalhe/${avaliacaoId}`,
+          label: 'Abrir resumo da equipe',
+        };
+  };
+
   if (!canViewHistory(usuarioAtual?.perfil, permissionMatrix)) {
     return (
       <LayoutMobile
         title="Histórico"
         subtitle="Acesso restrito"
-        onBack={() => navigate('/dashboard')}
+        onBack={() => navigate(-1)}
       >
         <AccessDeniedCard description="O histórico só aparece quando essa consulta está liberada para o seu perfil pelo administrador." />
       </LayoutMobile>
@@ -233,7 +295,7 @@ export function TelaHistorico() {
     <LayoutMobile
       title="Histórico"
       subtitle="Últimas avaliações registradas"
-      onBack={() => navigate('/dashboard')}
+      onBack={() => navigate(-1)}
     >
       <div className="stack-lg">
         <div className="grid gap-3 sm:grid-cols-2">
@@ -304,19 +366,29 @@ export function TelaHistorico() {
                 <h2 className="px-2 text-[10px] font-extrabold uppercase tracking-[0.22em] text-[var(--qc-secondary)]">
                   {group.label}
                 </h2>
-                {group.items.map((item) => (
-                  <CardHistorico
-                    key={item.id}
-                    avaliacao={item}
-                    parcelas={parcelaMap[item.id] || []}
-                    equipeResumo={
-                      equipeMap[item.id] ||
-                      (item.equipeNome ? `Equipe ${item.equipeNome}` : '')
-                    }
-                    participantes={participanteMap[item.id] || []}
-                    onDelete={canManageUsers(usuarioAtual?.perfil) ? handleDelete : undefined}
-                  />
-                ))}
+                {group.items.map((item) => {
+                  const target = resolveHistoryTarget(item.id, item.status);
+
+                  return (
+                    <CardHistorico
+                      key={item.id}
+                      avaliacao={item}
+                      parcelas={parcelaMap[item.id] || []}
+                      equipeResumo={
+                        equipeMap[item.id] ||
+                        (item.equipeNome ? `Equipe ${item.equipeNome}` : '')
+                      }
+                      participantes={participanteMap[item.id] || []}
+                      targetPath={target.path}
+                      targetLabel={target.label}
+                      onDelete={
+                        canManageUsers(usuarioAtual?.perfil)
+                          ? handleDelete
+                          : undefined
+                      }
+                    />
+                  );
+                })}
               </div>
             ))}
 

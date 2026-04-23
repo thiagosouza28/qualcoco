@@ -11,12 +11,16 @@ export function CardHistorico({
   parcelas,
   equipeResumo,
   participantes,
+  targetPath,
+  targetLabel,
   onDelete,
 }: {
   avaliacao: Avaliacao;
   parcelas: string[];
   equipeResumo?: string;
   participantes: string[];
+  targetPath: string;
+  targetLabel?: string;
   onDelete?: (avaliacaoId: string) => void;
 }) {
   const parcelasResumo =
@@ -66,7 +70,10 @@ export function CardHistorico({
               <Trash2 className="h-4 w-4" />
             </Button>
           ) : null}
-          <Link to={`/detalhe/${avaliacao.id}`}>
+          <Link
+            to={targetPath}
+            aria-label={targetLabel || 'Abrir avaliação do histórico'}
+          >
             <ChevronRight className="h-5 w-5 shrink-0 text-[rgba(93,98,78,0.42)]" />
           </Link>
         </div>

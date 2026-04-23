@@ -99,7 +99,7 @@ export function TelaPerfil() {
       <LayoutMobile
         title="Meu perfil"
         subtitle="Atualize seu nome exibido e o PIN de acesso"
-        onBack={() => navigate('/configuracoes')}
+        onBack={() => navigate(-1)}
         showBottomNav
       >
         <Card className="surface-card border-none shadow-sm">
@@ -117,7 +117,7 @@ export function TelaPerfil() {
     <LayoutMobile
       title="Meu perfil"
       subtitle="Atualize seu nome exibido e o PIN de acesso"
-      onBack={() => navigate('/configuracoes')}
+      onBack={() => navigate(-1)}
       showBottomNav
     >
       <div className="stack-lg">

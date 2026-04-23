@@ -128,7 +128,7 @@ export function TelaSincronizacao() {
       <LayoutMobile
         title="Sincronização"
         subtitle="Acesso restrito"
-        onBack={() => navigate('/dashboard')}
+        onBack={() => navigate(-1)}
       >
         <AccessDeniedCard description="A tela de sincronização só aparece quando essa operação está liberada para o seu perfil pelo administrador." />
       </LayoutMobile>
@@ -181,7 +181,7 @@ export function TelaSincronizacao() {
     <LayoutMobile
       title="Sincronização"
       subtitle="Gestão de dados offline e em nuvem"
-      onBack={() => navigate('/dashboard')}
+      onBack={() => navigate(-1)}
     >
       <div className="stack-lg">
         <Card className="surface-card overflow-hidden border-none shadow-sm">

@@ -93,7 +93,7 @@ export function TelaColaboradores() {
       <LayoutMobile
         title="Usuários"
         subtitle="Acesso restrito"
-        onBack={() => navigate('/dashboard')}
+        onBack={() => navigate(-1)}
       >
         <Card className="surface-card">
           <CardContent className="p-5">
@@ -111,7 +111,7 @@ export function TelaColaboradores() {
     <LayoutMobile
       title="Usuários"
       subtitle={`${usuarios.length} registro(s) encontrado(s)`}
-      onBack={() => navigate('/dashboard')}
+      onBack={() => navigate(-1)}
       action={
         <Button asChild size="sm">
           <Link to="/colaboradores/cadastro?returnTo=%2Fcolaboradores">

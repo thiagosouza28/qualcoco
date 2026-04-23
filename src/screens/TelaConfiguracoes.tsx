@@ -185,7 +185,7 @@ export function TelaConfiguracoes() {
     <LayoutMobile
       title="Configurações"
       subtitle="Funções, limites e acessos do aplicativo"
-      onBack={() => navigate('/dashboard')}
+      onBack={() => navigate(-1)}
       contentClassName="overflow-x-hidden"
       showBottomNav
     >

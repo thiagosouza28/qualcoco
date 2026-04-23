@@ -65,3 +65,16 @@ export const calcularFaixaFeedback = (
   if (percentual <= 80) return 'medium';
   return 'high';
 };
+
+export const calcularProgressoFeedback = (
+  value: unknown,
+  limite: unknown,
+) => {
+  const parsedLimit = normalizarQuantidade(limite);
+  if (parsedLimit <= 0) {
+    return null;
+  }
+
+  const parsedValue = normalizarQuantidade(value);
+  return Math.max(0, Math.min(parsedValue / parsedLimit, 1));
+};

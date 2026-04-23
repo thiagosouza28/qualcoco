@@ -44,7 +44,7 @@ export function TelaEquipes() {
       <LayoutMobile
         title="Equipes"
         subtitle="Acesso restrito"
-        onBack={() => navigate('/dashboard')}
+        onBack={() => navigate(-1)}
         showBottomNav
       >
         <Card className="surface-card border-none shadow-sm">
@@ -140,7 +140,7 @@ export function TelaEquipes() {
     <LayoutMobile
       title="Equipes"
       subtitle="Cadastro compartilhado entre todos os colaboradores"
-      onBack={() => navigate('/dashboard')}
+      onBack={() => navigate(-1)}
       showBottomNav
       action={
         <Button

@@ -1224,7 +1224,7 @@ export function TelaRelatorio() {
       <LayoutMobile
         title="Relatório"
         subtitle="Acesso restrito"
-        onBack={() => navigate('/dashboard')}
+        onBack={() => navigate(-1)}
       >
         <AccessDeniedCard description="Os relatórios consolidados só aparecem quando essa consulta está liberada para o seu perfil pelo administrador." />
       </LayoutMobile>
@@ -1560,7 +1560,7 @@ export function TelaRelatorio() {
     <LayoutMobile
       title="Relatório"
       subtitle="Folha diária consolidada por data"
-      onBack={() => navigate('/dashboard')}
+      onBack={() => navigate(-1)}
       showBottomNav
     >
       <div className="stack-lg">

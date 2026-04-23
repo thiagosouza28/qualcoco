@@ -456,7 +456,7 @@ export function TelaParcelasPlanejadas() {
     <LayoutMobile
       title="Parcelas"
       subtitle="Cadastro planejado e fila do dia"
-      onBack={() => navigate('/dashboard')}
+      onBack={() => navigate(-1)}
       showBottomNav
     >
       <div className="stack-lg pb-24">

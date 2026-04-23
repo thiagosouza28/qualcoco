@@ -1161,9 +1161,7 @@ export function TelaNovaAvaliacao() {
       <LayoutMobile
         title={isEditMode ? 'Editar avaliação' : 'Avaliação'}
         subtitle="Acesso restrito"
-        onBack={() =>
-          navigate(isEditMode ? `/detalhe/${editingId}` : '/dashboard')
-        }
+        onBack={() => navigate(-1)}
       >
         <AccessDeniedCard description="A abertura da avaliação e a edição da configuração só aparecem quando essa função está liberada para o seu perfil pelo administrador." />
       </LayoutMobile>
@@ -1180,7 +1178,7 @@ export function TelaNovaAvaliacao() {
       }
       onBack={() =>
         step === 'participantes'
-          ? navigate(isEditMode ? `/avaliacoes/${editingId}` : '/dashboard')
+          ? navigate(-1)
           : back()
       }
     >

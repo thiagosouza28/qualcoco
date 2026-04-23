@@ -65,7 +65,7 @@ export function TelaSelecaoUsuario() {
     <LayoutMobile
       title="Trocar colaborador"
       subtitle="Troca rápida em campo"
-      onBack={() => navigate('/login')}
+      onBack={() => navigate(-1)}
     >
       <div className="stack-lg">
         {colaboradores.length === 0 ? (

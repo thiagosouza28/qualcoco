@@ -261,7 +261,7 @@ export function CadastroColaborador() {
       <LayoutMobile
         title="Usuários"
         subtitle="Acesso restrito"
-        onBack={() => navigate('/dashboard')}
+        onBack={() => navigate(-1)}
       >
         <Card className="surface-card">
           <CardContent className="p-5">
@@ -280,7 +280,7 @@ export function CadastroColaborador() {
       <LayoutMobile
         title="Editar usuário"
         subtitle="Registro indisponível"
-        onBack={() => navigate(returnTo)}
+        onBack={() => navigate(-1)}
       >
         <Card className="surface-card">
           <CardContent className="p-5">
@@ -307,7 +307,7 @@ export function CadastroColaborador() {
             : 'Novo usuário'
       }
       subtitle="Cadastro profissional para operação de campo"
-      onBack={() => navigate(returnTo)}
+      onBack={() => navigate(-1)}
     >
       <form className="stack-lg" onSubmit={handleSubmit}>
         <Card className="surface-card">
