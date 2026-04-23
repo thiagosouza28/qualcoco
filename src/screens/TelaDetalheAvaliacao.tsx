@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ClipboardList, History, PencilLine, Wrench } from 'lucide-react';
 import { AccessDeniedCard } from '@/components/AccessDeniedCard';
+import { buildCounterVisualStyles } from '@/components/counterVisuals';
 import { LayoutMobile } from '@/components/LayoutMobile';
 import { useCampoApp } from '@/core/AppProvider';
 import { listarColaboradoresAtivos } from '@/core/auth';
@@ -46,6 +47,7 @@ import {
 import { obterApresentacaoEstadoColetaRua } from '@/core/registroRua';
 import { useRolePermissions } from '@/core/useRolePermissions';
 import {
+  calcularProgressoFeedback,
   calcularProducaoPorCargas,
   formatarProducaoNumero,
 } from '@/core/production';
@@ -107,6 +109,8 @@ type ResumoRuaEquipeItem = {
   tipoFalha: string | null;
   cachoDisplay: string;
   cocosDisplay: string;
+  cachoProgress: number | null;
+  cocosProgress: number | null;
 };
 
 export function TelaDetalheAvaliacao() {
@@ -300,10 +304,24 @@ export function TelaDetalheAvaliacao() {
           cocosDisplay: apresentacao?.siglaCocos
             ? apresentacao.siglaCocos
             : formatarNumeroResumoRua(apresentacao?.quantidade || 0),
+          cachoProgress:
+            apresentacao && !apresentacao.siglaCacho
+              ? calcularProgressoFeedback(
+                  apresentacao.quantidadeCachos3,
+                  config?.limiteCachos3Cocos,
+                )
+              : null,
+          cocosProgress:
+            apresentacao && !apresentacao.siglaCocos
+              ? calcularProgressoFeedback(
+                  apresentacao.quantidade,
+                  config?.limiteCocosChao,
+                )
+              : null,
         };
       })
       .filter((item): item is ResumoRuaEquipeItem => Boolean(item));
-  }, [data?.avaliacao?.equipeNome, data?.ruas, parcelasPorId, registrosPorRua]);
+  }, [config?.limiteCachos3Cocos, config?.limiteCocosChao, data?.avaliacao?.equipeNome, data?.ruas, parcelasPorId, registrosPorRua]);
 
   const historicoRetoques = useMemo<HistoricoRetoqueItem[]>(() => {
     const items: HistoricoRetoqueItem[] = [];
@@ -845,50 +863,73 @@ export function TelaDetalheAvaliacao() {
 
               {ruasResumoEquipe.length > 0 ? (
                 <div className="stack-sm">
-                  {ruasResumoEquipe.map((item) => (
-                    <div
-                      key={item.id}
-                      className="rounded-[24px] border border-[var(--qc-border)] bg-white p-4"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
-                            Parcela {item.parcelaCodigo} • Equipe {item.equipeNome}
-                          </p>
-                          <p className="mt-2 whitespace-nowrap text-[clamp(1.8rem,7vw,2.2rem)] font-black leading-none tracking-[-0.05em] tabular-nums text-[var(--qc-text)]">
-                            {item.faixa}
-                          </p>
+                  {ruasResumoEquipe.map((item) => {
+                    const cachoStyles =
+                      typeof item.cachoProgress === 'number'
+                        ? buildCounterVisualStyles(item.cachoProgress)
+                        : null;
+                    const cocosStyles =
+                      typeof item.cocosProgress === 'number'
+                        ? buildCounterVisualStyles(item.cocosProgress)
+                        : null;
+
+                    return (
+                      <div
+                        key={item.id}
+                        className="rounded-[24px] border border-[var(--qc-border)] bg-white p-4 shadow-[0_14px_28px_-28px_rgba(17,33,23,0.26)]"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
+                              Parcela {item.parcelaCodigo} • Equipe {item.equipeNome}
+                            </p>
+                            <p className="mt-2 whitespace-nowrap text-[clamp(1.8rem,7vw,2.2rem)] font-black leading-none tracking-[-0.05em] tabular-nums text-[var(--qc-text)]">
+                              {item.faixa}
+                            </p>
+                          </div>
+
+                          <Badge variant={item.statusVariant}>{item.statusLabel}</Badge>
                         </div>
 
-                        <Badge variant={item.statusVariant}>{item.statusLabel}</Badge>
+                        {item.tipoFalha ? (
+                          <p className="mt-4 text-sm text-[var(--qc-text-muted)]">
+                            Esta rua foi marcada como falha e não entrou no cálculo final.
+                          </p>
+                        ) : (
+                          <div className="mt-4 grid grid-cols-2 gap-3">
+                            <div
+                              className="min-w-0 rounded-[22px] border p-4 transition-[background-color,border-color,box-shadow,color] duration-300 ease-out"
+                              style={cachoStyles?.cardStyle}
+                            >
+                              <span className="inline-flex max-w-full whitespace-nowrap rounded-full bg-white/72 px-2.5 py-1 text-[9px] font-bold leading-none text-[var(--qc-secondary)] shadow-sm">
+                                Cacho
+                              </span>
+                              <p
+                                className="mt-5 text-[1.9rem] font-black leading-none tracking-[-0.04em] tabular-nums text-[var(--qc-primary)]"
+                                style={cachoStyles?.valueStyle}
+                              >
+                                {item.cachoDisplay}
+                              </p>
+                            </div>
+                            <div
+                              className="min-w-0 rounded-[22px] border p-4 transition-[background-color,border-color,box-shadow,color] duration-300 ease-out"
+                              style={cocosStyles?.cardStyle}
+                            >
+                              <span className="inline-flex max-w-full whitespace-nowrap rounded-full bg-white/72 px-2.5 py-1 text-[9px] font-bold leading-none text-[var(--qc-secondary)] shadow-sm">
+                                Cocos no chão
+                              </span>
+                              <p
+                                className="mt-5 text-[1.9rem] font-black leading-none tracking-[-0.04em] tabular-nums text-[#7f6b2b]"
+                                style={cocosStyles?.valueStyle}
+                              >
+                                {item.cocosDisplay}
+                              </p>
+                            </div>
+                          </div>
+                        )}
                       </div>
-
-                      {item.tipoFalha ? (
-                        <p className="mt-4 text-sm text-[var(--qc-text-muted)]">
-                          Esta rua foi marcada como falha e não entrou no cálculo final.
-                        </p>
-                      ) : (
-                        <div className="mt-4 grid grid-cols-2 gap-3">
-                          <div className="rounded-[22px] border border-[rgba(0,107,68,0.14)] bg-[linear-gradient(135deg,rgba(210,231,211,0.92)_0%,rgba(255,255,255,0.98)_100%)] p-4">
-                            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
-                              Cacho
-                            </p>
-                            <p className="mt-2 text-[1.9rem] font-black leading-none tracking-[-0.04em] tabular-nums text-[var(--qc-primary)]">
-                              {item.cachoDisplay}
-                            </p>
-                          </div>
-                          <div className="rounded-[22px] border border-[rgba(138,106,8,0.14)] bg-[linear-gradient(135deg,rgba(251,245,232,0.96)_0%,rgba(255,255,255,0.98)_100%)] p-4">
-                            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
-                              Cocos no chão
-                            </p>
-                            <p className="mt-2 text-[1.9rem] font-black leading-none tracking-[-0.04em] tabular-nums text-[#7f6b2b]">
-                              {item.cocosDisplay}
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <p className="text-sm text-[var(--qc-text-muted)]">

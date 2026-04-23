@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Minus, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { buildCounterVisualStyles } from '@/components/counterVisuals';
 import { cn } from '@/utils';
 
 const tones = {
@@ -23,83 +24,6 @@ const feedbackButtonTones = {
   low: 'bg-[#1f61a4]',
   medium: 'bg-[#8a6a08]',
   high: 'bg-[var(--qc-danger)]',
-};
-
-type RgbColor = readonly [number, number, number];
-
-const FEEDBACK_COLOR_STOPS = [
-  { stop: 0, color: [0, 200, 83] as RgbColor },
-  { stop: 0.58, color: [255, 235, 59] as RgbColor },
-  { stop: 1, color: [255, 82, 82] as RgbColor },
-] as const;
-
-const clampProgress = (value: number) => Math.max(0, Math.min(value, 1));
-
-const mixRgb = (from: RgbColor, to: RgbColor, ratio: number): RgbColor => {
-  const safeRatio = clampProgress(ratio);
-  return [
-    Math.round(from[0] + (to[0] - from[0]) * safeRatio),
-    Math.round(from[1] + (to[1] - from[1]) * safeRatio),
-    Math.round(from[2] + (to[2] - from[2]) * safeRatio),
-  ];
-};
-
-const formatRgb = (color: RgbColor, alpha?: number) =>
-  typeof alpha === 'number'
-    ? `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${alpha})`
-    : `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
-
-const interpolateFeedbackColor = (progress: number): RgbColor => {
-  const safeProgress = clampProgress(progress);
-
-  for (let index = 1; index < FEEDBACK_COLOR_STOPS.length; index += 1) {
-    const previous = FEEDBACK_COLOR_STOPS[index - 1];
-    const current = FEEDBACK_COLOR_STOPS[index];
-
-    if (safeProgress <= current.stop) {
-      const span = current.stop - previous.stop || 1;
-      const ratio = (safeProgress - previous.stop) / span;
-      return mixRgb(previous.color, current.color, ratio);
-    }
-  }
-
-  return FEEDBACK_COLOR_STOPS[FEEDBACK_COLOR_STOPS.length - 1].color;
-};
-
-const buildDynamicCounterStyles = (progress: number) => {
-  const accent = interpolateFeedbackColor(progress);
-  const cardBase = mixRgb(accent, [255, 255, 255], 0.78);
-  const cardBorder = mixRgb(accent, [255, 255, 255], 0.46);
-  const minusBase = mixRgb(accent, [255, 255, 255], 0.86);
-  const minusBorder = mixRgb(accent, [255, 255, 255], 0.52);
-  const emphasis = mixRgb(accent, [35, 38, 29], 0.38);
-
-  return {
-    cardStyle: {
-      backgroundColor: formatRgb(cardBase),
-      backgroundImage:
-        'linear-gradient(135deg, rgba(255,255,255,0.24) 0%, rgba(255,255,255,0.9) 100%)',
-      borderColor: formatRgb(cardBorder),
-      boxShadow: `0 16px 28px -24px ${formatRgb(accent, 0.42)}`,
-    },
-    minusStyle: {
-      backgroundColor: formatRgb(minusBase),
-      backgroundImage:
-        'linear-gradient(135deg, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.58) 100%)',
-      borderColor: formatRgb(minusBorder),
-      color: formatRgb(emphasis),
-      boxShadow: `0 12px 20px -20px ${formatRgb(accent, 0.34)}`,
-    },
-    plusStyle: {
-      backgroundColor: formatRgb(accent),
-      backgroundImage:
-        'linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(0,0,0,0.1) 100%)',
-      boxShadow: `0 14px 22px -18px ${formatRgb(accent, 0.48)}`,
-    },
-    valueStyle: {
-      color: formatRgb(emphasis),
-    },
-  };
 };
 
 interface CounterInputProps {
@@ -174,7 +98,7 @@ export function CounterInput({
         : inputValue;
   const dynamicStyles =
     typeof visualProgress === 'number'
-      ? buildDynamicCounterStyles(visualProgress)
+      ? buildCounterVisualStyles(visualProgress)
       : null;
   const activeTone = dynamicStyles
     ? 'text-[var(--qc-text)] ring-[var(--qc-border)]'
@@ -209,7 +133,7 @@ export function CounterInput({
       >
         <p
           className={cn(
-            'break-words text-sm font-bold tracking-tight text-[var(--qc-text)]',
+            'overflow-hidden text-ellipsis whitespace-nowrap text-sm font-bold tracking-tight text-[var(--qc-text)]',
             centerLabel && 'text-center',
           )}
         >
