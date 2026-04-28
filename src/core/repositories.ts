@@ -12,6 +12,7 @@ import {
 import { sanitizeStoreRecord } from '@/core/storeSanitizers';
 import type {
   AtribuicaoRetoque,
+  Area,
   Avaliacao,
   AvaliacaoColaborador,
   AvaliacaoParcela,
@@ -36,6 +37,7 @@ import type {
 } from '@/core/types';
 
 type EntityByStore = {
+  areas: Area;
   equipes: Equipe;
   colaboradores: Colaborador;
   usuarioEquipes: UsuarioEquipe;
@@ -59,6 +61,7 @@ type EntityByStore = {
 };
 
 const syncableStores = new Set<StoreName>([
+  'areas',
   'equipes',
   'colaboradores',
   'usuarioEquipes',

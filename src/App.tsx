@@ -63,12 +63,19 @@ const TelaColaboradores = lazy(async () => ({
 const TelaEquipes = lazy(async () => ({
   default: (await import('@/screens/TelaEquipes')).TelaEquipes,
 }));
+const TelaSelecaoArea = lazy(async () => ({
+  default: (await import('@/screens/TelaSelecaoArea')).TelaSelecaoArea,
+}));
+const TelaGerenciarAreas = lazy(async () => ({
+  default: (await import('@/screens/TelaGerenciarAreas')).TelaGerenciarAreas,
+}));
 
 const publicPaths = new Set([
   '/login',
   '/usuarios',
   '/colaboradores/cadastro',
 ]);
+const areaPaths = new Set(['/areas', '/areas/gerenciar']);
 
 const ROUTE_PULL_STALE_MS = 45_000;
 
@@ -78,6 +85,7 @@ type RealtimeRouteConfig = {
 
 const uniqueStores = (stores: StoreName[]) => Array.from(new Set(stores));
 const ONLINE_SHARED_PULL_STORES = uniqueStores([
+  'areas',
   'configuracoes',
   'equipes',
   'colaboradores',
@@ -207,7 +215,11 @@ function ShellRoutes() {
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { bootstrapped, session } = useCampoApp();
+  const {
+    bootstrapped,
+    session,
+    areaAtiva,
+  } = useCampoApp();
   const { blockingRequiredUpdate } = useAppUpdate();
 
   useEffect(() => {
@@ -321,7 +333,11 @@ function ShellRoutes() {
   }
 
   if (session && location.pathname === '/login') {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={areaAtiva ? '/dashboard' : '/areas'} replace />;
+  }
+
+  if (session && !areaAtiva && !areaPaths.has(location.pathname)) {
+    return <Navigate to="/areas" replace />;
   }
 
   return (
@@ -344,6 +360,8 @@ function ShellRoutes() {
           />
           <Route path="/login" element={<TelaLogin />} />
           <Route path="/usuarios" element={<TelaSelecaoUsuario />} />
+          <Route path="/areas" element={<TelaSelecaoArea />} />
+          <Route path="/areas/gerenciar" element={<TelaGerenciarAreas />} />
           <Route path="/dashboard" element={<TelaDashboard />} />
           <Route path="/avaliacoes/nova" element={<TelaNovaAvaliacao />} />
           <Route path="/avaliacoes/:id/editar" element={<TelaNovaAvaliacao />} />

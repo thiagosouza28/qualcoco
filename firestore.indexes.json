@@ -1,6 +1,14 @@
 {
   "indexes": [
     {
+      "collectionGroup": "areas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "atualizado_em", "order": "ASCENDING" },
+        { "fieldPath": "id", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "equipes",
       "queryScope": "COLLECTION",
       "fields": [
@@ -20,6 +28,14 @@
     },
     {
       "collectionGroup": "parcelas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "atualizado_em", "order": "ASCENDING" },
+        { "fieldPath": "id", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "parcelas_planejadas",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "atualizado_em", "order": "ASCENDING" },

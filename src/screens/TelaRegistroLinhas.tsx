@@ -498,7 +498,7 @@ export function TelaRegistroLinhas() {
   const { id = '' } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { usuarioAtual } = useCampoApp();
+  const { usuarioAtual, areaAtiva } = useCampoApp();
   const { config, permissionMatrix } = useRolePermissions(usuarioAtual?.perfil);
 
   const [ruaIndex, setRuaIndex] = useState(0);
@@ -548,9 +548,9 @@ export function TelaRegistroLinhas() {
   const parcelasStatusRef = useRef<Record<string, ParcelaStatus>>({});
 
   const { data, isFetched } = useQuery({
-    queryKey: ['avaliacao', id, usuarioAtual?.id],
-    queryFn: () => obterAvaliacaoDetalhada(id, usuarioAtual?.id),
-    enabled: Boolean(id && usuarioAtual?.id),
+    queryKey: ['avaliacao', id, usuarioAtual?.id, areaAtiva?.id],
+    queryFn: () => obterAvaliacaoDetalhada(id, usuarioAtual?.id, areaAtiva?.id),
+    enabled: Boolean(id && usuarioAtual?.id && areaAtiva?.id),
   });
 
   useEffect(() => {
@@ -806,20 +806,22 @@ export function TelaRegistroLinhas() {
     () => calcularProducaoPorCargas(retoqueCargas, config),
     [config, retoqueCargas],
   );
+  const limiteCachosAtivo = areaAtiva?.limiteCachos ?? config?.limiteCachos3Cocos;
+  const limiteCocosAtivo = areaAtiva?.limiteCocosChao ?? config?.limiteCocosChao;
   const feedbackCachos = isFluxoRetoque
     ? null
-    : calcularFaixaFeedback(cachos3, config?.limiteCachos3Cocos);
+    : calcularFaixaFeedback(cachos3, limiteCachosAtivo);
   const feedbackCocos = isFluxoRetoque
     ? null
-    : calcularFaixaFeedback(quantidade, config?.limiteCocosChao);
+    : calcularFaixaFeedback(quantidade, limiteCocosAtivo);
   const progressoVisualCachos =
     isFluxoRetoque || faltaColherMarcada
       ? null
-      : calcularProgressoFeedback(cachos3, config?.limiteCachos3Cocos);
+      : calcularProgressoFeedback(cachos3, limiteCachosAtivo);
   const progressoVisualCocos =
     isFluxoRetoque || faltaTropearMarcada || faltaColherMarcada
       ? null
-      : calcularProgressoFeedback(quantidade, config?.limiteCocosChao);
+      : calcularProgressoFeedback(quantidade, limiteCocosAtivo);
 
   const persistCurrentObservacoesDraft = () => {
     if (!id || !observacoesDraftRuaId || !observacoesDraftDirty) return;
@@ -1738,7 +1740,7 @@ export function TelaRegistroLinhas() {
 
         <Dialog
           open={showRetoqueModal}
-          onOpenChange={(open) => {
+          onOpenChange={(open: boolean) => {
             if (open) {
               setShowRetoqueModal(true);
               return;
@@ -2573,7 +2575,7 @@ export function TelaRegistroLinhas() {
 
       <Dialog
         open={showResumoParcelaModal}
-        onOpenChange={(open) => {
+        onOpenChange={(open: boolean) => {
           if (!open && resumoParcelaModalObrigatorio) {
             return;
           }

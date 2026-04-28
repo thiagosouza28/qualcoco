@@ -1,8 +1,9 @@
 type RgbColor = readonly [number, number, number];
 
 const BASE_FEEDBACK_COLOR_STOPS = [
-  { stop: 0, color: [0, 200, 83] as RgbColor },
-  { stop: 1, color: [255, 235, 59] as RgbColor },
+  { stop: 0, color: [31, 97, 164] as RgbColor },
+  { stop: 0.7, color: [0, 200, 83] as RgbColor },
+  { stop: 0.9, color: [255, 193, 7] as RgbColor },
 ] as const;
 
 const ALERT_RED = [255, 82, 82] as const satisfies RgbColor;
@@ -26,7 +27,7 @@ const formatRgb = (color: RgbColor, alpha?: number) =>
 const interpolateFeedbackColor = (progress: number): RgbColor => {
   const safeProgress = clampProgress(progress);
 
-  if (safeProgress >= 1) {
+  if (safeProgress > 0.9) {
     return ALERT_RED;
   }
 

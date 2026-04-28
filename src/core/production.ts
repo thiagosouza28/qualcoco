@@ -61,9 +61,9 @@ export const calcularFaixaFeedback = (
   }
 
   const percentual = (parsedValue / parsedLimit) * 100;
-  if (parsedValue >= parsedLimit) return 'high';
-  if (percentual <= 50) return 'low';
-  return 'medium';
+  if (percentual > 90) return 'high';
+  if (percentual > 70) return 'medium';
+  return 'low';
 };
 
 export const calcularProgressoFeedback = (

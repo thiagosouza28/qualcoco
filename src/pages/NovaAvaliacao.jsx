@@ -555,7 +555,7 @@ function NovaAvaliacao() {
               </p>
               {totalParcelasSelecionadas > 1 ? (
                 <p className="mt-1 text-xs text-slate-500">
-                  A quantidade informada sera dividida automaticamente entre as
+                  A quantidade informada será dividida automaticamente entre as
                   parcelas selecionadas.
                 </p>
               ) : null}

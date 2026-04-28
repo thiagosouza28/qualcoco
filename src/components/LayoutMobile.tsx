@@ -1,6 +1,7 @@
 import { ChevronLeft } from 'lucide-react';
 import { AppBottomNav } from '@/components/AppBottomNav';
 import { Button } from '@/components/ui/button';
+import { useCampoApp } from '@/core/AppProvider';
 import { cn } from '@/utils';
 
 type LayoutMobileProps = {
@@ -28,6 +29,8 @@ export function LayoutMobile({
   showBottomNav = false,
   children,
 }: LayoutMobileProps) {
+  const { areaAtiva } = useCampoApp();
+
   return (
     <main
       className={cn(
@@ -76,6 +79,11 @@ export function LayoutMobile({
               <h1 className="app-page-header__title">{title}</h1>
               {subtitle ? (
                 <p className="app-page-header__subtitle">{subtitle}</p>
+              ) : null}
+              {areaAtiva ? (
+                <p className="mt-1 inline-flex w-fit rounded-full border border-[var(--qc-border)] bg-[var(--qc-surface-muted)] px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.14em] text-[var(--qc-secondary)]">
+                  Área: {areaAtiva.nome}
+                </p>
               ) : null}
             </div>
 

@@ -1,4 +1,5 @@
 export type StoreName =
+  | 'areas'
   | 'equipes'
   | 'colaboradores'
   | 'usuarioEquipes'
@@ -80,6 +81,21 @@ export interface Equipe extends BaseEntity {
   ativa: boolean;
 }
 
+export interface Area extends BaseEntity {
+  nome: string;
+  limiteCocosChao: number;
+  limiteCachos: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AreaAtiva {
+  id: string;
+  nome: string;
+  limiteCocosChao: number;
+  limiteCachos: number;
+}
+
 export interface Colaborador extends BaseEntity {
   nome: string;
   primeiroNome: string;
@@ -104,6 +120,8 @@ export interface Parcela extends BaseEntity {
 }
 
 export interface ParcelaPlanejada extends BaseEntity {
+  areaId?: string | null;
+  areaNome?: string;
   codigo: string;
   equipeId: string | null;
   equipeNome: string;
@@ -153,6 +171,7 @@ export interface Dispositivo extends BaseEntity {
 }
 
 export interface Avaliacao extends BaseEntity {
+  areaId: string;
   usuarioId: string;
   dispositivoId: string;
   dataAvaliacao: string;
@@ -360,6 +379,7 @@ export interface PlanejamentoEquipeInput {
 }
 
 export interface NovaAvaliacaoInput {
+  areaId: string;
   usuarioId: string;
   dispositivoId: string;
   dataColheita: string;
@@ -380,6 +400,7 @@ export interface NovaAvaliacaoInput {
 }
 
 export interface FiltrosHistorico {
+  areaId?: string;
   colaboradorId?: string;
   data?: string;
   parcelaId?: string;

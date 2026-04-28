@@ -144,9 +144,10 @@ const normalizarDadosParcelaDigitada = (input: {
 };
 
 const getChaveGrupoParcelaPlanejada = (
-  parcela: Pick<ParcelaPlanejada, 'equipeId' | 'equipeNome' | 'dataColheita'>,
+  parcela: Pick<ParcelaPlanejada, 'areaId' | 'equipeId' | 'equipeNome' | 'dataColheita'>,
 ) =>
   [
+    String(parcela.areaId || 'sem-area'),
     String(parcela.equipeId || parcela.equipeNome || 'sem-equipe'),
     String(parcela.dataColheita || ''),
   ].join('::');
@@ -227,7 +228,7 @@ const validarParcelaDigitada = (
 export function TelaParcelasPlanejadas() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { usuarioAtual, session } = useCampoApp();
+  const { usuarioAtual, session, areaAtiva } = useCampoApp();
   const perfil = normalizePerfilUsuario(usuarioAtual?.perfil);
   const administrador = perfil === 'administrador';
   const [rascunho, setRascunho] = useState<ParcelaLoteDraft>(criarRascunhoParcela());
@@ -245,14 +246,22 @@ export function TelaParcelasPlanejadas() {
   });
 
   const { data: parcelasPlanejadas = [] } = useQuery({
-    queryKey: ['parcelas-planejadas', usuarioAtual?.id, session?.equipeDiaId],
+    queryKey: [
+      'parcelas-planejadas',
+      usuarioAtual?.id,
+      session?.equipeDiaId,
+      areaAtiva?.id,
+      dataColheita,
+    ],
     queryFn: () =>
       listarParcelasPlanejadasVisiveis({
         usuarioId: usuarioAtual?.id,
+        areaId: areaAtiva?.id,
         equipeId: session?.equipeDiaId || null,
+        dataColheita,
         incluirConcluidas: true,
       }),
-    enabled: Boolean(usuarioAtual?.id),
+    enabled: Boolean(usuarioAtual?.id && areaAtiva?.id),
   });
 
   const { data: parcelasCatalogo = [] } = useQuery({
@@ -335,6 +344,9 @@ export function TelaParcelasPlanejadas() {
       if (!usuarioAtual?.id) {
         throw new Error('Usuário atual não encontrado.');
       }
+      if (!areaAtiva?.id) {
+        throw new Error('Selecione a área antes de cadastrar parcelas.');
+      }
       if (!equipeId) {
         throw new Error('Selecione a equipe da parcela.');
       }
@@ -356,6 +368,7 @@ export function TelaParcelasPlanejadas() {
           );
 
           return {
+            areaId: areaAtiva.id,
             codigo: validado.codigo,
             equipeId,
             alinhamentoInicial: validado.alinhamentoInicial,
@@ -384,8 +397,12 @@ export function TelaParcelasPlanejadas() {
         throw new Error('Parcela planejada não encontrada para edição.');
       }
       const validado = normalizarDadosParcelaDigitada(editForm);
+      if (!areaAtiva?.id) {
+        throw new Error('Selecione a área antes de editar parcelas.');
+      }
 
       return atualizarParcelaPlanejada(editingParcela.id, {
+        areaId: editingParcela.areaId || areaAtiva.id,
         codigo: validado.codigo,
         equipeId: editForm.equipeId || null,
         alinhamentoInicial: validado.alinhamentoInicial,
@@ -461,6 +478,29 @@ export function TelaParcelasPlanejadas() {
     >
       <div className="stack-lg pb-24">
         <Card className="surface-card border-none shadow-sm">
+          <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-black tracking-tight text-[var(--qc-text)]">
+                Área de trabalho
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-[var(--qc-text-muted)]">
+                {areaAtiva
+                  ? `${areaAtiva.nome} · Cocos no chão ${areaAtiva.limiteCocosChao} · Cachos ${areaAtiva.limiteCachos}`
+                  : 'Selecione uma área antes de cadastrar parcelas.'}
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 rounded-[16px] font-bold"
+              onClick={() => navigate('/areas')}
+            >
+              Trocar área
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="surface-card border-none shadow-sm">
           <CardContent className="stack-md p-5">
             <div className="flex items-start gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-[18px] bg-[rgba(0,107,68,0.08)] text-[var(--qc-primary)]">
@@ -471,8 +511,7 @@ export function TelaParcelasPlanejadas() {
                   Cadastrar parcelas
                 </p>
                 <p className="mt-1 text-sm leading-relaxed text-[var(--qc-text-muted)]">
-                  Monte um lote com uma ou mais parcelas para a mesma equipe e salve tudo de uma
-                  vez.
+                  Monte um lote com uma ou mais parcelas para a área ativa e a mesma equipe.
                 </p>
               </div>
             </div>
@@ -717,6 +756,9 @@ export function TelaParcelasPlanejadas() {
                         </div>
                         <p className="mt-1 text-sm text-[var(--qc-text-muted)]">
                           Equipe {parcela.equipeNome || '--'} - Colheita {formatarData(parcela.dataColheita)}
+                        </p>
+                        <p className="mt-1 text-sm text-[var(--qc-text-muted)]">
+                          Área {parcela.areaNome || areaAtiva?.nome || '--'}
                         </p>
                         <p className="mt-1 text-sm text-[var(--qc-text-muted)]">
                           Alinhamento{' '}

@@ -10,6 +10,7 @@ import {
   Cloud,
   History,
   LogOut,
+  MapPinned,
   Palmtree,
   PencilLine,
   Settings,
@@ -45,6 +46,7 @@ import {
 } from '@/core/permissions';
 import { contarNotificacoesNaoLidas } from '@/core/notifications';
 import { listarParcelasPlanejadasVisiveis } from '@/core/plannedParcels';
+import { todayIso } from '@/core/date';
 import { useRolePermissions } from '@/core/useRolePermissions';
 import type { AcaoPermissaoPerfil, ParcelaPlanejada } from '@/core/types';
 
@@ -65,9 +67,10 @@ type GrupoParcelasDisponiveis = {
 };
 
 const getChaveGrupoParcelaPlanejada = (
-  parcela: Pick<ParcelaPlanejada, 'equipeId' | 'equipeNome' | 'dataColheita'>,
+  parcela: Pick<ParcelaPlanejada, 'areaId' | 'equipeId' | 'equipeNome' | 'dataColheita'>,
 ) =>
   [
+    String(parcela.areaId || 'sem-area'),
     String(parcela.equipeId || parcela.equipeNome || 'sem-equipe'),
     String(parcela.dataColheita || ''),
   ].join('::');
@@ -162,21 +165,27 @@ export function TelaDashboard() {
     sincronizando,
     logout,
     definirEquipeDoDia,
+    areaAtiva,
   } = useCampoApp();
   const { permissionMatrix, permissions } = useRolePermissions(usuarioAtual?.perfil);
   const perfilNormalizado = normalizePerfilUsuario(usuarioAtual?.perfil);
+  const dataFilaDia = todayIso();
 
   const { data: stats } = useQuery({
-    queryKey: ['dashboard', 'stats', usuarioAtual?.id],
-    queryFn: () => estatisticasDashboard(usuarioAtual?.id),
-    enabled: Boolean(usuarioAtual?.id),
+    queryKey: ['dashboard', 'stats', usuarioAtual?.id, areaAtiva?.id],
+    queryFn: () => estatisticasDashboard(usuarioAtual?.id, areaAtiva?.id),
+    enabled: Boolean(usuarioAtual?.id && areaAtiva?.id),
     staleTime: 60_000,
   });
 
   const { data: avaliacoes = [] } = useQuery({
-    queryKey: ['dashboard', 'avaliacoes', usuarioAtual?.id],
-    queryFn: () => listarAvaliacoesAtivas(usuarioAtual?.id, { limit: 8 }),
-    enabled: Boolean(usuarioAtual?.id),
+    queryKey: ['dashboard', 'avaliacoes', usuarioAtual?.id, areaAtiva?.id],
+    queryFn: () =>
+      listarAvaliacoesAtivas(usuarioAtual?.id, {
+        limit: 8,
+        areaId: areaAtiva?.id,
+      }),
+    enabled: Boolean(usuarioAtual?.id && areaAtiva?.id),
     staleTime: 30_000,
   });
   const { data: equipesVisiveis = [] } = useQuery({
@@ -192,14 +201,23 @@ export function TelaDashboard() {
     staleTime: 15_000,
   });
   const { data: parcelasPlanejadas = [] } = useQuery({
-    queryKey: ['dashboard', 'parcelas-planejadas', usuarioAtual?.id, session?.equipeDiaId],
+    queryKey: [
+      'dashboard',
+      'parcelas-planejadas',
+      usuarioAtual?.id,
+      session?.equipeDiaId,
+      areaAtiva?.id,
+      dataFilaDia,
+    ],
     queryFn: () =>
       listarParcelasPlanejadasVisiveis({
         usuarioId: usuarioAtual?.id,
+        areaId: areaAtiva?.id,
         equipeId: session?.equipeDiaId || null,
+        dataColheita: dataFilaDia,
         incluirConcluidas: false,
       }),
-    enabled: Boolean(usuarioAtual?.id),
+    enabled: Boolean(usuarioAtual?.id && areaAtiva?.id),
     staleTime: 20_000,
   });
 
@@ -315,6 +333,16 @@ export function TelaDashboard() {
               <h1 className="truncate text-[2rem] font-black tracking-[-0.05em] text-[var(--qc-primary)]">
                 QualCoco
               </h1>
+              {areaAtiva ? (
+                <button
+                  type="button"
+                  className="mt-1 flex max-w-full items-center gap-1.5 rounded-full border border-[var(--qc-border)] bg-[var(--qc-surface-muted)] px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.12em] text-[var(--qc-secondary)]"
+                  onClick={() => navigate('/areas')}
+                >
+                  <MapPinned className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">{areaAtiva.nome}</span>
+                </button>
+              ) : null}
             </div>
           </div>
 
@@ -490,7 +518,7 @@ export function TelaDashboard() {
           {parcelasDisponiveisAgrupadas.length === 0 ? (
             <Card className="surface-card border-none shadow-sm">
               <CardContent className="p-4 text-sm text-[var(--qc-text-muted)]">
-                Nenhuma parcela disponível para a equipe atual.
+                Nenhuma parcela disponível para a equipe atual nesta área.
               </CardContent>
             </Card>
           ) : (

@@ -20,6 +20,11 @@ import {
   sincronizarEquipeDiaSessao,
   touchSessao,
 } from '@/core/auth';
+import {
+  limparAreaAtivaSalva,
+  obterAreaAtivaSalva,
+  selecionarAreaAtiva,
+} from '@/core/areas';
 import { getById, initLocalDb } from '@/core/localDb';
 import { getOrCreateDevice } from '@/core/device';
 import {
@@ -37,7 +42,13 @@ import {
 } from '@/core/firebaseCloud';
 import { prepararNotificacoesNativas, publicarNotificacoesNativasPendentes } from '@/core/nativeNotifications';
 import { listarNotificacoesDoUsuario } from '@/core/notifications';
-import type { Colaborador, Dispositivo, SessaoCampo, StoreName } from '@/core/types';
+import type {
+  AreaAtiva,
+  Colaborador,
+  Dispositivo,
+  SessaoCampo,
+  StoreName,
+} from '@/core/types';
 
 const SYNC_QUEUE_CHANGED_EVENT = 'qualcoco:sync-queue-changed';
 const AUTO_SYNC_PENDING_DEBOUNCE_MS = 1200;
@@ -45,6 +56,10 @@ const AUTO_SYNC_PENDING_INTERVAL_MS = 15_000;
 const AUTO_SYNC_REMOTE_REFRESH_MS = 60_000;
 const AUTO_SYNC_WEB_ACCESS_REFRESH_MS = 5 * 60_000;
 const AUTO_SYNC_BACKGROUND_REFRESH_MS = 90_000;
+
+type HydrateOptions = {
+  forceAreaSelection?: boolean;
+};
 
 const criarResultadoSemPendencias = (): SyncExecutionResult => ({
   enviado: 0,
@@ -60,6 +75,7 @@ type AppContextShape = {
   session: SessaoCampo | null;
   usuarioAtual: Colaborador | null;
   dispositivo: Dispositivo | null;
+  areaAtiva: AreaAtiva | null;
   online: boolean;
   cloudSessionReady: boolean;
   pendenciasSync: number;
@@ -68,6 +84,8 @@ type AppContextShape = {
   login: (identifier: string, pin: string) => Promise<void>;
   logout: () => void;
   refreshApp: () => Promise<void>;
+  selecionarArea: (areaId: string) => Promise<AreaAtiva>;
+  limparAreaAtiva: () => void;
   sincronizarAgora: () => Promise<SyncExecutionResult | null>;
   sincronizarAcessosWeb: () => Promise<SyncExecutionResult | null>;
   sincronizarPullRemoto: (stores?: StoreName[]) => Promise<SyncExecutionResult | null>;
@@ -85,6 +103,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<SessaoCampo | null>(null);
   const [usuarioAtual, setUsuarioAtual] = useState<Colaborador | null>(null);
   const [dispositivo, setDispositivo] = useState<Dispositivo | null>(null);
+  const [areaAtiva, setAreaAtiva] = useState<AreaAtiva | null>(null);
   const [online, setOnline] = useState(navigator.onLine);
   const [cloudSessionReady, setCloudSessionReady] = useState(false);
   const [pendenciasSync, setPendenciasSync] = useState(0);
@@ -97,11 +116,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const lastWebAccessSyncAtRef = useRef(0);
   const appActiveRef = useRef(document.visibilityState === 'visible');
 
-  const hydrate = useCallback(async () => {
+  const hydrate = useCallback(async (options: HydrateOptions = {}) => {
     await initLocalDb();
+
+    if (options.forceAreaSelection) {
+      limparAreaAtivaSalva();
+    }
 
     const currentSession = getSessaoAtiva();
     const devicePromise = getOrCreateDevice();
+    const areaAtivaPromise = options.forceAreaSelection
+      ? Promise.resolve(null)
+      : obterAreaAtivaSalva().catch(() => null);
     const currentUserPromise = currentSession
       ? getById<Colaborador>('colaboradores', currentSession.colaboradorId)
       : Promise.resolve(null);
@@ -112,10 +138,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ? getCloudSessionSafe('any').catch(() => null)
       : Promise.resolve(null);
 
-    const [device, currentUser, currentCloudSession] = await Promise.all([
+    const [device, currentUser, currentCloudSession, storedArea] = await Promise.all([
       devicePromise,
       currentUserPromise,
       currentCloudSessionPromise,
+      areaAtivaPromise,
     ]);
 
     let hydratedUser = currentUser || null;
@@ -151,6 +178,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setDispositivo(device);
     setSession(nextSession);
     setUsuarioAtual(hydratedUser);
+    setAreaAtiva(storedArea);
     setCloudSessionReady(Boolean(currentCloudSession));
     setBootstrapped(true);
 
@@ -456,6 +484,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         ? await getCloudSessionSafe('any')
         : null;
 
+      limparAreaAtivaSalva();
+      setAreaAtiva(null);
       setCloudSessionReady(Boolean(persistedCloudSession));
       setSession(result.session);
       setUsuarioAtual(currentUser);
@@ -511,15 +541,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(() => {
     logoutSessao();
+    limparAreaAtivaSalva();
     void encerrarSessaoCloud();
     void garantirSessaoCloudDispositivo(dispositivo);
     setCloudSessionReady(false);
     setSession(null);
     setUsuarioAtual(null);
+    setAreaAtiva(null);
   }, [dispositivo, garantirSessaoCloudDispositivo]);
 
+  const selecionarArea = useCallback(async (areaId: string) => {
+    const nextArea = await selecionarAreaAtiva(areaId);
+    setAreaAtiva(nextArea);
+    await queryClient.invalidateQueries();
+    return nextArea;
+  }, [queryClient]);
+
+  const limparAreaAtiva = useCallback(() => {
+    limparAreaAtivaSalva();
+    setAreaAtiva(null);
+    void queryClient.invalidateQueries();
+  }, [queryClient]);
+
   useEffect(() => {
-    void hydrate();
+    void hydrate({ forceAreaSelection: true });
   }, [hydrate]);
 
   useEffect(() => {
@@ -747,6 +792,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       session,
       usuarioAtual,
       dispositivo,
+      areaAtiva,
       online,
       cloudSessionReady,
       pendenciasSync,
@@ -755,6 +801,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       login,
       logout,
       refreshApp,
+      selecionarArea,
+      limparAreaAtiva,
       sincronizarAgora,
       sincronizarAcessosWeb: sincronizarAcessosWebAgora,
       sincronizarPullRemoto,
@@ -764,6 +812,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       bootstrapped,
       cloudSessionReady,
       dispositivo,
+      areaAtiva,
+      limparAreaAtiva,
       login,
       logout,
       online,
@@ -776,6 +826,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       sincronizarAcessosWebAgora,
       sincronizarPullRemoto,
       usuarioAtual,
+      selecionarArea,
       definirEquipeDoDia,
     ],
   );

@@ -117,7 +117,7 @@ export function TelaDetalheAvaliacao() {
   const { id = '' } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { usuarioAtual, sincronizarAgora } = useCampoApp();
+  const { usuarioAtual, sincronizarAgora, areaAtiva } = useCampoApp();
   const { config, permissionMatrix } = useRolePermissions(usuarioAtual?.perfil);
   const [showMarcarModal, setShowMarcarModal] = useState(false);
   const [showRetoqueModal, setShowRetoqueModal] = useState(false);
@@ -135,9 +135,9 @@ export function TelaDetalheAvaliacao() {
   };
 
   const { data, isFetched } = useQuery({
-    queryKey: ['avaliacao', id, 'detalhe', usuarioAtual?.id],
-    queryFn: () => obterAvaliacaoDetalhada(id, usuarioAtual?.id),
-    enabled: Boolean(id && usuarioAtual?.id),
+    queryKey: ['avaliacao', id, 'detalhe', usuarioAtual?.id, areaAtiva?.id],
+    queryFn: () => obterAvaliacaoDetalhada(id, usuarioAtual?.id, areaAtiva?.id),
+    enabled: Boolean(id && usuarioAtual?.id && areaAtiva?.id),
   });
 
   const { data: colaboradoresAtivos = [] } = useQuery({
@@ -192,6 +192,8 @@ export function TelaDetalheAvaliacao() {
     () => calcularProducaoPorCargas(retoqueCargas, config),
     [config, retoqueCargas],
   );
+  const limiteCachosAtivo = areaAtiva?.limiteCachos ?? config?.limiteCachos3Cocos;
+  const limiteCocosAtivo = areaAtiva?.limiteCocosChao ?? config?.limiteCocosChao;
   const podeInformarRetoque = canOperateAssignedRetoque({
     perfil: usuarioAtual?.perfil,
     usuarioId: usuarioAtual?.id,
@@ -308,20 +310,20 @@ export function TelaDetalheAvaliacao() {
             apresentacao && !apresentacao.siglaCacho
               ? calcularProgressoFeedback(
                   apresentacao.quantidadeCachos3,
-                  config?.limiteCachos3Cocos,
+                  limiteCachosAtivo,
                 )
               : null,
           cocosProgress:
             apresentacao && !apresentacao.siglaCocos
               ? calcularProgressoFeedback(
                   apresentacao.quantidade,
-                  config?.limiteCocosChao,
+                  limiteCocosAtivo,
                 )
               : null,
         };
       })
       .filter((item): item is ResumoRuaEquipeItem => Boolean(item));
-  }, [config?.limiteCachos3Cocos, config?.limiteCocosChao, data?.avaliacao?.equipeNome, data?.ruas, parcelasPorId, registrosPorRua]);
+  }, [data?.avaliacao?.equipeNome, data?.ruas, limiteCachosAtivo, limiteCocosAtivo, parcelasPorId, registrosPorRua]);
 
   const historicoRetoques = useMemo<HistoricoRetoqueItem[]>(() => {
     const items: HistoricoRetoqueItem[] = [];

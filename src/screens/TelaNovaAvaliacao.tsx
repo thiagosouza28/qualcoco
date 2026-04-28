@@ -187,7 +187,7 @@ export function TelaNovaAvaliacao() {
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
-  const { usuarioAtual, dispositivo, session } = useCampoApp();
+  const { usuarioAtual, dispositivo, session, areaAtiva } = useCampoApp();
   const { permissionMatrix } = useRolePermissions(usuarioAtual?.perfil);
   const isEditMode = Boolean(editingId);
   const initializedEditRef = useRef<string | null>(null);
@@ -231,23 +231,30 @@ export function TelaNovaAvaliacao() {
     queryFn: () => repository.list('parcelas'),
   });
   const { data: parcelasPlanejadas = [] } = useQuery({
-    queryKey: ['parcelas-planejadas', 'nova-avaliacao', usuarioAtual?.id, session?.equipeDiaId],
+    queryKey: [
+      'parcelas-planejadas',
+      'nova-avaliacao',
+      usuarioAtual?.id,
+      session?.equipeDiaId,
+      areaAtiva?.id,
+    ],
     queryFn: () =>
       listarParcelasPlanejadasVisiveis({
         usuarioId: usuarioAtual?.id,
+        areaId: areaAtiva?.id,
         equipeId: session?.equipeDiaId || null,
         incluirConcluidas: false,
       }),
-    enabled: Boolean(usuarioAtual?.id),
+    enabled: Boolean(usuarioAtual?.id && areaAtiva?.id),
   });
   const {
     data: editData,
     isFetched: editDataFetched,
     isLoading: editDataLoading,
   } = useQuery({
-    queryKey: ['avaliacao', editingId, 'editar', usuarioAtual?.id],
-    queryFn: () => obterAvaliacaoDetalhada(editingId, usuarioAtual?.id),
-    enabled: Boolean(isEditMode && editingId && usuarioAtual?.id),
+    queryKey: ['avaliacao', editingId, 'editar', usuarioAtual?.id, areaAtiva?.id],
+    queryFn: () => obterAvaliacaoDetalhada(editingId, usuarioAtual?.id, areaAtiva?.id),
+    enabled: Boolean(isEditMode && editingId && usuarioAtual?.id && areaAtiva?.id),
   });
   const dataAvaliacaoEdicao =
     editData?.avaliacao?.dataAvaliacao || todayIso();
@@ -1026,11 +1033,15 @@ export function TelaNovaAvaliacao() {
       if (!responsavelId) {
         throw new Error('Defina um responsável principal antes de iniciar.');
       }
+      if (!areaAtiva?.id) {
+        throw new Error('Selecione uma área antes de iniciar.');
+      }
       if (temMaisPessoas === true && participanteIds.length === 0) {
         throw new Error('Selecione ao menos um ajudante para continuar.');
       }
 
       const payload = {
+        areaId: areaAtiva.id,
         usuarioId: responsavelId || usuarioAtual?.id || '',
         dispositivoId: dispositivo.id,
         dataColheita,

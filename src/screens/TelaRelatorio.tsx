@@ -275,7 +275,9 @@ const excedeuLimiteRelatorio = (
   limite: number,
 ) => {
   const parsed = Number(value);
-  return Number.isFinite(parsed) && parsed > limite;
+  return Number.isFinite(parsed) && Number.isFinite(limite) && limite > 0
+    ? parsed / limite > 0.9
+    : false;
 };
 
 const blobToBase64 = (blob: Blob) =>
@@ -641,7 +643,7 @@ export function TelaRelatorio() {
   const navigate = useNavigate();
   const location = useLocation();
   const routeState = location.state as { dataFiltro?: string } | null;
-  const { usuarioAtual } = useCampoApp();
+  const { usuarioAtual, areaAtiva } = useCampoApp();
   const { config, permissionMatrix } = useRolePermissions(usuarioAtual?.perfil);
   const [dataFiltro, setDataFiltro] = useState(todayIso());
   const [periodoAvancado, setPeriodoAvancado] =
@@ -652,7 +654,7 @@ export function TelaRelatorio() {
   );
 
   const { data: avaliacoesHistorico = [] } = useQuery({
-    queryKey: ['relatorio', 'avaliacoes', usuarioAtual?.id],
+    queryKey: ['relatorio', 'avaliacoes', usuarioAtual?.id, areaAtiva?.id],
     queryFn: async () => {
       if (!usuarioAtual?.id) {
         return [];
@@ -666,11 +668,12 @@ export function TelaRelatorio() {
       return all.filter(
         (item) =>
           !item.deletadoEm &&
+          item.areaId === areaAtiva?.id &&
           (item.usuarioId === usuarioAtual.id ||
             avaliacaoIdsAcessiveis.has(item.id)),
       );
     },
-    enabled: Boolean(usuarioAtual?.id),
+    enabled: Boolean(usuarioAtual?.id && areaAtiva?.id),
   });
 
   const { data: ruas = [] } = useQuery({
@@ -713,6 +716,8 @@ export function TelaRelatorio() {
       avaliacoesHistorico.filter((item) => normalizeDateKey(item.dataAvaliacao) === dataFiltro),
     [avaliacoesHistorico, dataFiltro],
   );
+  const limiteCocosAtivo = areaAtiva?.limiteCocosChao ?? config?.limiteCocosChao ?? 19;
+  const limiteCachosAtivo = areaAtiva?.limiteCachos ?? config?.limiteCachos3Cocos ?? 19;
 
   const avaliacaoIds = useMemo(
     () => new Set(avaliacoes.map((item) => item.id)),
@@ -791,7 +796,7 @@ export function TelaRelatorio() {
         (item) =>
           !item.deletadoEm &&
           dataDentroPeriodoRelatorio(item.data, periodoRange) &&
-          (!item.avaliacaoId || avaliacaoHistoricoIds.has(item.avaliacaoId)),
+          Boolean(item.avaliacaoId && avaliacaoHistoricoIds.has(item.avaliacaoId)),
       )
       .map((item) => ({
         id: item.id,
@@ -1262,8 +1267,8 @@ export function TelaRelatorio() {
       );
       const parcelMap = new Map(allParcelas.map((item) => [item.id, item.codigo]));
       const configAtual = mergeConfiguracaoComPadrao(allConfigs[0] || config);
-      const limiteCocos = configAtual.limiteCocosChao;
-      const limiteCachos = configAtual.limiteCachos3Cocos;
+      const limiteCocos = limiteCocosAtivo;
+      const limiteCachos = limiteCachosAtivo;
       const registroPorRuaId = new Map(
         allRegistros
           .filter((item) => !item.deletadoEm)
@@ -1531,7 +1536,7 @@ export function TelaRelatorio() {
 
       const blob = await createRelatorioPdfBlob({
         dataTitulo: formatDateTimeLabel(dataFiltro).split(' ')[0],
-        referenteLabel: 'Relatório Diário QualCoco',
+        referenteLabel: `Área ${areaAtiva?.nome || '--'} | Limites: cocos ${limiteCocos} / cachos ${limiteCachos}`,
         footerCode: `Gerado por ${
           usuarioAtual?.nome || 'Sistema'
         } em ${new Date().toLocaleString()}`,
@@ -1580,6 +1585,18 @@ export function TelaRelatorio() {
                   />
                   <CalendarIcon className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--qc-text-muted)]" />
                 </div>
+              </div>
+
+              <div className="rounded-[20px] border border-[var(--qc-border)] bg-white p-4">
+                <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[var(--qc-secondary)]">
+                  Área do relatório
+                </p>
+                <p className="mt-1 text-base font-black text-[var(--qc-text)]">
+                  {areaAtiva?.nome || '--'}
+                </p>
+                <p className="mt-2 text-sm font-semibold text-[var(--qc-secondary)]">
+                  Limites: cocos no chão {limiteCocosAtivo} · cachos {limiteCachosAtivo}
+                </p>
               </div>
 
               <div className="grid grid-cols-2 gap-3 rounded-[20px] border border-[var(--qc-border)] bg-[var(--qc-surface-muted)] p-4">

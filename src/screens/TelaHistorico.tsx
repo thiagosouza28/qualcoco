@@ -37,7 +37,7 @@ const formatarResumoHistoricoEquipe = (equipes: string[]) => {
 export function TelaHistorico() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { usuarioAtual } = useCampoApp();
+  const { usuarioAtual, areaAtiva } = useCampoApp();
   const { permissionMatrix } = useRolePermissions(usuarioAtual?.perfil);
   const [dataFilter, setDataFilter] = useState(todayIso());
   const [colaboradorId, setColaboradorId] = useState('all');
@@ -62,6 +62,7 @@ export function TelaHistorico() {
     queryKey: [
       'historico',
       usuarioAtual?.id,
+      areaAtiva?.id,
       dataFilter,
       colaboradorId,
       parcelaId,
@@ -72,6 +73,7 @@ export function TelaHistorico() {
       listarHistorico(
         {
           data: dataFilter || undefined,
+          areaId: areaAtiva?.id,
           colaboradorId: colaboradorId !== 'all' ? colaboradorId : undefined,
           parcelaId: parcelaId !== 'all' ? parcelaId : undefined,
           syncStatus: syncStatus as never,
@@ -79,7 +81,7 @@ export function TelaHistorico() {
         usuarioAtual?.id,
         { limit: visibleLimit + 1 },
       ),
-    enabled: Boolean(usuarioAtual?.id),
+    enabled: Boolean(usuarioAtual?.id && areaAtiva?.id),
   });
 
   const { data: participantes = [] } = useQuery({

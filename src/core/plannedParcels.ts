@@ -8,11 +8,13 @@ import {
 } from '@/core/permissions';
 import { createEntity, repository, saveEntity } from '@/core/repositories';
 import type {
+  Area,
   Colaborador,
   Equipe,
-  Parcela,
   ParcelaPlanejada,
 } from '@/core/types';
+
+const getAreaNome = (area?: Pick<Area, 'nome'> | null) => area?.nome || '';
 
 const getEquipeNome = (equipe?: Equipe | null) =>
   equipe?.nome || (typeof equipe?.numero === 'number' ? String(equipe.numero).padStart(2, '0') : '');
@@ -21,6 +23,7 @@ const getColaboradorNome = (colaborador?: Colaborador | null) =>
   colaborador?.nome || colaborador?.primeiroNome || '';
 
 type ParcelaPlanejadaInput = {
+  areaId: string;
   codigo: string;
   equipeId: string | null;
   alinhamentoInicial: number;
@@ -33,9 +36,13 @@ type ParcelaPlanejadaInput = {
 };
 
 const normalizarInputParcelaPlanejada = (input: ParcelaPlanejadaInput) => {
+  const areaId = String(input.areaId || '').trim();
   const normalizedCodigo = normalizarCodigoParcela(input.codigo);
   const equipeId = String(input.equipeId || '').trim() || null;
 
+  if (!areaId) {
+    throw new Error('Selecione a área antes de cadastrar parcelas.');
+  }
   if (!normalizedCodigo) {
     throw new Error('Informe o código da parcela.');
   }
@@ -60,6 +67,7 @@ const normalizarInputParcelaPlanejada = (input: ParcelaPlanejadaInput) => {
 
   return {
     ...input,
+    areaId,
     codigo: normalizedCodigo,
     equipeId,
     observacao: String(input.observacao || '').trim(),
@@ -80,13 +88,14 @@ const validarDuplicidadeParcelaPlanejada = async (
       !item.deletadoEm &&
       item.status !== 'concluida' &&
       item.id !== options.ignoreId &&
+      String(item.areaId || '') === input.areaId &&
       normalizarCodigoParcela(item.codigo) === input.codigo &&
       String(item.equipeId || '') === String(input.equipeId || '') &&
       item.dataColheita === input.dataColheita,
   );
   if (existentes[0]) {
     throw new Error(
-      'Já existe uma parcela planejada ativa com este código para a mesma equipe e data.',
+      'Já existe uma parcela planejada ativa com este código para a mesma área, equipe e data.',
     );
   }
 };
@@ -117,6 +126,7 @@ export const garantirParcelaCatalogo = async (codigo: string) => {
 };
 
 export const cadastrarParcelaPlanejada = async (input: {
+  areaId: string;
   codigo: string;
   equipeId: string | null;
   alinhamentoInicial: number;
@@ -129,11 +139,15 @@ export const cadastrarParcelaPlanejada = async (input: {
 }) => {
   const normalizedInput = normalizarInputParcelaPlanejada(input);
 
-  const [equipe, criador, parcelaCatalogo] = await Promise.all([
+  const [area, equipe, criador, parcelaCatalogo] = await Promise.all([
+    repository.get('areas', normalizedInput.areaId),
     repository.get('equipes', normalizedInput.equipeId),
     repository.get('colaboradores', normalizedInput.criadoPor),
     garantirParcelaCatalogo(normalizedInput.codigo),
   ]);
+  if (!area || area.deletadoEm) {
+    throw new Error('Selecione uma área válida antes de cadastrar parcelas.');
+  }
 
   const perfilCriador = normalizePerfilUsuario(criador?.perfil);
   if (
@@ -149,6 +163,8 @@ export const cadastrarParcelaPlanejada = async (input: {
 
   const device = await getOrCreateDevice();
   const parcelaPlanejada = await createEntity('parcelasPlanejadas', device.id, {
+    areaId: normalizedInput.areaId,
+    areaNome: getAreaNome(area),
     codigo: normalizedInput.codigo,
     equipeId: normalizedInput.equipeId,
     equipeNome: getEquipeNome(equipe),
@@ -186,10 +202,15 @@ export const cadastrarParcelasPlanejadasEmLote = async (input: {
   const chaves = new Set<string>();
   for (const parcela of parcelas) {
     const normalized = normalizarInputParcelaPlanejada(parcela);
-    const chave = [normalized.codigo, normalized.equipeId, normalized.dataColheita].join(':');
+    const chave = [
+      normalized.areaId,
+      normalized.codigo,
+      normalized.equipeId,
+      normalized.dataColheita,
+    ].join(':');
     if (chaves.has(chave)) {
       throw new Error(
-        `A parcela ${normalized.codigo} foi informada mais de uma vez para a mesma equipe e data.`,
+        `A parcela ${normalized.codigo} foi informada mais de uma vez para a mesma área, equipe e data.`,
       );
     }
     chaves.add(chave);
@@ -221,10 +242,14 @@ export const atualizarParcelaPlanejada = async (
     origem: atual.origem,
   });
 
-  const [equipe, parcelaCatalogo] = await Promise.all([
+  const [area, equipe, parcelaCatalogo] = await Promise.all([
+    repository.get('areas', normalizedInput.areaId),
     repository.get('equipes', normalizedInput.equipeId),
     garantirParcelaCatalogo(normalizedInput.codigo),
   ]);
+  if (!area || area.deletadoEm) {
+    throw new Error('Selecione uma área válida antes de atualizar a parcela.');
+  }
 
   await validarDuplicidadeParcelaPlanejada(normalizedInput, {
     ignoreId: atual.id,
@@ -232,6 +257,8 @@ export const atualizarParcelaPlanejada = async (
 
   const next: ParcelaPlanejada = {
     ...atual,
+    areaId: normalizedInput.areaId,
+    areaNome: getAreaNome(area),
     codigo: normalizedInput.codigo,
     equipeId: normalizedInput.equipeId,
     equipeNome: getEquipeNome(equipe),
@@ -281,14 +308,20 @@ export const excluirParcelaPlanejada = async (
 
 export const listarParcelasPlanejadasVisiveis = async (input: {
   usuarioId?: string;
+  areaId?: string | null;
   equipeId?: string | null;
+  dataColheita?: string | null;
   incluirConcluidas?: boolean;
 }) => {
   const access = await getAccessContext(input.usuarioId);
+  const areaId = String(input.areaId || '').trim();
   const equipeDiaId = String(input.equipeId || '').trim();
+  const dataColheita = String(input.dataColheita || '').trim();
 
   return (await repository.list('parcelasPlanejadas'))
     .filter((item) => !item.deletadoEm)
+    .filter((item) => !areaId || item.areaId === areaId)
+    .filter((item) => !dataColheita || item.dataColheita === dataColheita)
     .filter((item) => input.incluirConcluidas || item.status !== 'concluida')
     .filter((item) => {
       if (access.visaoTotal) {
@@ -342,14 +375,29 @@ export const atualizarStatusParcelaPlanejada = async (input: {
 export const vincularParcelasPlanejadasAvaliacao = async (input: {
   parcelaPlanejadaIds?: string[];
   avaliacaoId: string;
+  areaId?: string | null;
   status?: ParcelaPlanejada['status'];
 }) => {
   const ids = Array.from(
     new Set((input.parcelaPlanejadaIds || []).filter(Boolean)),
   );
   const atualizadas: ParcelaPlanejada[] = [];
+  const areaId = String(input.areaId || '').trim();
 
   for (const parcelaPlanejadaId of ids) {
+    const parcelaPlanejada = await repository.get(
+      'parcelasPlanejadas',
+      parcelaPlanejadaId,
+    );
+    if (!parcelaPlanejada || parcelaPlanejada.deletadoEm) {
+      continue;
+    }
+    if (areaId && parcelaPlanejada.areaId !== areaId) {
+      throw new Error(
+        `A parcela ${parcelaPlanejada.codigo} não pertence à área selecionada.`,
+      );
+    }
+
     const updated = await atualizarStatusParcelaPlanejada({
       parcelaPlanejadaId,
       avaliacaoId: input.avaliacaoId,
@@ -385,10 +433,14 @@ export const obterParcelaPlanejada = async (parcelaPlanejadaId?: string | null) 
 
 export const listarParcelasPlanejadasEmRetoque = async (input: {
   usuarioId?: string;
+  areaId?: string | null;
   equipeId?: string | null;
+  dataColheita?: string | null;
 }) =>
   (await listarParcelasPlanejadasVisiveis({
     usuarioId: input.usuarioId,
+    areaId: input.areaId,
     equipeId: input.equipeId,
+    dataColheita: input.dataColheita,
     incluirConcluidas: true,
   })).filter((item) => item.status === 'em_retoque');

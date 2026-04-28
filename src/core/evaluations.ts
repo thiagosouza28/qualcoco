@@ -56,6 +56,7 @@ export type AvaliacaoAtivaResumo = Avaliacao & {
 
 type ListLimitOptions = {
   limit?: number;
+  areaId?: string;
 };
 
 type AtualizarAvaliacaoInput = NovaAvaliacaoInput & {
@@ -75,6 +76,52 @@ const EMPTY_DASHBOARD_STATS = {
 };
 
 const ORDEM_COLETA_FIXA = 'invertido' as const;
+const DEFAULT_LIMITE_COCOS_CHAO = 19;
+const DEFAULT_LIMITE_CACHOS = 19;
+
+const normalizarLimiteOperacional = (value: unknown, fallback: number) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.max(0, parsed);
+};
+
+const avaliacaoPertenceArea = (
+  avaliacao: Pick<Avaliacao, 'areaId'>,
+  areaId?: string | null,
+) => !areaId || avaliacao.areaId === areaId;
+
+const resolverLimitesAvaliacao = async (
+  avaliacao: Pick<Avaliacao, 'areaId'>,
+) => {
+  if (avaliacao.areaId) {
+    const area = await repository.get('areas', avaliacao.areaId);
+    if (area && !area.deletadoEm) {
+      return {
+        limiteCocos: normalizarLimiteOperacional(
+          area.limiteCocosChao,
+          DEFAULT_LIMITE_COCOS_CHAO,
+        ),
+        limiteCachos: normalizarLimiteOperacional(
+          area.limiteCachos,
+          DEFAULT_LIMITE_CACHOS,
+        ),
+      };
+    }
+  }
+
+  const configs = await repository.list('configuracoes');
+  const config = configs[0];
+  return {
+    limiteCocos: normalizarLimiteOperacional(
+      config?.limiteCocosChao,
+      DEFAULT_LIMITE_COCOS_CHAO,
+    ),
+    limiteCachos: normalizarLimiteOperacional(
+      config?.limiteCachos3Cocos,
+      DEFAULT_LIMITE_CACHOS,
+    ),
+  };
+};
 
 const getEquipeIdsDaAvaliacao = (
   avaliacaoId: string,
@@ -759,10 +806,7 @@ const resolverStatusFinalPorMedia = (avaliacao: Avaliacao, input: {
 };
 
 const sincronizarStatusFinalAvaliacaoAposEdicao = async (avaliacaoId: string) => {
-  const [avaliacao, configs] = await Promise.all([
-    repository.get('avaliacoes', avaliacaoId),
-    repository.list('configuracoes'),
-  ]);
+  const avaliacao = await repository.get('avaliacoes', avaliacaoId);
 
   if (!avaliacao || avaliacao.deletadoEm) {
     return null;
@@ -773,10 +817,10 @@ const sincronizarStatusFinalAvaliacaoAposEdicao = async (avaliacaoId: string) =>
     return avaliacao;
   }
 
-  const config = configs[0];
+  const limites = await resolverLimitesAvaliacao(avaliacao);
   const nextStatus = resolverStatusFinalPorMedia(avaliacao, {
-    limiteCocos: config?.limiteCocosChao ?? 19,
-    limiteCachos: config?.limiteCachos3Cocos ?? 19,
+    limiteCocos: limites.limiteCocos,
+    limiteCachos: limites.limiteCachos,
   });
 
   if (nextStatus === avaliacao.status) {
@@ -894,6 +938,10 @@ const registrarLogsParticipantes = async ({
 };
 
 export const criarAvaliacao = async (input: NovaAvaliacaoInput) => {
+  if (!input.areaId) {
+    throw new Error('Selecione uma área antes de iniciar a avaliação.');
+  }
+
   if (!input.dataColheita) {
     throw new Error('Informe a data da coleta antes de iniciar a avaliação.');
   }
@@ -907,7 +955,14 @@ export const criarAvaliacao = async (input: NovaAvaliacaoInput) => {
   }
 
   const device = await getOrCreateDevice();
-  const colaboradores = await repository.list('colaboradores');
+  const [colaboradores, area] = await Promise.all([
+    repository.list('colaboradores'),
+    repository.get('areas', input.areaId),
+  ]);
+  if (!area || area.deletadoEm) {
+    throw new Error('Selecione uma área válida antes de iniciar a avaliação.');
+  }
+
   const colaboradoresMap = new Map(
     colaboradores.map((item) => [item.id, item]),
   );
@@ -924,6 +979,7 @@ export const criarAvaliacao = async (input: NovaAvaliacaoInput) => {
     planejamentoEquipes: input.planejamentoEquipes,
   });
   const avaliacao = await createEntity('avaliacoes', device.id, {
+    areaId: input.areaId,
     usuarioId: input.usuarioId,
     dispositivoId: input.dispositivoId,
     dataAvaliacao: todayIso(),
@@ -980,6 +1036,7 @@ export const criarAvaliacao = async (input: NovaAvaliacaoInput) => {
   const parcelasPlanejadasVinculadas = await vincularParcelasPlanejadasAvaliacao({
     parcelaPlanejadaIds: input.parcelaPlanejadaIds,
     avaliacaoId: avaliacao.id,
+    areaId: input.areaId,
     status: 'em_andamento',
   });
 
@@ -1059,6 +1116,7 @@ export const criarRetoqueAvaliacao = async (input: {
   });
 
   const avaliacao = await createEntity('avaliacoes', device.id, {
+    areaId: avaliacaoOriginal.areaId,
     usuarioId: responsavelId,
     dispositivoId: avaliacaoOriginal.dispositivoId,
     dataAvaliacao: todayIso(),
@@ -1197,8 +1255,19 @@ export const atualizarAvaliacaoConfiguracao = async (
   });
   const dataAvaliacaoAtualizada =
     input.dataAvaliacao || avaliacao.dataAvaliacao || todayIso();
+  const areaId = input.areaId || avaliacao.areaId;
+  if (!areaId) {
+    throw new Error('Selecione uma área antes de salvar a avaliação.');
+  }
+
+  const area = await repository.get('areas', areaId);
+  if (!area || area.deletadoEm) {
+    throw new Error('Selecione uma área válida antes de salvar a avaliação.');
+  }
+
   const nextAvaliacao: Avaliacao = {
     ...avaliacao,
+    areaId,
     usuarioId: responsavelId,
     dispositivoId: input.dispositivoId,
     dataAvaliacao: dataAvaliacaoAtualizada,
@@ -1509,6 +1578,7 @@ export const listarAvaliacoesAtivas = async (
     .filter(
       (item) =>
         !item.deletadoEm &&
+        avaliacaoPertenceArea(item, options.areaId) &&
         (visaoTotal ||
           colaboradorPodeVerAvaliacao(
             item,
@@ -1545,6 +1615,7 @@ export const listarAvaliacoesAtivas = async (
 export const obterAvaliacaoDetalhada = async (
   avaliacaoId: string,
   colaboradorId?: string,
+  areaId?: string,
 ) => {
   if (!colaboradorId) {
     return null;
@@ -1559,6 +1630,7 @@ export const obterAvaliacaoDetalhada = async (
   if (
     !avaliacao ||
     avaliacao.deletadoEm ||
+    !avaliacaoPertenceArea(avaliacao, areaId) ||
     (!visaoTotal &&
       !colaboradorPodeVerAvaliacao(avaliacao, colaboradorId, avaliacaoIdsAcessiveis))
   ) {
@@ -2019,9 +2091,8 @@ export const finalizarAvaliacao = async (
   avaliacaoId: string,
   finalizadoPorId?: string,
 ) => {
-  const [avaliacao, configs, participantes, retoques] = await Promise.all([
+  const [avaliacao, participantes, retoques] = await Promise.all([
     repository.get('avaliacoes', avaliacaoId),
-    repository.list('configuracoes'),
     repository.filter(
       'avaliacaoColaboradores',
       (item) => item.avaliacaoId === avaliacaoId && !item.deletadoEm,
@@ -2043,9 +2114,7 @@ export const finalizarAvaliacao = async (
     throw new Error('Informe os dados do retoque antes de finalizar.');
   }
 
-  const config = configs[0];
-  const limiteCocos = config?.limiteCocosChao ?? 19;
-  const limiteCachos = config?.limiteCachos3Cocos ?? 19;
+  const { limiteCocos, limiteCachos } = await resolverLimitesAvaliacao(avaliacao);
   const excedeuLimites =
     avaliacao.mediaParcela > limiteCocos || avaliacao.mediaCachos3 > limiteCachos;
   const finalizadorId = finalizadoPorId || responsavel?.colaboradorId || null;
@@ -2513,6 +2582,7 @@ export const listarHistorico = async (
     .filter(
       (item) =>
         !item.deletadoEm &&
+        avaliacaoPertenceArea(item, filters.areaId) &&
         (visaoTotal ||
           colaboradorPodeVerAvaliacao(
             item,
@@ -2555,8 +2625,11 @@ export const listarHistorico = async (
     : result;
 };
 
-export const estatisticasDashboard = async (colaboradorId?: string) => {
-  if (!colaboradorId) {
+export const estatisticasDashboard = async (
+  colaboradorId?: string,
+  areaId?: string,
+) => {
+  if (!colaboradorId || !areaId) {
     return EMPTY_DASHBOARD_STATS;
   }
 
@@ -2583,6 +2656,7 @@ export const estatisticasDashboard = async (colaboradorId?: string) => {
   const avaliacoesVisiveis = avaliacoes.filter(
     (item) =>
       !item.deletadoEm &&
+      avaliacaoPertenceArea(item, areaId) &&
       (visaoTotal ||
         colaboradorPodeVerAvaliacao(item, colaboradorId, avaliacaoIdsAcessiveis)),
   );

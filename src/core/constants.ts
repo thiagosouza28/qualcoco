@@ -7,6 +7,7 @@ export const LOGIN_LOCK_MINUTES = 30;
 export const MAX_PARCELAS = 10;
 
 export const STORE_NAMES: StoreName[] = [
+  'areas',
   'equipes',
   'colaboradores',
   'usuarioEquipes',
@@ -38,6 +39,8 @@ export const STORAGE_KEYS = {
   registroRuaObservacoesDraftPrefix: 'qualcoco:registro-rua-observacoes-draft',
   dataResetVersion: 'qualcoco:data-reset-version',
   webAcessosSyncAt: 'qualcoco:web-acessos-sync-at',
+  areaAtivaId: 'qualcoco:area-ativa-id',
+  areaPadraoId: 'qualcoco:area-padrao-id',
   parcelasCatalogoSeedVersion: 'qualcoco:parcelas-catalogo-seed-version',
   parcelasCatalogoSyncPolicyVersion: 'qualcoco:parcelas-catalogo-sync-policy-version',
 };
@@ -45,6 +48,7 @@ export const STORAGE_KEYS = {
 export const APP_DATA_RESET_VERSION = '2026-03-19-empty-app-v2';
 
 export const REMOTE_COLLECTION_MAP: Record<StoreName, string | null> = {
+  areas: 'areas',
   equipes: 'equipes',
   colaboradores: 'colaboradores',
   usuarioEquipes: 'usuario_equipes',

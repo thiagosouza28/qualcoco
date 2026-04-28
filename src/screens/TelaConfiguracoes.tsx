@@ -34,7 +34,14 @@ import { Card, CardContent } from '@/components/ui/card';
 export function TelaConfiguracoes() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { logout, usuarioAtual, dispositivo, online, sincronizarAgora } = useCampoApp();
+  const {
+    logout,
+    usuarioAtual,
+    dispositivo,
+    online,
+    sincronizarAgora,
+    areaAtiva,
+  } = useCampoApp();
   const {
     nativeAndroid,
     manifestConfigured,
@@ -78,9 +85,15 @@ export function TelaConfiguracoes() {
   );
   const podeGerenciarPermissoes = canManageUsers(usuarioAtual?.perfil);
   const podeSalvarAjustesGlobais = podeEditarLimites || podeGerenciarPermissoes;
+  const limiteCocosAreaAtiva = areaAtiva?.limiteCocosChao ?? limiteCocos;
+  const limiteCachosAreaAtiva = areaAtiva?.limiteCachos ?? limiteCachos;
 
   const saveMutation = useMutation({
     mutationFn: async () => {
+      if (!canManageUsers(usuarioAtual?.perfil)) {
+        throw new Error('Somente o administrador do campo pode alterar configurações.');
+      }
+
       const deviceId = dispositivo?.id || getDeviceId();
       const existing = (config as Configuracao | null) || buildDefaultConfiguracao(deviceId);
 
@@ -190,16 +203,41 @@ export function TelaConfiguracoes() {
       showBottomNav
     >
       <div className="stack-lg min-w-0 overflow-x-hidden">
+        <Card className="surface-card border-none shadow-sm">
+          <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-black tracking-tight text-[var(--qc-text)]">
+                Área ativa
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-[var(--qc-text-muted)]">
+                {areaAtiva
+                  ? `${areaAtiva.nome} · Cocos no chão ${areaAtiva.limiteCocosChao} · Cachos ${areaAtiva.limiteCachos}`
+                  : 'Nenhuma área selecionada.'}
+              </p>
+            </div>
+            {podeGerenciarPermissoes ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11 rounded-[16px] font-bold"
+                onClick={() => navigate('/areas/gerenciar')}
+              >
+                Gerenciar áreas
+              </Button>
+            ) : null}
+          </CardContent>
+        </Card>
+
         {podeEditarLimites ? (
           <>
             <Card className="surface-card border-none shadow-sm">
               <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm font-black tracking-tight text-[var(--qc-text)]">
-                    Produção e limites
+                    Produção e limites padrão
                   </p>
                   <p className="mt-1 text-sm leading-relaxed text-[var(--qc-text-muted)]">
-                    Valores aplicados nos cálculos, alertas e relatórios.
+                    Produção usa estes valores globais. Alertas e relatórios usam os limites da área ativa.
                   </p>
                 </div>
                 <Button
@@ -230,14 +268,14 @@ export function TelaConfiguracoes() {
               max={999}
             />
             <CounterInput
-              label="Limite - Cocos no Chão"
+              label="Limite padrão - Cocos no Chão"
               value={limiteCocos}
               onChange={setLimiteCocos}
               color="amber"
             />
 
             <CounterInput
-              label="Limite - Cachos"
+              label="Limite padrão - Cachos"
               value={limiteCachos}
               onChange={setLimiteCachos}
               color="emerald"
@@ -248,6 +286,11 @@ export function TelaConfiguracoes() {
             <CardContent className="space-y-3 p-4">
               <p className="text-sm font-semibold text-[var(--qc-text)]">
                 Limites operacionais
+              </p>
+              <p className="text-sm leading-relaxed text-[var(--qc-text-muted)]">
+                {areaAtiva
+                  ? `Área selecionada: ${areaAtiva.nome}`
+                  : 'Nenhuma área selecionada.'}
               </p>
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex min-h-[124px] flex-col justify-between rounded-[18px] border border-[var(--qc-border)] bg-[var(--qc-surface-muted)] p-4">
@@ -271,7 +314,7 @@ export function TelaConfiguracoes() {
                     Cocos no chão
                   </p>
                   <p className="mt-3 text-[clamp(2.4rem,8vw,3.4rem)] font-black leading-none tracking-[-0.06em] text-[var(--qc-text)]">
-                    {limiteCocos}
+                    {limiteCocosAreaAtiva}
                   </p>
                 </div>
                 <div className="flex min-h-[124px] flex-col justify-between rounded-[18px] border border-[var(--qc-border)] bg-[var(--qc-surface-muted)] p-4">
@@ -279,12 +322,12 @@ export function TelaConfiguracoes() {
                     Cachos
                   </p>
                   <p className="mt-3 text-[clamp(2.4rem,8vw,3.4rem)] font-black leading-none tracking-[-0.06em] text-[var(--qc-text)]">
-                    {limiteCachos}
+                    {limiteCachosAreaAtiva}
                   </p>
                 </div>
               </div>
               <p className="text-sm leading-relaxed text-[var(--qc-text-muted)]">
-                Esses limites estão visíveis para consulta, mas a alteração só aparece quando o administrador libera essa função para o seu perfil.
+                Cocos no chão e cachos são carregados da área ativa. Produção por bag continua como configuração global de consulta.
               </p>
             </CardContent>
           </Card>
@@ -293,10 +336,9 @@ export function TelaConfiguracoes() {
         <Card className="surface-card border-none shadow-sm">
           <CardContent className="p-4">
             <p className="break-words text-sm leading-relaxed text-[var(--qc-text-muted)]">
-              Se a média ultrapassar qualquer limite configurado, a parcela será
+              Se a média ultrapassar qualquer limite da área ativa, a parcela será
               marcada como <span className="font-bold text-[var(--qc-danger)]">Retoque</span>.
-              Os mesmos limites também destacam em verde as células do relatório
-              quando uma métrica ultrapassa o valor configurado.
+              Os mesmos limites também destacam os indicadores e relatórios.
             </p>
           </CardContent>
         </Card>

@@ -90,11 +90,6 @@ export const PERMISSAO_PERFIL_DEFINITIONS: Array<{
     label: 'Visão total',
     description: 'Libera acesso a registros de todas as equipes.',
   },
-  {
-    key: 'editarLimitesOperacionais',
-    label: 'Editar limites',
-    description: 'Permite alterar limites operacionais globais.',
-  },
 ];
 
 const criarPermissoesPerfil = (
@@ -238,8 +233,7 @@ export const canEditOperationalSettings = (
   perfil?: string | null,
   matrix?: MatrizPermissoesPerfis,
 ) =>
-  isAdministrador(perfil) ||
-  hasPermission(perfil, 'editarLimitesOperacionais', matrix);
+  isAdministrador(perfil);
 
 export const canStartEvaluation = (
   perfil?: string | null,
