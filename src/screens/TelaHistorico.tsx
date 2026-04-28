@@ -37,9 +37,9 @@ const formatarResumoHistoricoEquipe = (equipes: string[]) => {
 export function TelaHistorico() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { usuarioAtual, areaAtiva } = useCampoApp();
+  const { usuarioAtual } = useCampoApp();
   const { permissionMatrix } = useRolePermissions(usuarioAtual?.perfil);
-  const [dataFilter, setDataFilter] = useState(todayIso());
+  const [dataFilter, setDataFilter] = useState('');
   const [colaboradorId, setColaboradorId] = useState('all');
   const [parcelaId, setParcelaId] = useState('all');
   const [syncStatus, setSyncStatus] = useState('all');
@@ -62,7 +62,6 @@ export function TelaHistorico() {
     queryKey: [
       'historico',
       usuarioAtual?.id,
-      areaAtiva?.id,
       dataFilter,
       colaboradorId,
       parcelaId,
@@ -73,7 +72,6 @@ export function TelaHistorico() {
       listarHistorico(
         {
           data: dataFilter || undefined,
-          areaId: areaAtiva?.id,
           colaboradorId: colaboradorId !== 'all' ? colaboradorId : undefined,
           parcelaId: parcelaId !== 'all' ? parcelaId : undefined,
           syncStatus: syncStatus as never,
@@ -81,7 +79,7 @@ export function TelaHistorico() {
         usuarioAtual?.id,
         { limit: visibleLimit + 1 },
       ),
-    enabled: Boolean(usuarioAtual?.id && areaAtiva?.id),
+    enabled: Boolean(usuarioAtual?.id),
   });
 
   const { data: participantes = [] } = useQuery({
@@ -198,7 +196,8 @@ export function TelaHistorico() {
     const groups = historicoVisivel.reduce<
       Record<string, { label: string; items: typeof historicoVisivel }>
     >((acc, item) => {
-      const dateKey = normalizeDateKey(item.dataAvaliacao);
+      const dateKey =
+        normalizeDateKey(item.dataColheita) || normalizeDateKey(item.dataAvaliacao);
       if (!dateKey) return acc;
 
       if (!acc[dateKey]) {
@@ -296,21 +295,41 @@ export function TelaHistorico() {
   return (
     <LayoutMobile
       title="Histórico"
-      subtitle="Últimas avaliações registradas"
+      subtitle="Todas as avaliações acessíveis"
       onBack={() => navigate(-1)}
     >
       <div className="stack-lg">
         <div className="grid gap-3 sm:grid-cols-2">
-          <div className="relative">
-            <Input
-              type="date"
-              className="h-11 rounded-[16px] pl-11"
-              value={dataFilter}
-              onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                setDataFilter(event.target.value)
-              }
-            />
-            <CalendarIcon className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--qc-text-muted)]" />
+          <div className="grid gap-2">
+            <div className="relative">
+              <Input
+                type="date"
+                className="h-11 rounded-[16px] pl-11"
+                value={dataFilter}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                  setDataFilter(event.target.value)
+                }
+              />
+              <CalendarIcon className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--qc-text-muted)]" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-10 rounded-[14px] font-bold"
+                onClick={() => setDataFilter('')}
+              >
+                Todas
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-10 rounded-[14px] font-bold"
+                onClick={() => setDataFilter(todayIso())}
+              >
+                Hoje
+              </Button>
+            </div>
           </div>
 
           <Select value={syncStatus} onValueChange={setSyncStatus}>

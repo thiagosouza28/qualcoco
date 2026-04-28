@@ -2591,7 +2591,10 @@ export const listarHistorico = async (
           )),
     )
     .filter((item) =>
-      filters.data ? normalizeDateKey(item.dataAvaliacao) === filters.data : true,
+      filters.data
+        ? normalizeDateKey(item.dataColheita) === filters.data ||
+          normalizeDateKey(item.dataAvaliacao) === filters.data
+        : true,
     )
     .filter((item) =>
       filters.syncStatus && filters.syncStatus !== 'all'
@@ -2618,7 +2621,11 @@ export const listarHistorico = async (
           )
         : true,
     )
-    .sort((a, b) => b.dataAvaliacao.localeCompare(a.dataAvaliacao));
+    .sort((a, b) =>
+      (b.dataColheita || b.dataAvaliacao).localeCompare(
+        a.dataColheita || a.dataAvaliacao,
+      ),
+    );
 
   return typeof options.limit === 'number'
     ? result.slice(0, Math.max(options.limit, 0))

@@ -1,11 +1,10 @@
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { ArrowRight, LogOut, MapPinned, Settings } from 'lucide-react';
+import { LogOut, MapPinned, Settings } from 'lucide-react';
 import { LayoutMobile } from '@/components/LayoutMobile';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { listarAreas, getAreaPadraoId } from '@/core/areas';
+import { listarAreas } from '@/core/areas';
 import { useCampoApp } from '@/core/AppProvider';
 import { canManageUsers } from '@/core/permissions';
 
@@ -13,7 +12,6 @@ export function TelaSelecaoArea() {
   const navigate = useNavigate();
   const { selecionarArea, usuarioAtual, logout } = useCampoApp();
   const podeGerenciarAreas = canManageUsers(usuarioAtual?.perfil);
-  const areaPadraoId = getAreaPadraoId();
 
   const { data: areas = [], isLoading } = useQuery({
     queryKey: ['areas', 'selecao'],
@@ -111,26 +109,13 @@ export function TelaSelecaoArea() {
               <button
                 key={area.id}
                 type="button"
-                className="w-full rounded-[22px] border border-[var(--qc-border)] bg-white p-4 text-left shadow-sm active:scale-[0.99]"
+                className="flex min-h-[64px] w-full items-center justify-center rounded-[22px] border border-[var(--qc-border)] bg-white px-5 py-4 text-center shadow-sm active:scale-[0.99]"
                 disabled={selectMutation.isPending}
                 onClick={() => selectMutation.mutate(area.id)}
               >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="truncate text-xl font-black tracking-tight text-[var(--qc-text)]">
-                        {area.nome}
-                      </p>
-                      {area.id === areaPadraoId ? (
-                        <Badge variant="emerald">Padrão</Badge>
-                      ) : null}
-                    </div>
-                    <p className="mt-2 text-sm font-semibold text-[var(--qc-secondary)]">
-                      Cocos no chão: {area.limiteCocosChao} · Cachos: {area.limiteCachos}
-                    </p>
-                  </div>
-                  <ArrowRight className="mt-1 h-6 w-6 shrink-0 text-[var(--qc-secondary)]" />
-                </div>
+                <span className="block max-w-full break-words text-xl font-black tracking-tight text-[var(--qc-text)] [overflow-wrap:anywhere]">
+                  {area.nome}
+                </span>
               </button>
             ))}
           </div>
