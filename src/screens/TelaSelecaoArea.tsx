@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { ArrowRight, MapPinned, Settings } from 'lucide-react';
+import { ArrowRight, LogOut, MapPinned, Settings } from 'lucide-react';
 import { LayoutMobile } from '@/components/LayoutMobile';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,7 @@ import { canManageUsers } from '@/core/permissions';
 
 export function TelaSelecaoArea() {
   const navigate = useNavigate();
-  const { selecionarArea, usuarioAtual } = useCampoApp();
+  const { selecionarArea, usuarioAtual, logout } = useCampoApp();
   const podeGerenciarAreas = canManageUsers(usuarioAtual?.perfil);
   const areaPadraoId = getAreaPadraoId();
 
@@ -34,6 +34,11 @@ export function TelaSelecaoArea() {
     },
   });
 
+  const handleLogout = () => {
+    logout();
+    navigate('/login', { replace: true });
+  };
+
   return (
     <LayoutMobile
       title="Selecione a área"
@@ -41,17 +46,29 @@ export function TelaSelecaoArea() {
       contentClassName="pt-4"
     >
       <div className="stack-lg pb-8">
-        {podeGerenciarAreas ? (
+        <div className={podeGerenciarAreas ? 'grid gap-3 sm:grid-cols-2' : 'grid gap-3'}>
           <Button
             type="button"
             variant="outline"
             className="h-12 w-full rounded-[18px] font-bold"
-            onClick={() => navigate('/areas/gerenciar')}
+            onClick={handleLogout}
           >
-            <Settings className="h-5 w-5" />
-            Gerenciar Áreas
+            <LogOut className="h-5 w-5" />
+            Sair
           </Button>
-        ) : null}
+
+          {podeGerenciarAreas ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="h-12 w-full rounded-[18px] font-bold"
+              onClick={() => navigate('/areas/gerenciar')}
+            >
+              <Settings className="h-5 w-5" />
+              Gerenciar Áreas
+            </Button>
+          ) : null}
+        </div>
 
         {isLoading ? (
           <Card className="surface-card border-none shadow-sm">
