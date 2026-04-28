@@ -5,6 +5,8 @@ import { twMerge } from 'tailwind-merge';
 export const cn = (...inputs) => twMerge(clsx(inputs));
 
 export const createPageUrl = (pageName = '') => `/${pageName}`;
+export const MAX_ALINHAMENTO = 400;
+export const MAX_RUAS_POR_ALINHAMENTO = Math.floor(MAX_ALINHAMENTO / 2);
 
 export const STORAGE_KEYS = {
   responsavel: 'responsavel_nome',
@@ -82,7 +84,7 @@ export const generateParcelas = () => {
 
 export const distribuirRuas = (
   totalRuas,
-  totalLinhas = 136,
+  totalLinhas = MAX_ALINHAMENTO,
   paridade = 'impar',
 ) => {
   if (totalRuas <= 0) return [];
@@ -148,7 +150,7 @@ export const gerarRuasComOffset = ({
   linhaFim,
 }) => {
   const inicio = Number(linhaInicio) || 1;
-  const fim = Number(linhaFim) || 136;
+  const fim = Number(linhaFim) || MAX_ALINHAMENTO;
   const linhasValidas = [];
 
   for (let linha = inicio; linha <= fim - 1; linha += 1) {
@@ -170,14 +172,14 @@ export const normalizarFaixaLinhas = (
   linhaInicio,
   linhaFim,
   fallbackInicio = 1,
-  fallbackFim = 136,
+  fallbackFim = MAX_ALINHAMENTO,
 ) => {
   const inicio = Number(linhaInicio || fallbackInicio);
   const fim = Number(linhaFim || fallbackFim);
 
   return {
-    inicio: clamp(inicio, 1, 136),
-    fim: clamp(fim, 1, 136),
+    inicio: clamp(inicio, 1, MAX_ALINHAMENTO),
+    fim: clamp(fim, 1, MAX_ALINHAMENTO),
   };
 };
 

@@ -48,7 +48,7 @@ import { Badge } from '@/components/ui/badge';
 import { todayIso } from '@/core/date';
 import { listarParcelasPlanejadasVisiveis } from '@/core/plannedParcels';
 import { useRolePermissions } from '@/core/useRolePermissions';
-import { MAX_PARCELAS } from '@/core/constants';
+import { MAX_ALINHAMENTO, MAX_PARCELAS, MAX_RUAS_POR_ALINHAMENTO } from '@/core/constants';
 import { cn } from '@/utils';
 import type {
   FaixaFalhaParcela,
@@ -119,8 +119,8 @@ const normalizarFaixasFalhaParcela = (
         return null;
       }
 
-      const linhaInicial = clamp(Number(match[1] || 0), 1, 136);
-      const linhaFinal = clamp(Number(match[2] || match[1] || 0), 1, 136);
+      const linhaInicial = clamp(Number(match[1] || 0), 1, MAX_ALINHAMENTO);
+      const linhaFinal = clamp(Number(match[2] || match[1] || 0), 1, MAX_ALINHAMENTO);
       if (linhaFinal < linhaInicial) {
         return null;
       }
@@ -1581,6 +1581,8 @@ export function TelaNovaAvaliacao() {
                                   </span>
                                   <Input
                                     type="number"
+                                    min="1"
+                                    max={MAX_ALINHAMENTO}
                                     className="h-11 rounded-xl text-center font-bold"
                                     placeholder="01"
                                     value={config.linhaInicial}
@@ -1600,6 +1602,8 @@ export function TelaNovaAvaliacao() {
                                   </span>
                                   <Input
                                     type="number"
+                                    min="1"
+                                    max={MAX_ALINHAMENTO}
                                     className="h-11 rounded-xl text-center font-bold"
                                     placeholder="80"
                                     value={config.linhaFinal}
@@ -1733,7 +1737,7 @@ export function TelaNovaAvaliacao() {
                                                 clamp(
                                                   Number(config.ruasEquipe1 || 0) - 1,
                                                   0,
-                                                  68,
+                                                  MAX_RUAS_POR_ALINHAMENTO,
                                                 ),
                                               ),
                                             )
@@ -1765,7 +1769,7 @@ export function TelaNovaAvaliacao() {
                                                 clamp(
                                                   Number(config.ruasEquipe1 || 0) + 1,
                                                   0,
-                                                  68,
+                                                  MAX_RUAS_POR_ALINHAMENTO,
                                                 ),
                                               ),
                                             )
@@ -1808,7 +1812,7 @@ export function TelaNovaAvaliacao() {
                                                   clamp(
                                                     Number(config.ruasEquipe2 || 0) - 1,
                                                     0,
-                                                    68,
+                                                    MAX_RUAS_POR_ALINHAMENTO,
                                                   ),
                                                 ),
                                               )
@@ -1840,7 +1844,7 @@ export function TelaNovaAvaliacao() {
                                                   clamp(
                                                     Number(config.ruasEquipe2 || 0) + 1,
                                                     0,
-                                                    68,
+                                                    MAX_RUAS_POR_ALINHAMENTO,
                                                   ),
                                                 ),
                                               )
@@ -2086,7 +2090,7 @@ export function TelaNovaAvaliacao() {
                           <button 
                             type="button"
                             className="h-full border-r border-[var(--qc-border)] px-4 font-bold text-[var(--qc-secondary)]"
-                            onClick={() => setTotalRuasEq1(p => clamp(p - 1, 1, 68))}
+                            onClick={() => setTotalRuasEq1(p => clamp(p - 1, 1, MAX_RUAS_POR_ALINHAMENTO))}
                           >-</button>
                           <input 
                             type="number" 
@@ -2097,7 +2101,7 @@ export function TelaNovaAvaliacao() {
                            <button 
                             type="button"
                             className="h-full border-l border-[var(--qc-border)] px-4 font-bold text-[var(--qc-secondary)]"
-                            onClick={() => setTotalRuasEq1(p => clamp(p + 1, 1, 68))}
+                            onClick={() => setTotalRuasEq1(p => clamp(p + 1, 1, MAX_RUAS_POR_ALINHAMENTO))}
                           >+</button>
                         </div>
                       </div>
@@ -2120,6 +2124,8 @@ export function TelaNovaAvaliacao() {
                           <span className="ml-1 text-[10px] font-bold text-[var(--qc-secondary)]">LINHA INÍCIO</span>
                           <Input 
                             type="number" 
+                            min="1"
+                            max={MAX_ALINHAMENTO}
                             className="h-11 rounded-xl text-center font-bold" 
                             placeholder="01"
                             value={linhaInicioEq1}
@@ -2130,6 +2136,8 @@ export function TelaNovaAvaliacao() {
                           <span className="ml-1 text-[10px] font-bold text-[var(--qc-secondary)]">LINHA FIM</span>
                           <Input 
                             type="number" 
+                            min="1"
+                            max={MAX_ALINHAMENTO}
                             className="h-11 rounded-xl text-center font-bold" 
                             placeholder="80"
                             value={linhaFimEq1}
@@ -2188,7 +2196,7 @@ export function TelaNovaAvaliacao() {
                             <button 
                               type="button"
                               className="h-full border-r border-[var(--qc-border)] px-4 font-bold text-[var(--qc-secondary)]"
-                              onClick={() => setTotalRuasEq2(p => clamp(p - 1, 1, 68))}
+                              onClick={() => setTotalRuasEq2(p => clamp(p - 1, 1, MAX_RUAS_POR_ALINHAMENTO))}
                             >-</button>
                             <input 
                               type="number" 
@@ -2199,7 +2207,7 @@ export function TelaNovaAvaliacao() {
                             <button 
                               type="button"
                               className="h-full border-l border-[var(--qc-border)] px-4 font-bold text-[var(--qc-secondary)]"
-                              onClick={() => setTotalRuasEq2(p => clamp(p + 1, 1, 68))}
+                              onClick={() => setTotalRuasEq2(p => clamp(p + 1, 1, MAX_RUAS_POR_ALINHAMENTO))}
                             >+</button>
                           </div>
                         </div>
@@ -2221,6 +2229,8 @@ export function TelaNovaAvaliacao() {
                           <span className="ml-1 text-[10px] font-bold text-[var(--qc-secondary)]">LINHA INÍCIO</span>
                           <Input 
                             type="number" 
+                            min="1"
+                            max={MAX_ALINHAMENTO}
                             className="h-11 rounded-xl text-center font-bold" 
                             placeholder="01"
                             value={linhaInicioEq2}
@@ -2231,6 +2241,8 @@ export function TelaNovaAvaliacao() {
                           <span className="ml-1 text-[10px] font-bold text-[var(--qc-secondary)]">LINHA FIM</span>
                           <Input 
                             type="number" 
+                            min="1"
+                            max={MAX_ALINHAMENTO}
                             className="h-11 rounded-xl text-center font-bold" 
                             placeholder="80"
                             value={linhaFimEq2}

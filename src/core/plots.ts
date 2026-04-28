@@ -1,4 +1,4 @@
-import { MAX_PARCELAS } from '@/core/constants';
+import { MAX_ALINHAMENTO, MAX_PARCELAS } from '@/core/constants';
 import type { FaixaFalhaParcela, SentidoRuas } from '@/core/types';
 
 export const gerarCatalogoParcelas = () => {
@@ -35,7 +35,7 @@ export const gerarRuasDaParcela = ({
 }) => {
   const ruas: Array<{ ruaNumero: number; linhaInicial: number; linhaFinal: number }> = [];
   const start = Math.max(1, linhaInicial);
-  const end = Math.min(136, linhaFinal);
+  const end = Math.min(MAX_ALINHAMENTO, linhaFinal);
   const isImpar = alinhamentoTipo === 'inferior-impar';
   const linhasValidas: number[] = [];
 
@@ -96,14 +96,14 @@ export const normalizarFaixaLinhas = (
   linhaInicio: number | null | undefined,
   linhaFim: number | null | undefined,
   fallbackInicio = 1,
-  fallbackFim = 136,
+  fallbackFim = MAX_ALINHAMENTO,
 ) => {
   const inicio = Number(linhaInicio || fallbackInicio);
   const fim = Number(linhaFim || fallbackFim);
 
   return {
-    inicio: clamp(inicio, 1, 136),
-    fim: clamp(fim, 1, 136),
+    inicio: clamp(inicio, 1, MAX_ALINHAMENTO),
+    fim: clamp(fim, 1, MAX_ALINHAMENTO),
   };
 };
 
@@ -122,8 +122,8 @@ const linhaEstaEmFalha = (
       return false;
     }
 
-    const inicio = clamp(faixa.linhaInicial, 1, 136);
-    const fim = clamp(faixa.linhaFinal, 1, 136);
+    const inicio = clamp(faixa.linhaInicial, 1, MAX_ALINHAMENTO);
+    const fim = clamp(faixa.linhaFinal, 1, MAX_ALINHAMENTO);
     if (fim < inicio) {
       return false;
     }
@@ -286,7 +286,7 @@ export const gerarRuasComOffset = ({
   sentidoRuas?: SentidoRuas;
 }) => {
   const inicio = Number(linhaInicio) || 1;
-  const fim = Number(linhaFim) || 136;
+  const fim = Number(linhaFim) || MAX_ALINHAMENTO;
   const linhasValidas: number[] = [];
 
   for (let linha = inicio; linha <= fim - 1; linha += 1) {

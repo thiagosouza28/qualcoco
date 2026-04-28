@@ -31,7 +31,7 @@ import {
   normalizePapelAvaliacao,
 } from '@/core/permissions';
 import { inferirAlinhamentoTipoPorLinha } from '@/core/plots';
-import { STORAGE_KEYS } from '@/core/constants';
+import { MAX_ALINHAMENTO, STORAGE_KEYS } from '@/core/constants';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -1429,7 +1429,7 @@ export function TelaRegistroLinhas() {
         !Number.isFinite(linhaInicial) ||
         !Number.isFinite(linhaFinal) ||
         linhaInicial < 1 ||
-        linhaFinal > 136 ||
+        linhaFinal > MAX_ALINHAMENTO ||
         linhaFinal <= linhaInicial
       ) {
         throw new Error(
@@ -2908,6 +2908,8 @@ export function TelaRegistroLinhas() {
                   <Input
                     placeholder="Linha inicial"
                     type="number"
+                    min="1"
+                    max={MAX_ALINHAMENTO}
                     className="h-14"
                     value={editRuaLinhaIni}
                     onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
@@ -2917,6 +2919,8 @@ export function TelaRegistroLinhas() {
                   <Input
                     placeholder="Linha final"
                     type="number"
+                    min="1"
+                    max={MAX_ALINHAMENTO}
                     className="h-14"
                     value={editRuaLinhaFim}
                     onChange={(event: React.ChangeEvent<HTMLInputElement>) =>

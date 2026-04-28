@@ -41,6 +41,7 @@ import {
   getDataBrasil,
   getDiaSemanaBrasil,
   getParcelaBase,
+  MAX_ALINHAMENTO,
   parseRuasProgramadas,
   resolveSearchParam,
   serializarObs,
@@ -408,8 +409,8 @@ function RegistroLinhas() {
       return;
     }
 
-    if (linhaInicial < 1 || linhaFinal > 136) {
-      setEditRuasError('As linhas devem ficar entre 1 e 136.');
+    if (linhaInicial < 1 || linhaFinal > MAX_ALINHAMENTO) {
+      setEditRuasError(`As linhas devem ficar entre 1 e ${MAX_ALINHAMENTO}.`);
       return;
     }
 
@@ -912,7 +913,7 @@ function RegistroLinhas() {
               <Input
                 type="number"
                 min="1"
-                max="136"
+                max={MAX_ALINHAMENTO}
                 placeholder="Linha inicial"
                 value={novaLinhaInicial}
                 onChange={(event) => setNovaLinhaInicial(event.target.value)}
@@ -920,7 +921,7 @@ function RegistroLinhas() {
               <Input
                 type="number"
                 min="1"
-                max="136"
+                max={MAX_ALINHAMENTO}
                 placeholder="Linha final"
                 value={novaLinhaFinal}
                 onChange={(event) => setNovaLinhaFinal(event.target.value)}

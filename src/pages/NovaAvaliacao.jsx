@@ -29,6 +29,8 @@ import {
   getJornadaId,
   getResponsavelNome,
   formatResponsaveis,
+  MAX_ALINHAMENTO,
+  MAX_RUAS_POR_ALINHAMENTO,
   normalizarFaixaLinhas,
 } from '@/utils';
 
@@ -210,7 +212,7 @@ function NovaAvaliacao() {
               linhaInicio: linhaInicioEq1,
               linhaFim: linhaFimEq1,
               fallbackInicio: 1,
-              fallbackFim: 136,
+              fallbackFim: MAX_ALINHAMENTO,
               totalRuas: ruasEq1,
             },
           ];
@@ -674,7 +676,9 @@ function NovaAvaliacao() {
                   variant="secondary"
                   size="icon"
                   onClick={() =>
-                    setTotalRuasEq1((value) => clamp(value - 1, 1, 68))
+                    setTotalRuasEq1((value) =>
+                      clamp(value - 1, 1, MAX_RUAS_POR_ALINHAMENTO),
+                    )
                   }
                 >
                   -
@@ -683,10 +687,12 @@ function NovaAvaliacao() {
                   id="ruasEq1"
                   type="number"
                   min="1"
-                  max="68"
+                  max={MAX_RUAS_POR_ALINHAMENTO}
                   value={totalRuasEq1}
                   onChange={(event) =>
-                    setTotalRuasEq1(clamp(event.target.value, 1, 68))
+                    setTotalRuasEq1(
+                      clamp(event.target.value, 1, MAX_RUAS_POR_ALINHAMENTO),
+                    )
                   }
                   className="text-center"
                 />
@@ -694,7 +700,9 @@ function NovaAvaliacao() {
                   type="button"
                   size="icon"
                   onClick={() =>
-                    setTotalRuasEq1((value) => clamp(value + 1, 1, 68))
+                    setTotalRuasEq1((value) =>
+                      clamp(value + 1, 1, MAX_RUAS_POR_ALINHAMENTO),
+                    )
                   }
                 >
                   +
@@ -709,7 +717,7 @@ function NovaAvaliacao() {
                   id="linhaInicioEq1"
                   type="number"
                   min="1"
-                  max="136"
+                  max={MAX_ALINHAMENTO}
                   value={linhaInicioEq1}
                   onChange={(event) => setLinhaInicioEq1(event.target.value)}
                 />
@@ -720,7 +728,7 @@ function NovaAvaliacao() {
                   id="linhaFimEq1"
                   type="number"
                   min="1"
-                  max="136"
+                  max={MAX_ALINHAMENTO}
                   value={linhaFimEq1}
                   onChange={(event) => setLinhaFimEq1(event.target.value)}
                 />
@@ -781,7 +789,9 @@ function NovaAvaliacao() {
                       variant="secondary"
                       size="icon"
                       onClick={() =>
-                        setTotalRuasEq2((value) => clamp(value - 1, 1, 68))
+                        setTotalRuasEq2((value) =>
+                          clamp(value - 1, 1, MAX_RUAS_POR_ALINHAMENTO),
+                        )
                       }
                     >
                       -
@@ -790,10 +800,12 @@ function NovaAvaliacao() {
                       id="ruasEq2"
                       type="number"
                       min="1"
-                      max="68"
+                      max={MAX_RUAS_POR_ALINHAMENTO}
                       value={totalRuasEq2}
                       onChange={(event) =>
-                        setTotalRuasEq2(clamp(event.target.value, 1, 68))
+                        setTotalRuasEq2(
+                          clamp(event.target.value, 1, MAX_RUAS_POR_ALINHAMENTO),
+                        )
                       }
                       className="text-center"
                     />
@@ -801,7 +813,9 @@ function NovaAvaliacao() {
                       type="button"
                       size="icon"
                       onClick={() =>
-                        setTotalRuasEq2((value) => clamp(value + 1, 1, 68))
+                        setTotalRuasEq2((value) =>
+                          clamp(value + 1, 1, MAX_RUAS_POR_ALINHAMENTO),
+                        )
                       }
                     >
                       +
@@ -815,7 +829,7 @@ function NovaAvaliacao() {
                       id="linhaInicioEq2"
                       type="number"
                       min="1"
-                      max="136"
+                      max={MAX_ALINHAMENTO}
                       value={linhaInicioEq2}
                       onChange={(event) => setLinhaInicioEq2(event.target.value)}
                     />
@@ -826,7 +840,7 @@ function NovaAvaliacao() {
                       id="linhaFimEq2"
                       type="number"
                       min="1"
-                      max="136"
+                      max={MAX_ALINHAMENTO}
                       value={linhaFimEq2}
                       onChange={(event) => setLinhaFimEq2(event.target.value)}
                     />

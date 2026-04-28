@@ -5,6 +5,8 @@ export const SESSION_TIMEOUT_MINUTES = 30;
 export const LOGIN_MAX_ATTEMPTS = 5;
 export const LOGIN_LOCK_MINUTES = 30;
 export const MAX_PARCELAS = 10;
+export const MAX_ALINHAMENTO = 400;
+export const MAX_RUAS_POR_ALINHAMENTO = Math.floor(MAX_ALINHAMENTO / 2);
 
 export const STORE_NAMES: StoreName[] = [
   'areas',
