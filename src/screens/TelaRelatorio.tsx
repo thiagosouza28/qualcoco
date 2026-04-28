@@ -12,10 +12,17 @@ import { LayoutMobile } from '@/components/LayoutMobile';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { repository } from '@/core/repositories';
 import { useCampoApp } from '@/core/AppProvider';
 import { listarIdsAvaliacoesAcessiveis } from '@/core/evaluations';
-import type { AvaliacaoRetoque, Producao, SiglaResumoParcela } from '@/core/types';
+import type { Area, Avaliacao, AvaliacaoRetoque, SiglaResumoParcela } from '@/core/types';
 import { canViewReports, normalizePapelAvaliacao } from '@/core/permissions';
 import { useRolePermissions } from '@/core/useRolePermissions';
 import {
@@ -41,6 +48,7 @@ const MAX_TEAM_SPACER_ROWS = 8;
 const TEAM_HISTORY_DAYS = 7;
 const TEAM_HISTORY_ENTRIES = 4;
 const REFERENTE_LABEL = `Referente${String.fromCharCode(160)}a`;
+const ALL_AREAS_FILTER = 'all';
 
 type PeriodoRelatorioAvancado =
   | 'semanal'
@@ -122,6 +130,47 @@ const formatEquipeRelatorio = (value: string | null | undefined) => {
   const normalized = String(value || '').trim();
   if (!normalized) return '--';
   return /^\d+$/.test(normalized) ? normalized.padStart(2, '0') : normalized;
+};
+
+const formatAreaRelatorio = (value: string | null | undefined) => {
+  const normalized = String(value || '').trim();
+  return normalized || 'Área não informada';
+};
+
+const getDataBaseRelatorio = (
+  avaliacao: Pick<Avaliacao, 'dataAvaliacao' | 'dataColheita'>,
+) => normalizeDateKey(avaliacao.dataColheita) || normalizeDateKey(avaliacao.dataAvaliacao);
+
+const avaliacaoPertenceDataRelatorio = (
+  avaliacao: Pick<Avaliacao, 'dataAvaliacao' | 'dataColheita'>,
+  dataFiltro: string,
+) => {
+  const dataColheita = normalizeDateKey(avaliacao.dataColheita);
+  const dataAvaliacao = normalizeDateKey(avaliacao.dataAvaliacao);
+  return dataColheita === dataFiltro || dataAvaliacao === dataFiltro;
+};
+
+const getAreaRelatorioLabel = (
+  areaId: string | null | undefined,
+  areasMap: Map<string, Area>,
+) => formatAreaRelatorio(areaId ? areasMap.get(areaId)?.nome : '');
+
+const getLimitesAreaRelatorio = ({
+  areaId,
+  areasMap,
+  fallbackCocos,
+  fallbackCachos,
+}: {
+  areaId?: string | null;
+  areasMap: Map<string, Area>;
+  fallbackCocos: number;
+  fallbackCachos: number;
+}) => {
+  const area = areaId ? areasMap.get(areaId) : null;
+  return {
+    limiteCocosChao: area?.limiteCocosChao ?? fallbackCocos,
+    limiteCachos: area?.limiteCachos ?? fallbackCachos,
+  };
 };
 
 const isSiglaResumoParcela = (value: unknown): value is SiglaResumoParcela =>
@@ -357,6 +406,8 @@ const saveAndOpenPdfOnDevice = async (blob: Blob, fileName: string) => {
 
 type RelatorioPdfRow = {
   id: string;
+  areaId: string;
+  areaNome: string;
   data: string;
   dataColheita: string;
   parcela: string;
@@ -390,6 +441,7 @@ type RelatorioPdfGroup = {
 
 type GrupoHistoricoEquipe = {
   id: string;
+  areaNome: string;
   equipe: string;
   equipeSort: number;
   data: string;
@@ -399,6 +451,9 @@ type GrupoHistoricoEquipe = {
 };
 
 type RelatorioEquipeAvancado = {
+  key: string;
+  areaId: string;
+  areaNome: string;
   equipe: string;
   equipeSort: number;
   totalCargas: number;
@@ -420,7 +475,7 @@ const BarraProducaoEquipes = ({
   return (
     <div className="stack-sm">
       {data.slice(0, 8).map((item) => (
-        <div key={item.equipe} className="grid grid-cols-[4.5rem_minmax(0,1fr)_4.5rem] items-center gap-2">
+        <div key={item.key} className="grid grid-cols-[4.5rem_minmax(0,1fr)_4.5rem] items-center gap-2">
           <span className="text-xs font-black text-[var(--qc-text)]">
             Eq. {item.equipe}
           </span>
@@ -519,7 +574,7 @@ const GraficoEficienciaCocosChao = ({
 
         return (
           <div
-            key={item.equipe}
+            key={item.key}
             className="grid grid-cols-[4.5rem_minmax(0,1fr)_4.75rem] items-center gap-2"
           >
             <span className="text-xs font-black text-[var(--qc-text)]">
@@ -646,6 +701,7 @@ export function TelaRelatorio() {
   const { usuarioAtual, areaAtiva } = useCampoApp();
   const { config, permissionMatrix } = useRolePermissions(usuarioAtual?.perfil);
   const [dataFiltro, setDataFiltro] = useState(todayIso());
+  const [areaFiltroId, setAreaFiltroId] = useState(ALL_AREAS_FILTER);
   const [periodoAvancado, setPeriodoAvancado] =
     useState<PeriodoRelatorioAvancado>('semanal');
   const [gerando, setGerando] = useState(false);
@@ -653,8 +709,30 @@ export function TelaRelatorio() {
     DEFAULT_TEAM_SPACER_ROWS,
   );
 
+  const { data: areas = [] } = useQuery({
+    queryKey: ['relatorio', 'areas'],
+    queryFn: () => repository.list('areas'),
+  });
+
+  const areasAtivas = useMemo(
+    () =>
+      areas
+        .filter((item) => !item.deletadoEm)
+        .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { numeric: true })),
+    [areas],
+  );
+
+  const areasMap = useMemo(
+    () => new Map(areasAtivas.map((item) => [item.id, item])),
+    [areasAtivas],
+  );
+
+  const areaSelecionada =
+    areaFiltroId === ALL_AREAS_FILTER ? null : areasMap.get(areaFiltroId) || null;
+  const areaRelatorioNome = areaSelecionada?.nome || 'Todas as áreas';
+
   const { data: avaliacoesHistorico = [] } = useQuery({
-    queryKey: ['relatorio', 'avaliacoes', usuarioAtual?.id, areaAtiva?.id],
+    queryKey: ['relatorio', 'avaliacoes', usuarioAtual?.id, areaFiltroId],
     queryFn: async () => {
       if (!usuarioAtual?.id) {
         return [];
@@ -668,12 +746,12 @@ export function TelaRelatorio() {
       return all.filter(
         (item) =>
           !item.deletadoEm &&
-          item.areaId === areaAtiva?.id &&
+          (areaFiltroId === ALL_AREAS_FILTER || item.areaId === areaFiltroId) &&
           (item.usuarioId === usuarioAtual.id ||
             avaliacaoIdsAcessiveis.has(item.id)),
       );
     },
-    enabled: Boolean(usuarioAtual?.id && areaAtiva?.id),
+    enabled: Boolean(usuarioAtual?.id),
   });
 
   const { data: ruas = [] } = useQuery({
@@ -713,11 +791,29 @@ export function TelaRelatorio() {
 
   const avaliacoes = useMemo(
     () =>
-      avaliacoesHistorico.filter((item) => normalizeDateKey(item.dataAvaliacao) === dataFiltro),
+      avaliacoesHistorico.filter((item) =>
+        avaliacaoPertenceDataRelatorio(item, dataFiltro),
+      ),
     [avaliacoesHistorico, dataFiltro],
   );
-  const limiteCocosAtivo = areaAtiva?.limiteCocosChao ?? config?.limiteCocosChao ?? 19;
-  const limiteCachosAtivo = areaAtiva?.limiteCachos ?? config?.limiteCachos3Cocos ?? 19;
+  const fallbackLimiteCocos = areaAtiva?.limiteCocosChao ?? config?.limiteCocosChao ?? 19;
+  const fallbackLimiteCachos = areaAtiva?.limiteCachos ?? config?.limiteCachos3Cocos ?? 19;
+  const limitesAreaSelecionada = getLimitesAreaRelatorio({
+    areaId: areaSelecionada?.id,
+    areasMap,
+    fallbackCocos: fallbackLimiteCocos,
+    fallbackCachos: fallbackLimiteCachos,
+  });
+  const limiteCocosAtivo = areaSelecionada
+    ? limitesAreaSelecionada.limiteCocosChao
+    : fallbackLimiteCocos;
+  const limiteCachosAtivo = areaSelecionada
+    ? limitesAreaSelecionada.limiteCachos
+    : fallbackLimiteCachos;
+  const limitesRelatorioTexto = areaSelecionada
+    ? `Limites: cocos no chão ${limiteCocosAtivo} · cachos ${limiteCachosAtivo}`
+    : 'Limites conforme a área de cada avaliação';
+  const exibirAreaNosResultados = areaFiltroId === ALL_AREAS_FILTER;
 
   const avaliacaoIds = useMemo(
     () => new Set(avaliacoes.map((item) => item.id)),
@@ -800,12 +896,24 @@ export function TelaRelatorio() {
       )
       .map((item) => ({
         id: item.id,
+        avaliacao: avaliacoesHistoricoMap.get(item.avaliacaoId || ''),
         equipe: formatEquipeRelatorio(item.equipeNome),
         equipeSort: getEquipeSortValue(item.equipeNome),
         data: normalizeDateKey(item.data) || dataFiltro,
         cargas: Number(item.cargas || 0),
         bags: Number(item.bags || 0),
         cocosEstimados: Number(item.cocosEstimados || 0),
+      }))
+      .map((item) => ({
+        id: item.id,
+        areaId: item.avaliacao?.areaId || '',
+        areaNome: getAreaRelatorioLabel(item.avaliacao?.areaId, areasMap),
+        equipe: item.equipe,
+        equipeSort: item.equipeSort,
+        data: item.data,
+        cargas: item.cargas,
+        bags: item.bags,
+        cocosEstimados: item.cocosEstimados,
       }));
 
     retoques
@@ -818,6 +926,9 @@ export function TelaRelatorio() {
             avaliacaoHistoricoIds.has(item.avaliacaoOriginalId)),
       )
       .forEach((item) => {
+        const avaliacao =
+          avaliacoesHistoricoMap.get(item.avaliacaoId || '') ||
+          avaliacoesHistoricoMap.get(item.avaliacaoOriginalId || '');
         const calculado = calcularProducaoPorCargas(
           item.quantidadeCargas,
           configAtual,
@@ -826,6 +937,8 @@ export function TelaRelatorio() {
         const cocosEstimados = Number(item.cocosEstimados || bags * configAtual.cocosPorBag);
         eventos.push({
           id: item.id,
+          areaId: avaliacao?.areaId || '',
+          areaNome: getAreaRelatorioLabel(avaliacao?.areaId, areasMap),
           equipe: formatEquipeRelatorio(item.equipeNome),
           equipeSort: getEquipeSortValue(item.equipeNome),
           data: normalizeDateKey(item.dataRetoque) || dataFiltro,
@@ -838,6 +951,8 @@ export function TelaRelatorio() {
     return eventos;
   }, [
     avaliacaoHistoricoIds,
+    avaliacoesHistoricoMap,
+    areasMap,
     config,
     dataFiltro,
     periodoRange,
@@ -847,13 +962,21 @@ export function TelaRelatorio() {
 
   const relatorioEquipesAvancado = useMemo<RelatorioEquipeAvancado[]>(() => {
     const groups = new Map<string, RelatorioEquipeAvancado>();
-    const ensureGroup = (equipe: string, equipeSort: number) => {
-      const key = equipe || '--';
+    const ensureGroup = (
+      areaId: string,
+      areaNome: string,
+      equipe: string,
+      equipeSort: number,
+    ) => {
+      const key = `${areaId || 'sem-area'}::${equipe || '--'}`;
       const current = groups.get(key);
       if (current) return current;
 
       const created: RelatorioEquipeAvancado = {
-        equipe: key,
+        key,
+        areaId,
+        areaNome,
+        equipe: equipe || '--',
         equipeSort,
         totalCargas: 0,
         totalBags: 0,
@@ -868,7 +991,12 @@ export function TelaRelatorio() {
     };
 
     producaoEventos.forEach((item) => {
-      const group = ensureGroup(item.equipe, item.equipeSort);
+      const group = ensureGroup(
+        item.areaId,
+        item.areaNome,
+        item.equipe,
+        item.equipeSort,
+      );
       group.totalCargas += item.cargas;
       group.totalBags += item.bags;
       group.totalCocos += item.cocosEstimados;
@@ -884,6 +1012,10 @@ export function TelaRelatorio() {
         }
 
         const dataRegistro =
+          getDataBaseRelatorio({
+            dataColheita: avaliacao.dataColheita || '',
+            dataAvaliacao: rua.dataAvaliacao || avaliacao.dataAvaliacao || '',
+          }) ||
           normalizeDateKey(registro.registradoEm) ||
           normalizeDateKey(rua.dataAvaliacao) ||
           normalizeDateKey(avaliacao.dataAvaliacao);
@@ -893,6 +1025,8 @@ export function TelaRelatorio() {
 
         const equipe = formatEquipeRelatorio(rua.equipeNome || avaliacao.equipeNome);
         const group = ensureGroup(
+          avaliacao.areaId || '',
+          getAreaRelatorioLabel(avaliacao.areaId, areasMap),
           equipe,
           getEquipeSortValue(rua.equipeNome || avaliacao.equipeNome),
         );
@@ -911,12 +1045,16 @@ export function TelaRelatorio() {
         indiceCachos: item.registros > 0 ? item.indiceCachos / item.registros : 0,
       }))
       .sort((a, b) => {
+        if (a.areaNome !== b.areaNome) {
+          return a.areaNome.localeCompare(b.areaNome, 'pt-BR', { numeric: true });
+        }
         if (a.equipeSort !== b.equipeSort) return a.equipeSort - b.equipeSort;
         return a.equipe.localeCompare(b.equipe, 'pt-BR', { numeric: true });
       });
   }, [
     avaliacaoHistoricoIds,
     avaliacoesHistoricoMap,
+    areasMap,
     periodoRange,
     producaoEventos,
     registros,
@@ -979,14 +1117,21 @@ export function TelaRelatorio() {
       )
       .map((rua) => {
         const avaliacao = avaliacaoMap.get(rua.avaliacaoId);
+        const areaNome = getAreaRelatorioLabel(avaliacao?.areaId, areasMap);
         return {
           id: rua.id,
           avaliacaoId: rua.avaliacaoId,
+          areaId: avaliacao?.areaId || '',
+          areaNome,
           parcela:
             parcelaCodigoMap.get(rua.avaliacaoParcelaId) ||
             avaliacao?.parcelaCodigo ||
             'Parcela',
-          data: rua.dataAvaliacao || avaliacao?.dataAvaliacao || dataFiltro,
+          data:
+            avaliacao?.dataColheita ||
+            rua.dataAvaliacao ||
+            avaliacao?.dataAvaliacao ||
+            dataFiltro,
           equipe: formatEquipeRelatorio(rua.equipeNome),
           equipeSort: getEquipeSortValue(rua.equipeNome),
           linhaInicial: Number(rua.linhaInicial || 0),
@@ -996,6 +1141,9 @@ export function TelaRelatorio() {
         };
       })
       .sort((a, b) => {
+        if (a.areaNome !== b.areaNome) {
+          return a.areaNome.localeCompare(b.areaNome, 'pt-BR', { numeric: true });
+        }
         if (a.parcela !== b.parcela) {
           return a.parcela.localeCompare(b.parcela, 'pt-BR', { numeric: true });
         }
@@ -1010,13 +1158,14 @@ export function TelaRelatorio() {
         }
         return a.linhaFinal - b.linhaFinal;
       });
-  }, [avaliacaoIds, avaliacoes, dataFiltro, parcelaCodigoMap, registros, ruas]);
+  }, [areasMap, avaliacaoIds, avaliacoes, dataFiltro, parcelaCodigoMap, registros, ruas]);
 
   const gruposConsolidados = useMemo(() => {
     const groups = new Map<
       string,
       {
         id: string;
+        areaNome: string;
         equipe: string;
         equipeSort: number;
         data: string;
@@ -1027,13 +1176,14 @@ export function TelaRelatorio() {
     >();
 
     linhasDoDia.forEach((item) => {
-      const key = `${item.equipe}::${item.data}`;
+      const key = `${item.areaId || 'sem-area'}::${item.equipe}::${item.data}`;
       const current = groups.get(key);
       const responsaveis = responsaveisPorAvaliacao[item.avaliacaoId] || [];
 
       if (!current) {
         groups.set(key, {
           id: key,
+          areaNome: item.areaNome,
           equipe: item.equipe,
           equipeSort: item.equipeSort,
           data: item.data,
@@ -1062,6 +1212,9 @@ export function TelaRelatorio() {
         ),
       }))
       .sort((a, b) => {
+        if (a.areaNome !== b.areaNome) {
+          return a.areaNome.localeCompare(b.areaNome, 'pt-BR', { numeric: true });
+        }
         if (a.equipeSort !== b.equipeSort) {
           return a.equipeSort - b.equipeSort;
         }
@@ -1080,6 +1233,7 @@ export function TelaRelatorio() {
       string,
       {
         id: string;
+        areaNome: string;
         equipe: string;
         equipeSort: number;
         data: string;
@@ -1093,13 +1247,18 @@ export function TelaRelatorio() {
       .filter((item) => !item.deletadoEm && avaliacaoMap.has(item.avaliacaoId))
       .forEach((rua) => {
         const avaliacao = avaliacaoMap.get(rua.avaliacaoId);
-        const data = normalizeDateKey(rua.dataAvaliacao || avaliacao?.dataAvaliacao);
+        const data =
+          getDataBaseRelatorio({
+            dataColheita: avaliacao?.dataColheita || '',
+            dataAvaliacao: rua.dataAvaliacao || avaliacao?.dataAvaliacao || '',
+          }) || '';
         if (!data || data > dataFiltro) {
           return;
         }
 
         const equipe = formatEquipeRelatorio(rua.equipeNome || avaliacao?.equipeNome);
-        const key = `${equipe}::${data}`;
+        const areaNome = getAreaRelatorioLabel(avaliacao?.areaId, areasMap);
+        const key = `${avaliacao?.areaId || 'sem-area'}::${equipe}::${data}`;
         const current = groups.get(key);
         const responsaveis = responsaveisPorAvaliacao[rua.avaliacaoId] || [];
         const parcela =
@@ -1110,6 +1269,7 @@ export function TelaRelatorio() {
         if (!current) {
           groups.set(key, {
             id: key,
+            areaNome,
             equipe,
             equipeSort: getEquipeSortValue(rua.equipeNome || avaliacao?.equipeNome),
             data,
@@ -1138,6 +1298,9 @@ export function TelaRelatorio() {
         ),
       }))
       .sort((a, b) => {
+        if (a.areaNome !== b.areaNome) {
+          return a.areaNome.localeCompare(b.areaNome, 'pt-BR', { numeric: true });
+        }
         if (a.equipeSort !== b.equipeSort) {
           return a.equipeSort - b.equipeSort;
         }
@@ -1146,13 +1309,21 @@ export function TelaRelatorio() {
         }
         return b.data.localeCompare(a.data, 'pt-BR', { numeric: true });
       });
-  }, [avaliacoesHistorico, dataFiltro, parcelaCodigoMap, responsaveisPorAvaliacao, ruas]);
+  }, [
+    areasMap,
+    avaliacoesHistorico,
+    dataFiltro,
+    parcelaCodigoMap,
+    responsaveisPorAvaliacao,
+    ruas,
+  ]);
 
   const historicoPorEquipe = useMemo(() => {
     const janelaDatas = buildDateWindowRelatorio(dataFiltro, TEAM_HISTORY_DAYS);
     const groups = new Map<
       string,
       {
+        areaNome: string;
         equipe: string;
         equipeSort: number;
         registros: GrupoHistoricoEquipe[];
@@ -1160,13 +1331,15 @@ export function TelaRelatorio() {
     >();
 
     gruposHistoricoEquipes.forEach((item) => {
-      const current = groups.get(item.equipe) || {
+      const key = `${item.areaNome}::${item.equipe}`;
+      const current = groups.get(key) || {
+        areaNome: item.areaNome,
         equipe: item.equipe,
         equipeSort: item.equipeSort,
         registros: [],
       };
       current.registros.push(item);
-      groups.set(item.equipe, current);
+      groups.set(key, current);
     });
 
     return Array.from(groups.values())
@@ -1188,6 +1361,9 @@ export function TelaRelatorio() {
         };
       })
       .sort((a, b) => {
+        if (a.areaNome !== b.areaNome) {
+          return a.areaNome.localeCompare(b.areaNome, 'pt-BR', { numeric: true });
+        }
         if (a.equipeSort !== b.equipeSort) {
           return a.equipeSort - b.equipeSort;
         }
@@ -1198,7 +1374,7 @@ export function TelaRelatorio() {
   const stats = useMemo(() => {
     const avaliacaoIdsComDados = new Set(linhasDoDia.map((item) => item.avaliacaoId));
     const equipes = new Set(
-      linhasDoDia.map((item) => item.equipe).filter(Boolean),
+      linhasDoDia.map((item) => `${item.areaId || 'sem-area'}::${item.equipe}`).filter(Boolean),
     ).size;
     const parcelas = new Set(
       linhasDoDia.map((item) => item.parcela).filter(Boolean),
@@ -1240,6 +1416,7 @@ export function TelaRelatorio() {
     setGerando(true);
     try {
       const allColaboradores = await repository.list('colaboradores');
+      const allAreas = await repository.list('areas');
       const allParcelas = await repository.list('parcelas');
       const allConfigs = await repository.list('configuracoes');
       const allAvaliacaoColaboradores = await repository.list(
@@ -1251,6 +1428,9 @@ export function TelaRelatorio() {
       const allRetoques = await repository.list('avaliacaoRetoques');
 
       const colabMap = new Map(allColaboradores.map((item) => [item.id, item]));
+      const pdfAreasMap = new Map(
+        allAreas.filter((item) => !item.deletadoEm).map((item) => [item.id, item]),
+      );
       const retoqueByAvaliacaoId = new Map(
         allRetoques
           .filter((item) => !item.deletadoEm)
@@ -1267,8 +1447,6 @@ export function TelaRelatorio() {
       );
       const parcelMap = new Map(allParcelas.map((item) => [item.id, item.codigo]));
       const configAtual = mergeConfiguracaoComPadrao(allConfigs[0] || config);
-      const limiteCocos = limiteCocosAtivo;
-      const limiteCachos = limiteCachosAtivo;
       const registroPorRuaId = new Map(
         allRegistros
           .filter((item) => !item.deletadoEm)
@@ -1341,8 +1519,19 @@ export function TelaRelatorio() {
           continue;
           }
 
-          const dataRelatorio = rua.dataAvaliacao || avaliacao.dataAvaliacao;
+          const dataRelatorio =
+            avaliacao.dataColheita ||
+            rua.dataAvaliacao ||
+            avaliacao.dataAvaliacao ||
+            dataFiltro;
           const dataColheita = avaliacao.dataColheita || dataRelatorio;
+          const areaNome = getAreaRelatorioLabel(avaliacao.areaId, pdfAreasMap);
+          const limitesDaAvaliacao = getLimitesAreaRelatorio({
+            areaId: avaliacao.areaId,
+            areasMap: pdfAreasMap,
+            fallbackCocos: fallbackLimiteCocos,
+            fallbackCachos: fallbackLimiteCachos,
+          });
           const referente = montarReferenteRelatorio(dataColheita);
           const observacoesRegistro = registro?.observacoes || avaliacao.observacoes || '';
           const observacaoBase = montarObservacaoRelatorio(observacoesRegistro);
@@ -1387,6 +1576,8 @@ export function TelaRelatorio() {
 
           rows.push({
             id: rua.id,
+            areaId: avaliacao.areaId || '',
+            areaNome,
             data: dataRelatorio,
             dataColheita,
             parcela:
@@ -1420,17 +1611,28 @@ export function TelaRelatorio() {
             responsaveisLista,
             observacao,
             excedeuCacho: !apresentacaoColeta.faltaColher
-              ? excedeuLimiteRelatorio(apresentacaoColeta.quantidadeCachos3, limiteCachos)
+              ? excedeuLimiteRelatorio(
+                  apresentacaoColeta.quantidadeCachos3,
+                  limitesDaAvaliacao.limiteCachos,
+                )
               : false,
             excedeuCocos:
               !apresentacaoColeta.faltaTropear && !apresentacaoColeta.faltaColher
-                ? excedeuLimiteRelatorio(apresentacaoColeta.quantidade, limiteCocos)
+                ? excedeuLimiteRelatorio(
+                    apresentacaoColeta.quantidade,
+                    limitesDaAvaliacao.limiteCocosChao,
+                  )
               : false,
           });
         }
       }
 
       rows.sort((a, b) => {
+        if (a.areaNome !== b.areaNome) {
+          return String(a.areaNome).localeCompare(String(b.areaNome), 'pt-BR', {
+            numeric: true,
+          });
+        }
         if (a.equipeSort !== b.equipeSort) {
           return a.equipeSort - b.equipeSort;
         }
@@ -1476,7 +1678,7 @@ export function TelaRelatorio() {
 
       rows.forEach((row) => {
         const colheitaKey = row.dataColheita || row.referente || 'sem_colheita';
-        const groupKey = `${row.equipeKey}::${colheitaKey}`;
+        const groupKey = `${row.areaId || 'sem-area'}::${row.equipeKey}::${colheitaKey}`;
         if (!groupedRows.has(groupKey)) {
           groupedRows.set(groupKey, {
             key: groupKey,
@@ -1500,6 +1702,11 @@ export function TelaRelatorio() {
 
       const teamGroups: RelatorioPdfGroup[] = Array.from(groupedRows.values())
         .sort((a, b) => {
+          const areaA = a.rows[0]?.areaNome || '';
+          const areaB = b.rows[0]?.areaNome || '';
+          if (areaA !== areaB) {
+            return areaA.localeCompare(areaB, 'pt-BR', { numeric: true });
+          }
           if (a.equipeSort !== b.equipeSort) {
             return a.equipeSort - b.equipeSort;
           }
@@ -1536,7 +1743,10 @@ export function TelaRelatorio() {
 
       const blob = await createRelatorioPdfBlob({
         dataTitulo: formatDateTimeLabel(dataFiltro).split(' ')[0],
-        referenteLabel: `Área ${areaAtiva?.nome || '--'} | Limites: cocos ${limiteCocos} / cachos ${limiteCachos}`,
+        referenteLabel:
+          areaFiltroId === ALL_AREAS_FILTER
+            ? 'Todas as áreas | Limites conforme a área da avaliação'
+            : `Área ${areaRelatorioNome} | Limites: cocos ${limiteCocosAtivo} / cachos ${limiteCachosAtivo}`,
         footerCode: `Gerado por ${
           usuarioAtual?.nome || 'Sistema'
         } em ${new Date().toLocaleString()}`,
@@ -1587,15 +1797,34 @@ export function TelaRelatorio() {
                 </div>
               </div>
 
+              <div className="space-y-2">
+                <label className="px-1 text-[10px] font-extrabold uppercase tracking-[0.22em] text-[var(--qc-secondary)]">
+                  Área consultada
+                </label>
+                <Select value={areaFiltroId} onValueChange={setAreaFiltroId}>
+                  <SelectTrigger className="h-11 rounded-[16px]">
+                    <SelectValue placeholder="Selecione a área" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ALL_AREAS_FILTER}>Todas as áreas</SelectItem>
+                    {areasAtivas.map((area) => (
+                      <SelectItem key={area.id} value={area.id}>
+                        {area.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="rounded-[20px] border border-[var(--qc-border)] bg-white p-4">
                 <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[var(--qc-secondary)]">
                   Área do relatório
                 </p>
                 <p className="mt-1 text-base font-black text-[var(--qc-text)]">
-                  {areaAtiva?.nome || '--'}
+                  {areaRelatorioNome}
                 </p>
                 <p className="mt-2 text-sm font-semibold text-[var(--qc-secondary)]">
-                  Limites: cocos no chão {limiteCocosAtivo} · cachos {limiteCachosAtivo}
+                  {limitesRelatorioTexto}
                 </p>
               </div>
 
@@ -1789,13 +2018,18 @@ export function TelaRelatorio() {
                     <div className="mt-3 stack-sm">
                       {rankingEquipes.slice(0, 3).map((item, index) => (
                         <div
-                          key={item.equipe}
+                          key={item.key}
                           className="flex items-center justify-between gap-3 rounded-[16px] border border-[var(--qc-border)] bg-[var(--qc-surface-muted)] px-3 py-2"
                         >
                           <div>
                             <p className="text-sm font-black text-[var(--qc-text)]">
                               {MEDALHAS_RANKING[index] || `${index + 1}º`} {index + 1}º lugar · Equipe {item.equipe}
                             </p>
+                            {exibirAreaNosResultados ? (
+                              <p className="text-[11px] font-semibold text-[var(--qc-text-muted)]">
+                                {item.areaNome}
+                              </p>
+                            ) : null}
                             <p className="text-xs text-[var(--qc-text-muted)]">
                               Coco chão {formatarProducaoNumero(item.indiceCocosChao)} · Cachos {formatarProducaoNumero(item.indiceCachos)}
                             </p>
@@ -1826,13 +2060,18 @@ export function TelaRelatorio() {
                     <div className="mt-3 stack-sm">
                       {relatorioEquipesAvancado.map((item) => (
                         <div
-                          key={item.equipe}
+                          key={item.key}
                           className="rounded-[16px] border border-[var(--qc-border)] bg-[var(--qc-surface-muted)] p-3"
                         >
                           <div className="flex items-center justify-between gap-3">
                             <p className="text-sm font-black text-[var(--qc-text)]">
                               Equipe {item.equipe}
                             </p>
+                            {exibirAreaNosResultados ? (
+                              <p className="text-xs font-semibold text-[var(--qc-text-muted)]">
+                                {item.areaNome}
+                              </p>
+                            ) : null}
                             <span className="text-sm font-black tabular-nums text-[#1f61a4]">
                               {formatarProducaoNumero(item.totalBags)} bags
                             </span>
@@ -1947,6 +2186,11 @@ export function TelaRelatorio() {
                         <p className="truncate text-lg font-black tracking-tight text-[var(--qc-text)]">
                           Equipe {item.equipe}
                         </p>
+                        {exibirAreaNosResultados ? (
+                          <p className="mt-1 text-xs font-semibold text-[var(--qc-text-muted)]">
+                            {item.areaNome}
+                          </p>
+                        ) : null}
                         <p className="mt-1 text-xs font-medium uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
                           {formatDateTimeLabel(item.data).split(' ')[0]}
                         </p>
@@ -2020,13 +2264,21 @@ export function TelaRelatorio() {
           ) : (
             <div className="stack-md">
               {historicoPorEquipe.map((item) => (
-                <Card key={item.equipe} className="surface-card border-none shadow-sm">
+                <Card
+                  key={`${item.areaNome}::${item.equipe}`}
+                  className="surface-card border-none shadow-sm"
+                >
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="truncate text-lg font-black tracking-tight text-[var(--qc-text)]">
                           Equipe {item.equipe}
                         </p>
+                        {exibirAreaNosResultados ? (
+                          <p className="mt-1 text-xs font-semibold text-[var(--qc-text-muted)]">
+                            {item.areaNome}
+                          </p>
+                        ) : null}
                         <p className="mt-1 text-sm text-[var(--qc-text-muted)]">
                           {formatResumoContagem(item.totalParcelas, 'parcela', 'parcelas')} no histórico
                         </p>

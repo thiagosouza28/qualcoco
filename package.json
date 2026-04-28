@@ -1,7 +1,7 @@
 {
   "name": "qualcoco",
   "private": true,
-  "version": "1.0.92",
+  "version": "1.0.94",
   "type": "module",
   "scripts": {
     "dev": "vite",
