@@ -135,9 +135,9 @@ export function TelaDetalheAvaliacao() {
   };
 
   const { data, isFetched } = useQuery({
-    queryKey: ['avaliacao', id, 'detalhe', usuarioAtual?.id, areaAtiva?.id],
-    queryFn: () => obterAvaliacaoDetalhada(id, usuarioAtual?.id, areaAtiva?.id),
-    enabled: Boolean(id && usuarioAtual?.id && areaAtiva?.id),
+    queryKey: ['avaliacao', id, 'detalhe', usuarioAtual?.id],
+    queryFn: () => obterAvaliacaoDetalhada(id, usuarioAtual?.id),
+    enabled: Boolean(id && usuarioAtual?.id),
   });
 
   const { data: colaboradoresAtivos = [] } = useQuery({
@@ -192,8 +192,14 @@ export function TelaDetalheAvaliacao() {
     () => calcularProducaoPorCargas(retoqueCargas, config),
     [config, retoqueCargas],
   );
-  const limiteCachosAtivo = areaAtiva?.limiteCachos ?? config?.limiteCachos3Cocos;
-  const limiteCocosAtivo = areaAtiva?.limiteCocosChao ?? config?.limiteCocosChao;
+  const limiteCachosAtivo =
+    data?.limitesOperacionais?.limiteCachos ??
+    areaAtiva?.limiteCachos ??
+    config?.limiteCachos3Cocos;
+  const limiteCocosAtivo =
+    data?.limitesOperacionais?.limiteCocos ??
+    areaAtiva?.limiteCocosChao ??
+    config?.limiteCocosChao;
   const podeInformarRetoque = canOperateAssignedRetoque({
     perfil: usuarioAtual?.perfil,
     usuarioId: usuarioAtual?.id,

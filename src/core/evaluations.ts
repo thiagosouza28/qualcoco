@@ -1652,6 +1652,7 @@ export const obterAvaliacaoDetalhada = async (
     retoquesBase,
     colaboradoresBase,
     parcelasCatalogo,
+    limitesOperacionais,
   ] = await Promise.all([
     repository.filter(
       'avaliacaoParcelas',
@@ -1688,6 +1689,7 @@ export const obterAvaliacaoDetalhada = async (
     repository.list('avaliacaoRetoques'),
     repository.list('colaboradores'),
     repository.list('parcelas'),
+    resolverLimitesAvaliacao(avaliacao),
   ]);
 
   const colaboradoresMap = new Map(
@@ -1780,6 +1782,7 @@ export const obterAvaliacaoDetalhada = async (
     avaliacaoOriginal,
     retoquesRelacionados,
     parcelasCatalogo: parcelasMap,
+    limitesOperacionais,
   };
 };
 
