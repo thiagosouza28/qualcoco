@@ -116,6 +116,17 @@ const PERMISSOES_ADMIN_TOTAL: PermissoesPerfil = criarPermissoesPerfil({
   editarLimitesOperacionais: true,
 });
 
+const PERMISSOES_FISCAL_CHEFE_OPERACIONAL: Partial<PermissoesPerfil> = {
+  verHistorico: true,
+  verRelatorios: true,
+  verSincronizacao: true,
+  iniciarAvaliacao: true,
+  editarAvaliacaoConcluida: true,
+  iniciarRetoque: true,
+  marcarRetoque: true,
+  visaoTotal: true,
+};
+
 export const DEFAULT_PERMISSOES_PERFIS: MatrizPermissoesPerfis = {
   colaborador: criarPermissoesPerfil({
     iniciarAvaliacao: true,
@@ -124,6 +135,8 @@ export const DEFAULT_PERMISSOES_PERFIS: MatrizPermissoesPerfis = {
   }),
   fiscal: criarPermissoesPerfil({}),
   fiscal_chefe: criarPermissoesPerfil({
+    iniciarAvaliacao: true,
+    editarAvaliacaoConcluida: true,
     iniciarRetoque: true,
     marcarRetoque: true,
     visaoTotal: true,
@@ -155,6 +168,7 @@ export const normalizePermissoesPerfisConfig = (
     acc[perfil] = criarPermissoesPerfil({
       ...DEFAULT_PERMISSOES_PERFIS[perfil],
       ...(value?.[perfil] || {}),
+      ...(perfil === 'fiscal_chefe' ? PERMISSOES_FISCAL_CHEFE_OPERACIONAL : {}),
     });
     return acc;
   }, {} as MatrizPermissoesPerfis);
@@ -195,6 +209,9 @@ export const isFiscal = (perfil?: string | null) =>
 
 export const isFiscalChefe = (perfil?: string | null) =>
   normalizePerfilUsuario(perfil) === 'fiscal_chefe';
+
+export const canBypassAreaSelection = (perfil?: string | null) =>
+  isAdministrador(perfil) || isFiscalChefe(perfil);
 
 export const hasPermission = (
   perfil: string | null | undefined,

@@ -2,6 +2,7 @@ import { ChevronLeft } from 'lucide-react';
 import { AppBottomNav } from '@/components/AppBottomNav';
 import { Button } from '@/components/ui/button';
 import { useCampoApp } from '@/core/AppProvider';
+import { canBypassAreaSelection } from '@/core/permissions';
 import { cn } from '@/utils';
 
 type LayoutMobileProps = {
@@ -29,7 +30,8 @@ export function LayoutMobile({
   showBottomNav = false,
   children,
 }: LayoutMobileProps) {
-  const { areaAtiva } = useCampoApp();
+  const { areaAtiva, usuarioAtual } = useCampoApp();
+  const areaSelectionOptional = canBypassAreaSelection(usuarioAtual?.perfil);
 
   return (
     <main
@@ -80,9 +82,9 @@ export function LayoutMobile({
               {subtitle ? (
                 <p className="app-page-header__subtitle">{subtitle}</p>
               ) : null}
-              {areaAtiva ? (
+              {areaAtiva || areaSelectionOptional ? (
                 <p className="mt-1 inline-flex w-fit rounded-full border border-[var(--qc-border)] bg-[var(--qc-surface-muted)] px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.14em] text-[var(--qc-secondary)]">
-                  Área: {areaAtiva.nome}
+                  Área: {areaAtiva?.nome || 'Todas as áreas'}
                 </p>
               ) : null}
             </div>

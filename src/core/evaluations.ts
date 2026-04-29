@@ -2689,7 +2689,7 @@ export const estatisticasDashboard = async (
   colaboradorId?: string,
   areaId?: string,
 ) => {
-  if (!colaboradorId || !areaId) {
+  if (!colaboradorId) {
     return EMPTY_DASHBOARD_STATS;
   }
 

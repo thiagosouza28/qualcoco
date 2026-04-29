@@ -36,6 +36,7 @@ import {
   normalizarLinhaInicialPorAlinhamento,
 } from '@/core/plots';
 import {
+  canBypassAreaSelection,
   canEditCompletedEvaluation,
   canStartEvaluation,
   filtrarEquipesVisiveis,
@@ -202,6 +203,8 @@ export function TelaNovaAvaliacao() {
   const queryClient = useQueryClient();
   const { usuarioAtual, dispositivo, session, areaAtiva } = useCampoApp();
   const { permissionMatrix } = useRolePermissions(usuarioAtual?.perfil);
+  const areaSelectionOptional = canBypassAreaSelection(usuarioAtual?.perfil);
+  const areaScopeReady = Boolean(areaAtiva?.id || areaSelectionOptional);
   const isEditMode = Boolean(editingId);
   const initializedEditRef = useRef<string | null>(null);
   const plannedParcelInitRef = useRef<string | null>(null);
@@ -258,7 +261,7 @@ export function TelaNovaAvaliacao() {
         equipeId: session?.equipeDiaId || null,
         incluirConcluidas: false,
       }),
-    enabled: Boolean(usuarioAtual?.id && areaAtiva?.id),
+    enabled: Boolean(usuarioAtual?.id && areaScopeReady),
   });
   const {
     data: editData,
@@ -267,10 +270,25 @@ export function TelaNovaAvaliacao() {
   } = useQuery({
     queryKey: ['avaliacao', editingId, 'editar', usuarioAtual?.id, areaAtiva?.id],
     queryFn: () => obterAvaliacaoDetalhada(editingId, usuarioAtual?.id, areaAtiva?.id),
-    enabled: Boolean(isEditMode && editingId && usuarioAtual?.id && areaAtiva?.id),
+    enabled: Boolean(isEditMode && editingId && usuarioAtual?.id && areaScopeReady),
   });
   const dataAvaliacaoEdicao =
     editData?.avaliacao?.dataAvaliacao || todayIso();
+  const parcelasPlanejadasSelecionadas = useMemo(() => {
+    const idsSelecionados = new Set(parcelaPlanejadaIds);
+    return parcelasPlanejadas.filter((item) => idsSelecionados.has(item.id));
+  }, [parcelaPlanejadaIds, parcelasPlanejadas]);
+  const areaIdsParcelasPlanejadasSelecionadas = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          parcelasPlanejadasSelecionadas
+            .map((item) => String(item.areaId || '').trim())
+            .filter(Boolean),
+        ),
+      ),
+    [parcelasPlanejadasSelecionadas],
+  );
 
   const parcelasCatalogo = useMemo(() => {
     const unicas = new Map<string, (typeof parcelas)[number]>();
@@ -1162,15 +1180,30 @@ export function TelaNovaAvaliacao() {
       if (!responsavelId) {
         throw new Error('Defina um responsável principal antes de iniciar.');
       }
-      if (!areaAtiva?.id) {
-        throw new Error('Selecione uma área antes de iniciar.');
+      if (!areaAtiva?.id && areaIdsParcelasPlanejadasSelecionadas.length > 1) {
+        throw new Error(
+          'Selecione uma área antes de iniciar com parcelas planejadas de áreas diferentes.',
+        );
+      }
+
+      const areaIdSelecionada =
+        areaAtiva?.id ||
+        editData?.avaliacao?.areaId ||
+        areaIdsParcelasPlanejadasSelecionadas[0] ||
+        '';
+      if (!areaIdSelecionada) {
+        throw new Error(
+          areaSelectionOptional
+            ? 'Selecione uma parcela planejada da área ou escolha uma área antes de iniciar.'
+            : 'Selecione uma área antes de iniciar.',
+        );
       }
       if (temMaisPessoas === true && participanteIds.length === 0) {
         throw new Error('Selecione ao menos um ajudante para continuar.');
       }
 
       const payload = {
-        areaId: areaAtiva.id,
+        areaId: areaIdSelecionada,
         usuarioId: responsavelId || usuarioAtual?.id || '',
         dispositivoId: dispositivo.id,
         dataColheita,

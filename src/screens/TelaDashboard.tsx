@@ -38,6 +38,7 @@ import {
 } from '@/core/evaluations';
 import { useCampoApp } from '@/core/AppProvider';
 import {
+  canBypassAreaSelection,
   canOperateAssignedRetoque,
   canManageTeams,
   canStartEvaluation,
@@ -169,12 +170,14 @@ export function TelaDashboard() {
   } = useCampoApp();
   const { permissionMatrix, permissions } = useRolePermissions(usuarioAtual?.perfil);
   const perfilNormalizado = normalizePerfilUsuario(usuarioAtual?.perfil);
+  const areaSelectionOptional = canBypassAreaSelection(usuarioAtual?.perfil);
+  const areaScopeReady = Boolean(areaAtiva?.id || areaSelectionOptional);
   const dataFilaDia = todayIso();
 
   const { data: stats } = useQuery({
     queryKey: ['dashboard', 'stats', usuarioAtual?.id, areaAtiva?.id],
     queryFn: () => estatisticasDashboard(usuarioAtual?.id, areaAtiva?.id),
-    enabled: Boolean(usuarioAtual?.id && areaAtiva?.id),
+    enabled: Boolean(usuarioAtual?.id && areaScopeReady),
     staleTime: 60_000,
   });
 
@@ -185,7 +188,7 @@ export function TelaDashboard() {
         limit: 8,
         areaId: areaAtiva?.id,
       }),
-    enabled: Boolean(usuarioAtual?.id && areaAtiva?.id),
+    enabled: Boolean(usuarioAtual?.id && areaScopeReady),
     staleTime: 30_000,
   });
   const { data: equipesVisiveis = [] } = useQuery({
@@ -217,7 +220,7 @@ export function TelaDashboard() {
         dataColheita: dataFilaDia,
         incluirConcluidas: false,
       }),
-    enabled: Boolean(usuarioAtual?.id && areaAtiva?.id),
+    enabled: Boolean(usuarioAtual?.id && areaScopeReady),
     staleTime: 20_000,
   });
 
@@ -333,14 +336,16 @@ export function TelaDashboard() {
               <h1 className="truncate text-[2rem] font-black tracking-[-0.05em] text-[var(--qc-primary)]">
                 QualCoco
               </h1>
-              {areaAtiva ? (
+              {areaAtiva || areaSelectionOptional ? (
                 <button
                   type="button"
                   className="mt-1 flex max-w-full items-center gap-1.5 rounded-full border border-[var(--qc-border)] bg-[var(--qc-surface-muted)] px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.12em] text-[var(--qc-secondary)]"
                   onClick={() => navigate('/areas')}
                 >
                   <MapPinned className="h-3.5 w-3.5 shrink-0" />
-                  <span className="truncate">{areaAtiva.nome}</span>
+                  <span className="truncate">
+                    {areaAtiva?.nome || 'Todas as áreas'}
+                  </span>
                 </button>
               ) : null}
             </div>
@@ -518,7 +523,9 @@ export function TelaDashboard() {
           {parcelasDisponiveisAgrupadas.length === 0 ? (
             <Card className="surface-card border-none shadow-sm">
               <CardContent className="p-4 text-sm text-[var(--qc-text-muted)]">
-                Nenhuma parcela disponível para a equipe atual nesta área.
+                {areaAtiva
+                  ? 'Nenhuma parcela disponível para a equipe atual nesta área.'
+                  : 'Nenhuma parcela disponível para as áreas acessíveis.'}
               </CardContent>
             </Card>
           ) : (

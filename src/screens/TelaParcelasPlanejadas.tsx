@@ -29,7 +29,11 @@ import {
   formatarCodigoParcela,
   normalizarCodigoParcela,
 } from '@/core/parcelCode';
-import { filtrarEquipesVisiveis, normalizePerfilUsuario } from '@/core/permissions';
+import {
+  canBypassAreaSelection,
+  filtrarEquipesVisiveis,
+  normalizePerfilUsuario,
+} from '@/core/permissions';
 import {
   inferirAlinhamentoTipoPorLinha,
   normalizarFaixaAlinhamento,
@@ -252,6 +256,8 @@ export function TelaParcelasPlanejadas() {
   const { usuarioAtual, session, areaAtiva } = useCampoApp();
   const perfil = normalizePerfilUsuario(usuarioAtual?.perfil);
   const administrador = perfil === 'administrador';
+  const areaSelectionOptional = canBypassAreaSelection(usuarioAtual?.perfil);
+  const areaScopeReady = Boolean(areaAtiva?.id || areaSelectionOptional);
   const [rascunho, setRascunho] = useState<ParcelaLoteDraft>(criarRascunhoParcela());
   const [parcelasLote, setParcelasLote] = useState<ParcelaLoteDraft[]>([]);
   const [equipeId, setEquipeId] = useState('');
@@ -282,7 +288,7 @@ export function TelaParcelasPlanejadas() {
         dataColheita,
         incluirConcluidas: true,
       }),
-    enabled: Boolean(usuarioAtual?.id && areaAtiva?.id),
+    enabled: Boolean(usuarioAtual?.id && areaScopeReady),
   });
 
   const { data: parcelasCatalogo = [] } = useQuery({
@@ -419,12 +425,13 @@ export function TelaParcelasPlanejadas() {
         throw new Error('Parcela planejada não encontrada para edição.');
       }
       const validado = normalizarDadosParcelaDigitada(editForm);
-      if (!areaAtiva?.id) {
+      const areaIdEdicao = editingParcela.areaId || areaAtiva?.id || '';
+      if (!areaIdEdicao) {
         throw new Error('Selecione a área antes de editar parcelas.');
       }
 
       return atualizarParcelaPlanejada(editingParcela.id, {
-        areaId: editingParcela.areaId || areaAtiva.id,
+        areaId: areaIdEdicao,
         codigo: validado.codigo,
         equipeId: editForm.equipeId || null,
         alinhamentoInicial: validado.alinhamentoInicial,
@@ -509,6 +516,8 @@ export function TelaParcelasPlanejadas() {
               <p className="mt-1 text-sm leading-relaxed text-[var(--qc-text-muted)]">
                 {areaAtiva
                   ? `${areaAtiva.nome} · Cocos no chão ${areaAtiva.limiteCocosChao} · Cachos ${areaAtiva.limiteCachos}`
+                  : areaSelectionOptional
+                    ? 'Todas as áreas liberadas para consulta e edição.'
                   : 'Selecione uma área antes de cadastrar parcelas.'}
               </p>
             </div>

@@ -25,6 +25,7 @@ import {
 import { saveEntity } from '@/core/repositories';
 import { nowIso } from '@/core/date';
 import {
+  canBypassAreaSelection,
   canEditCompletedEvaluation,
   canOperateAssignedRetoque,
   canStartEvaluation,
@@ -500,6 +501,8 @@ export function TelaRegistroLinhas() {
   const queryClient = useQueryClient();
   const { usuarioAtual, areaAtiva } = useCampoApp();
   const { config, permissionMatrix } = useRolePermissions(usuarioAtual?.perfil);
+  const areaSelectionOptional = canBypassAreaSelection(usuarioAtual?.perfil);
+  const areaScopeReady = Boolean(areaAtiva?.id || areaSelectionOptional);
 
   const [ruaIndex, setRuaIndex] = useState(0);
   const [quantidade, setQuantidade] = useState(0);
@@ -550,7 +553,7 @@ export function TelaRegistroLinhas() {
   const { data, isFetched } = useQuery({
     queryKey: ['avaliacao', id, usuarioAtual?.id, areaAtiva?.id],
     queryFn: () => obterAvaliacaoDetalhada(id, usuarioAtual?.id, areaAtiva?.id),
-    enabled: Boolean(id && usuarioAtual?.id && areaAtiva?.id),
+    enabled: Boolean(id && usuarioAtual?.id && areaScopeReady),
   });
 
   useEffect(() => {
@@ -798,6 +801,55 @@ export function TelaRegistroLinhas() {
       }),
     [observacaoLivre, observacoesDetalhadas, plantasEsquecidas],
   );
+  const coletaAtualSerializada = useMemo(
+    () =>
+      isFluxoRetoque
+        ? { quantidade: 0, quantidadeCachos3: 0 }
+        : serializarEstadoColetaRua({
+            estado: estadoColeta,
+            quantidade,
+            quantidadeCachos3: cachos3,
+          }),
+    [cachos3, estadoColeta, isFluxoRetoque, quantidade],
+  );
+  const coletaAtualTemDados = useMemo(() => {
+    if (!ruaAtual || isFluxoRetoque) {
+      return false;
+    }
+
+    return (
+      coletaAtualSerializada.quantidade !== 0 ||
+      coletaAtualSerializada.quantidadeCachos3 !== 0 ||
+      observacoesResumo.trim().length > 0 ||
+      estadoColeta !== 'normal'
+    );
+  }, [coletaAtualSerializada, estadoColeta, isFluxoRetoque, observacoesResumo, ruaAtual]);
+  const coletaAtualDiferenteDoRegistro = useMemo(() => {
+    if (!ruaAtual || isFluxoRetoque) {
+      return false;
+    }
+
+    if (!registroExistente) {
+      return coletaAtualTemDados || observacoesDraftDirty;
+    }
+
+    return (
+      Number(registroExistente.quantidade || 0) !== coletaAtualSerializada.quantidade ||
+      Number(registroExistente.quantidadeCachos3 || 0) !==
+        coletaAtualSerializada.quantidadeCachos3 ||
+      String(registroExistente.observacoes || '').trim() !==
+        observacoesResumo.trim() ||
+      observacoesDraftDirty
+    );
+  }, [
+    coletaAtualSerializada,
+    coletaAtualTemDados,
+    isFluxoRetoque,
+    observacoesDraftDirty,
+    observacoesResumo,
+    registroExistente,
+    ruaAtual,
+  ]);
   const faltaColherMarcada = estadoColeta === 'falta_colher';
   const faltaTropearMarcada = estadoColeta === 'falta_tropear';
   const siglaCacho = faltaColherMarcada ? 'F.C' : null;
@@ -841,15 +893,6 @@ export function TelaRegistroLinhas() {
     if (ruaId === observacoesDraftRuaId) {
       setObservacoesDraftDirty(false);
     }
-  };
-
-  const navegarParaRua = (nextIndex: number) => {
-    persistCurrentObservacoesDraft();
-    const nextRua = ruas[nextIndex];
-    if (nextRua) {
-      ruaSelecionadaIdRef.current = nextRua.id;
-    }
-    setRuaIndex(nextIndex);
   };
 
   const obterProximaRuaPendente = (
@@ -1234,6 +1277,45 @@ export function TelaRegistroLinhas() {
     },
   });
 
+  const navegarParaRuaPreservandoDados = useCallback(
+    async (nextIndex: number) => {
+      if (nextIndex === ruaIndex) {
+        return true;
+      }
+
+      const nextRua = ruas[nextIndex];
+      if (!nextRua || saveMutation.isPending) {
+        return false;
+      }
+
+      try {
+        if (coletaAtualDiferenteDoRegistro) {
+          await saveMutation.mutateAsync({ next: false });
+        } else {
+          persistCurrentObservacoesDraft();
+        }
+      } catch (error) {
+        alert(
+          error instanceof Error
+            ? error.message
+            : 'Não foi possível salvar os dados antes de trocar de rua.',
+        );
+        return false;
+      }
+
+      ruaSelecionadaIdRef.current = nextRua.id;
+      setRuaIndex(nextIndex);
+      return true;
+    },
+    [
+      coletaAtualDiferenteDoRegistro,
+      persistCurrentObservacoesDraft,
+      ruaIndex,
+      ruas,
+      saveMutation,
+    ],
+  );
+
   const limparFalhaMutation = useMutation({
     mutationFn: async () => {
       if (!ruaAtual) return null;
@@ -1469,18 +1551,6 @@ export function TelaRegistroLinhas() {
         return { cancelled: true };
       }
 
-      if (
-        faixaMudou &&
-        registroExistente &&
-        !confirm(
-          isFluxoRetoque
-            ? 'Esta linha já possui registro. Atualizar apenas as linhas do retoque e manter os dados lançados?'
-            : 'Esta rua já possui registro. Atualizar apenas a rua atual e manter os dados lançados?',
-        )
-      ) {
-        return { cancelled: true };
-      }
-
       const updates = new Map<string, (typeof ruas)[number]>();
       const ruaAtualizada = {
         ...ruaAtual,
@@ -1602,11 +1672,11 @@ export function TelaRegistroLinhas() {
   const handlePrevRua = () => {
     const previousIndex = obterRuaAnteriorValida(ruaIndex);
     if (previousIndex != null) {
-      navegarParaRua(previousIndex);
+      void navegarParaRuaPreservandoDados(previousIndex);
       return;
     }
 
-    navegarParaRua(0);
+    void navegarParaRuaPreservandoDados(0);
   };
 
   const aplicarMediaVizinhas = () => {
@@ -2118,7 +2188,7 @@ export function TelaRegistroLinhas() {
                           <button
                             type="button"
                             className="mt-1 block w-full whitespace-nowrap text-center text-[10px] font-black leading-tight tabular-nums sm:text-sm"
-                            onClick={() => navegarParaRua(index)}
+                            onClick={() => void navegarParaRuaPreservandoDados(index)}
                           >
                             {formatarFaixaRuaDisplay(rua.linhaInicial, rua.linhaFinal)}
                           </button>
@@ -2765,8 +2835,11 @@ export function TelaRegistroLinhas() {
                         : 'border-[var(--qc-border)] bg-[var(--qc-surface-muted)]',
                     )}
                     onClick={() => {
-                      navegarParaRua(index);
-                      setShowAllRuas(false);
+                      void navegarParaRuaPreservandoDados(index).then((navegou) => {
+                        if (navegou) {
+                          setShowAllRuas(false);
+                        }
+                      });
                     }}
                   >
                     <div className="flex items-stretch justify-between gap-3">

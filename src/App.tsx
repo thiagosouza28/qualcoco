@@ -16,6 +16,7 @@ import { AppUpdateProvider, useAppUpdate } from '@/core/AppUpdateProvider';
 import { SyncStatusBar } from '@/components/SyncStatusBar';
 import { TelaLogin } from '@/screens/TelaLogin';
 import { marcarNotificacaoComoLida } from '@/core/notifications';
+import { canBypassAreaSelection } from '@/core/permissions';
 import type { StoreName } from '@/core/types';
 
 const TelaSelecaoUsuario = lazy(async () => ({
@@ -219,6 +220,7 @@ function ShellRoutes() {
     bootstrapped,
     session,
     areaAtiva,
+    usuarioAtual,
   } = useCampoApp();
   const { blockingRequiredUpdate } = useAppUpdate();
 
@@ -332,11 +334,18 @@ function ShellRoutes() {
     return <Navigate to="/login" replace />;
   }
 
+  const areaSelectionOptional = canBypassAreaSelection(usuarioAtual?.perfil);
+
   if (session && location.pathname === '/login') {
-    return <Navigate to={areaAtiva ? '/dashboard' : '/areas'} replace />;
+    return <Navigate to={areaAtiva || areaSelectionOptional ? '/dashboard' : '/areas'} replace />;
   }
 
-  if (session && !areaAtiva && !areaPaths.has(location.pathname)) {
+  if (
+    session &&
+    !areaAtiva &&
+    !areaSelectionOptional &&
+    !areaPaths.has(location.pathname)
+  ) {
     return <Navigate to="/areas" replace />;
   }
 
