@@ -1,6 +1,5 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import moment from 'moment';
 
 const PAGE_MARGIN_X = 8;
 const PAGE_TITLE_Y = 12;
@@ -74,6 +73,25 @@ const formatObservacaoColunaPdf = (value = '') => {
 
 const formatSiglaResumoParcelaPdf = (value = '') =>
   String(value || '').trim() === 'A.N.C.R' ? 'A.R.N.C' : String(value || '').trim();
+
+const formatDatePdf = (value = '') => {
+  const normalized = String(value || '').trim();
+  const match = normalized.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) {
+    return `${match[3]}/${match[2]}/${match[1]}`;
+  }
+
+  const parsed = new Date(normalized);
+  if (Number.isNaN(parsed.getTime())) {
+    return '';
+  }
+
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(parsed);
+};
 
 const getReferenteEquipeLinhasPdf = (value = '') => {
   const itens = String(value || '')
@@ -240,7 +258,7 @@ const createPdfRows = (page) => {
       const pdfRow = {
         data:
           isPrimeiraLinhaEquipe && row.data
-            ? moment(row.data).format('DD/MM/YYYY')
+            ? formatDatePdf(row.data)
             : '',
         parcela: isPrimeiraLinhaParcela ? row.parcela || '' : '',
         equipe: isPrimeiraLinhaEquipe ? row.equipe || '' : '',

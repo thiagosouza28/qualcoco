@@ -139,7 +139,18 @@ const formatAreaRelatorio = (value: string | null | undefined) => {
 
 const getDataBaseRelatorio = (
   avaliacao: Pick<Avaliacao, 'dataAvaliacao' | 'dataColheita'>,
-) => normalizeDateKey(avaliacao.dataColheita) || normalizeDateKey(avaliacao.dataAvaliacao);
+) => normalizeDateKey(avaliacao.dataAvaliacao) || normalizeDateKey(avaliacao.dataColheita);
+
+const getDataRuaRelatorio = ({
+  avaliacao,
+  ruaDataAvaliacao,
+}: {
+  avaliacao?: Pick<Avaliacao, 'dataAvaliacao' | 'dataColheita'> | null;
+  ruaDataAvaliacao?: string | null;
+}) =>
+  normalizeDateKey(ruaDataAvaliacao) ||
+  normalizeDateKey(avaliacao?.dataAvaliacao) ||
+  normalizeDateKey(avaliacao?.dataColheita);
 
 const avaliacaoPertenceDataRelatorio = (
   avaliacao: Pick<Avaliacao, 'dataAvaliacao' | 'dataColheita'>,
@@ -147,7 +158,7 @@ const avaliacaoPertenceDataRelatorio = (
 ) => {
   const dataColheita = normalizeDateKey(avaliacao.dataColheita);
   const dataAvaliacao = normalizeDateKey(avaliacao.dataAvaliacao);
-  return dataColheita === dataFiltro || dataAvaliacao === dataFiltro;
+  return (dataAvaliacao || dataColheita) === dataFiltro;
 };
 
 const getAreaRelatorioLabel = (
@@ -236,7 +247,8 @@ const buildDateWindowRelatorio = (anchor: string, total: number) => {
 };
 
 const formatDiaCurtoRelatorio = (value: string) => {
-  const date = new Date(`${value}T12:00:00`);
+  const normalized = normalizeDateKey(value);
+  const date = new Date(`${normalized}T12:00:00`);
   if (Number.isNaN(date.getTime())) {
     return '--';
   }
@@ -300,9 +312,10 @@ const getEquipeSortValue = (value: string | null | undefined) => {
 };
 
 const getDiaSemanaRelatorio = (value?: string | null) => {
-  if (!value) return '';
+  const normalized = normalizeDateKey(value);
+  if (!normalized) return '';
 
-  const date = new Date(`${value}T12:00:00`);
+  const date = new Date(`${normalized}T12:00:00`);
   if (Number.isNaN(date.getTime())) {
     return '';
   }
@@ -311,8 +324,8 @@ const getDiaSemanaRelatorio = (value?: string | null) => {
   return diaSemana.charAt(0).toUpperCase() + diaSemana.slice(1);
 };
 
-const montarReferenteRelatorio = (dataColheita: string | null | undefined) => {
-  const diaSemana = getDiaSemanaRelatorio(dataColheita);
+const montarReferenteRelatorio = (dataReferencia: string | null | undefined) => {
+  const diaSemana = getDiaSemanaRelatorio(dataReferencia);
   return [REFERENTE_LABEL, diaSemana || '-'].join('\n');
 };
 
@@ -1137,6 +1150,11 @@ export function TelaRelatorio() {
       .map((rua) => {
         const avaliacao = avaliacaoMap.get(rua.avaliacaoId);
         const areaNome = getAreaRelatorioLabel(avaliacao?.areaId, areasMap);
+        const dataRelatorio =
+          getDataRuaRelatorio({
+            avaliacao,
+            ruaDataAvaliacao: rua.dataAvaliacao,
+          }) || dataFiltro;
         return {
           id: rua.id,
           avaliacaoId: rua.avaliacaoId,
@@ -1146,11 +1164,7 @@ export function TelaRelatorio() {
             parcelaCodigoMap.get(rua.avaliacaoParcelaId) ||
             avaliacao?.parcelaCodigo ||
             'Parcela',
-          data:
-            avaliacao?.dataColheita ||
-            rua.dataAvaliacao ||
-            avaliacao?.dataAvaliacao ||
-            dataFiltro,
+          data: dataRelatorio,
           equipe: formatEquipeRelatorio(rua.equipeNome),
           equipeSort: getEquipeSortValue(rua.equipeNome),
           linhaInicial: Number(rua.linhaInicial || 0),
@@ -1267,9 +1281,9 @@ export function TelaRelatorio() {
       .forEach((rua) => {
         const avaliacao = avaliacaoMap.get(rua.avaliacaoId);
         const data =
-          getDataBaseRelatorio({
-            dataColheita: avaliacao?.dataColheita || '',
-            dataAvaliacao: rua.dataAvaliacao || avaliacao?.dataAvaliacao || '',
+          getDataRuaRelatorio({
+            avaliacao,
+            ruaDataAvaliacao: rua.dataAvaliacao,
           }) || '';
         if (!data || data > dataFiltro) {
           return;
@@ -1539,11 +1553,11 @@ export function TelaRelatorio() {
           }
 
           const dataRelatorio =
-            avaliacao.dataColheita ||
-            rua.dataAvaliacao ||
-            avaliacao.dataAvaliacao ||
-            dataFiltro;
-          const dataColheita = avaliacao.dataColheita || dataRelatorio;
+            getDataRuaRelatorio({
+              avaliacao,
+              ruaDataAvaliacao: rua.dataAvaliacao,
+            }) || dataFiltro;
+          const dataReferencia = dataRelatorio;
           const areaNome = getAreaRelatorioLabel(avaliacao.areaId, pdfAreasMap);
           const limitesDaAvaliacao = getLimitesAreaRelatorio({
             areaId: avaliacao.areaId,
@@ -1551,7 +1565,7 @@ export function TelaRelatorio() {
             fallbackCocos: fallbackLimiteCocos,
             fallbackCachos: fallbackLimiteCachos,
           });
-          const referente = montarReferenteRelatorio(dataColheita);
+          const referente = montarReferenteRelatorio(dataReferencia);
           const observacoesRegistro = registro?.observacoes || avaliacao.observacoes || '';
           const observacaoBase = montarObservacaoRelatorio(observacoesRegistro);
           const retoque =
@@ -1598,7 +1612,7 @@ export function TelaRelatorio() {
             areaId: avaliacao.areaId || '',
             areaNome,
             data: dataRelatorio,
-            dataColheita,
+            dataColheita: dataReferencia,
             parcela:
               parcelaCodigoMap.get(rua.avaliacaoParcelaId) ||
               avaliacao.parcelaCodigo ||
