@@ -2393,7 +2393,7 @@ export const sincronizarNuvem = async ({
         Boolean(REMOTE_TABLE_MAP[storeName]),
       ),
     ),
-  );
+  ).sort((left, right) => syncPriority[left] - syncPriority[right]);
   let progressState: SyncProgressSnapshot = {
     phase: 'preparing',
     label: 'Preparando sincronização',

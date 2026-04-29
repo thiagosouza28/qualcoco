@@ -463,6 +463,8 @@ type RelatorioEquipeAvancado = {
   indiceCocosChao: number;
   indiceCachos: number;
   registros: number;
+  registrosCocos: number;
+  registrosCachos: number;
 };
 
 const BarraProducaoEquipes = ({
@@ -985,6 +987,8 @@ export function TelaRelatorio() {
         indiceCocosChao: 0,
         indiceCachos: 0,
         registros: 0,
+        registrosCocos: 0,
+        registrosCachos: 0,
       };
       groups.set(key, created);
       return created;
@@ -1030,8 +1034,22 @@ export function TelaRelatorio() {
           equipe,
           getEquipeSortValue(rua.equipeNome || avaliacao.equipeNome),
         );
-        group.indiceCocosChao += Number(registro.quantidade || 0);
-        group.indiceCachos += Number(registro.quantidadeCachos3 || 0);
+        const apresentacaoColeta = obterApresentacaoEstadoColetaRua({
+          quantidade: registro.quantidade,
+          quantidadeCachos3: registro.quantidadeCachos3,
+          observacoes: registro.observacoes,
+        });
+
+        if (!apresentacaoColeta.faltaTropear) {
+          group.indiceCocosChao += apresentacaoColeta.quantidade;
+          group.registrosCocos += 1;
+        }
+
+        if (!apresentacaoColeta.faltaColher) {
+          group.indiceCachos += apresentacaoColeta.quantidadeCachos3;
+          group.registrosCachos += 1;
+        }
+
         group.registros += 1;
       });
 
@@ -1041,8 +1059,9 @@ export function TelaRelatorio() {
         mediaCocosPorBag:
           item.totalBags > 0 ? item.totalCocos / item.totalBags : 0,
         indiceCocosChao:
-          item.registros > 0 ? item.indiceCocosChao / item.registros : 0,
-        indiceCachos: item.registros > 0 ? item.indiceCachos / item.registros : 0,
+          item.registrosCocos > 0 ? item.indiceCocosChao / item.registrosCocos : 0,
+        indiceCachos:
+          item.registrosCachos > 0 ? item.indiceCachos / item.registrosCachos : 0,
       }))
       .sort((a, b) => {
         if (a.areaNome !== b.areaNome) {

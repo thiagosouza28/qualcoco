@@ -24,7 +24,10 @@ import {
   gerarRuasDaParcela,
   inferirAlinhamentoTipoPorLinha,
 } from '@/core/plots';
-import { normalizarContagemRua } from '@/core/registroRua';
+import {
+  normalizarContagemRua,
+  resolverEstadoColetaRua,
+} from '@/core/registroRua';
 import { createEntity, repository, saveEntity } from '@/core/repositories';
 import { normalizeDateKey } from '@/core/date';
 import type {
@@ -1343,8 +1346,14 @@ export const atualizarAvaliacaoConfiguracao = async (
     alinhamentoTipo: input.alinhamentoTipo,
     sentidoRuas: input.sentidoRuas,
   });
+  const parcelasAtuaisOrdenadas = [...parcelasAtuais].sort(
+    (a, b) =>
+      a.parcelaCodigo.localeCompare(b.parcelaCodigo, 'pt-BR', { numeric: true }) ||
+      a.linhaInicial - b.linhaInicial ||
+      a.linhaFinal - b.linhaFinal,
+  );
   const parcelasAtuaisPorParcelaId = new Map(
-    parcelasAtuais.map((item) => [item.parcelaId, item]),
+    parcelasAtuaisOrdenadas.map((item) => [item.parcelaId, item]),
   );
   const ruasAtuaisPorParcelaAvaliacaoId = ruasAtuais.reduce<
     Map<string, AvaliacaoRua[]>
@@ -1368,9 +1377,18 @@ export const atualizarAvaliacaoConfiguracao = async (
   const parcelas: AvaliacaoParcela[] = [];
   const ruas: AvaliacaoRua[] = [];
 
-  for (const parcelaPlanejada of parcelasPlanejadas) {
-    const parcelaAtual =
+  for (let parcelaIndex = 0; parcelaIndex < parcelasPlanejadas.length; parcelaIndex += 1) {
+    const parcelaPlanejada = parcelasPlanejadas[parcelaIndex];
+    const parcelaAtualExata =
       parcelasAtuaisPorParcelaId.get(parcelaPlanejada.parcelaId) || null;
+    const parcelaAtualPosicao = parcelasAtuaisOrdenadas[parcelaIndex] || null;
+    const parcelaAtual =
+      (parcelaAtualExata && !parcelasMantidas.has(parcelaAtualExata.id)
+        ? parcelaAtualExata
+        : null) ||
+      (parcelaAtualPosicao && !parcelasMantidas.has(parcelaAtualPosicao.id)
+        ? parcelaAtualPosicao
+        : null);
     const siglasResumo = remapearSiglasResumoParcela(
       parcelaAtual?.siglasResumo || null,
       parcelaPlanejada.ruasProgramadas.map((item) => item.equipeNome),
@@ -1455,6 +1473,20 @@ export const atualizarAvaliacaoConfiguracao = async (
           versao: ruaAtual.versao + 1,
         };
         await saveEntity('avaliacaoRuas', nextRua);
+        const registrosRua = registrosPorRuaId.get(ruaAtual.id) || [];
+        for (const registro of registrosRua) {
+          if (registro.parcelaId === parcelaPlanejada.parcelaId) {
+            continue;
+          }
+
+          await saveEntity('registrosColeta', {
+            ...registro,
+            parcelaId: parcelaPlanejada.parcelaId,
+            atualizadoEm: nowIso(),
+            syncStatus: 'pending_sync',
+            versao: registro.versao + 1,
+          });
+        }
         ruas.push(nextRua);
         continue;
       }
@@ -1855,18 +1887,36 @@ export const recalcularResumoAvaliacao = async (avaliacaoId: string) => {
     (item) => item.avaliacaoId === avaliacaoId && !item.deletadoEm,
   );
 
-  const totalCocos = todosRegistros.reduce(
+  const registrosMediaCocos = todosRegistros.filter(
+    (item) =>
+      resolverEstadoColetaRua({
+        quantidade: item.quantidade,
+        quantidadeCachos3: item.quantidadeCachos3,
+        observacoes: item.observacoes,
+      }) !== 'falta_tropear',
+  );
+  const registrosMediaCachos = todosRegistros.filter(
+    (item) =>
+      resolverEstadoColetaRua({
+        quantidade: item.quantidade,
+        quantidadeCachos3: item.quantidadeCachos3,
+        observacoes: item.observacoes,
+      }) !== 'falta_colher',
+  );
+  const totalCocos = registrosMediaCocos.reduce(
     (acc, item) => acc + normalizarContagemRua(item.quantidade),
     0,
   );
-  const totalCachos3 = todosRegistros.reduce(
+  const totalCachos3 = registrosMediaCachos.reduce(
     (acc, item) => acc + normalizarContagemRua(item.quantidadeCachos3),
     0,
   );
   const totalRegs = todosRegistros.length;
 
-  const mediaCocos = totalRegs > 0 ? totalCocos / totalRegs : 0;
-  const mediaCachos = totalRegs > 0 ? totalCachos3 / totalRegs : 0;
+  const mediaCocos =
+    registrosMediaCocos.length > 0 ? totalCocos / registrosMediaCocos.length : 0;
+  const mediaCachos =
+    registrosMediaCachos.length > 0 ? totalCachos3 / registrosMediaCachos.length : 0;
 
   const avaliacao = await repository.get('avaliacoes', avaliacaoId);
   if (avaliacao) {

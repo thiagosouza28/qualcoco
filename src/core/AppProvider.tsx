@@ -56,6 +56,13 @@ const AUTO_SYNC_PENDING_INTERVAL_MS = 15_000;
 const AUTO_SYNC_REMOTE_REFRESH_MS = 60_000;
 const AUTO_SYNC_WEB_ACCESS_REFRESH_MS = 5 * 60_000;
 const AUTO_SYNC_BACKGROUND_REFRESH_MS = 90_000;
+const ACCESS_BOOTSTRAP_SYNC_STORES: StoreName[] = [
+  'areas',
+  'colaboradores',
+  'usuarioEquipes',
+  'equipes',
+  'configuracoes',
+];
 
 type HydrateOptions = {
   forceAreaSelection?: boolean;
@@ -327,13 +334,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       const pendencias = await contarPendenciasSync({ repair: false });
       setPendenciasSync(pendencias);
+      const shouldPullRemoteOnly =
+        allowPullOnly && pendencias <= 0 && (force || Boolean(stores?.length));
 
-      if (pendencias <= 0) {
+      if (pendencias <= 0 && !shouldPullRemoteOnly) {
         lastSyncAtRef.current = Date.now();
         return criarResultadoSemPendencias();
       }
 
-      if (!force && Date.now() - lastSyncAtRef.current < AUTO_SYNC_PENDING_INTERVAL_MS) {
+      if (
+        pendencias > 0 &&
+        !force &&
+        Date.now() - lastSyncAtRef.current < AUTO_SYNC_PENDING_INTERVAL_MS
+      ) {
         return null;
       }
 
@@ -479,7 +492,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(
     async (identifier: string, pin: string) => {
       const result = await autenticarColaborador(identifier, pin);
-      let currentUser = result.colaborador;
+      const currentUser = result.colaborador;
       const persistedCloudSession = isCloudConfigured
         ? await getCloudSessionSafe('any')
         : null;
@@ -496,33 +509,50 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (isCloudConfigured && onlineRef.current) {
-        void (async () => {
-          try {
-            await garantirSessaoCloudColaborador(currentUser, pin);
-            setCloudSessionReady(true);
-            await executarSincronizacao({ force: true, allowPullOnly: true });
-            const refreshedUser = await getById<Colaborador>(
-              'colaboradores',
-              result.colaborador.id,
-            );
-            if (refreshedUser && !refreshedUser.deletadoEm) {
-              setUsuarioAtual(refreshedUser);
-            }
-            await atualizarPendencias();
-          } catch (error) {
-            console.warn(
-              '[Login] A autentica\u00e7\u00e3o cloud falhou, mas o login local foi mantido.',
-              error,
-            );
-            const fallbackSession = await garantirSessaoCloudDispositivo(
-              dispositivo || (await getOrCreateDevice()),
-            );
-            setCloudSessionReady(Boolean(fallbackSession));
+        try {
+          await garantirSessaoCloudColaborador(currentUser, pin);
+          setCloudSessionReady(true);
+          await iniciarSincronizacao(
+            async (onProgress) => {
+              const syncResult = await sincronizarNuvem({
+                onProgress,
+                mode: 'pull_only',
+                stores: ACCESS_BOOTSTRAP_SYNC_STORES,
+              });
+              lastSyncAtRef.current = Date.now();
+              return syncResult;
+            },
+            {
+              reuseActiveSync: false,
+            },
+          );
+
+          const refreshedUser = await getById<Colaborador>(
+            'colaboradores',
+            result.colaborador.id,
+          );
+          if (refreshedUser && !refreshedUser.deletadoEm) {
+            setUsuarioAtual(refreshedUser);
           }
-        })();
+          await atualizarPendencias();
+        } catch (error) {
+          console.warn(
+            '[Login] A autentica\u00e7\u00e3o cloud falhou, mas o login local foi mantido.',
+            error,
+          );
+          const fallbackSession = await garantirSessaoCloudDispositivo(
+            dispositivo || (await getOrCreateDevice()),
+          );
+          setCloudSessionReady(Boolean(fallbackSession));
+        }
       }
     },
-    [atualizarPendencias, dispositivo, executarSincronizacao, garantirSessaoCloudDispositivo],
+    [
+      atualizarPendencias,
+      dispositivo,
+      garantirSessaoCloudDispositivo,
+      iniciarSincronizacao,
+    ],
   );
 
   const definirEquipeDoDia = useCallback(
