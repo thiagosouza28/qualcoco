@@ -6,6 +6,10 @@ import {
   getAccessContext,
   normalizePerfilUsuario,
 } from '@/core/permissions';
+import {
+  inferirAlinhamentoTipoPorLinha,
+  normalizarFaixaAlinhamento,
+} from '@/core/plots';
 import { createEntity, repository, saveEntity } from '@/core/repositories';
 import type {
   Area,
@@ -65,14 +69,27 @@ const normalizarInputParcelaPlanejada = (input: ParcelaPlanejadaInput) => {
     throw new Error('Usuário responsável não informado para o cadastro.');
   }
 
+  const alinhamentoTipo =
+    input.alinhamentoTipo ||
+    inferirAlinhamentoTipoPorLinha(input.alinhamentoInicial);
+  const faixaAlinhamento = normalizarFaixaAlinhamento({
+    linhaInicial: input.alinhamentoInicial,
+    linhaFinal: input.alinhamentoFinal,
+    alinhamentoTipo,
+  });
+  if (faixaAlinhamento.linhaFinal < faixaAlinhamento.linhaInicial) {
+    throw new Error('Informe um alinhamento inicial e final válido.');
+  }
+
   return {
     ...input,
     areaId,
     codigo: normalizedCodigo,
     equipeId,
     observacao: String(input.observacao || '').trim(),
-    alinhamentoInicial: Number(input.alinhamentoInicial),
-    alinhamentoFinal: Number(input.alinhamentoFinal),
+    alinhamentoInicial: faixaAlinhamento.linhaInicial,
+    alinhamentoFinal: faixaAlinhamento.linhaFinal,
+    alinhamentoTipo,
   };
 };
 

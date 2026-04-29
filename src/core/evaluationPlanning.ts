@@ -2,6 +2,7 @@ import {
   distribuirRuasEntreParcelas,
   gerarRuasDaParcela,
   gerarRuasDistribuidasPorFaixas,
+  normalizarFaixaAlinhamento,
 } from '@/core/plots';
 import type {
   FaixaFalhaParcela,
@@ -60,20 +61,25 @@ export const planejarParcelasAvaliacao = ({
     return parcelas.map((parcela) => {
       const alinhamentoParcela = parcela.alinhamentoTipo || alinhamentoTipo;
       const sentidoParcela = parcela.sentidoRuas || sentidoRuas;
+      const faixaParcela = normalizarFaixaAlinhamento({
+        linhaInicial: parcela.linhaInicial,
+        linhaFinal: parcela.linhaFinal,
+        alinhamentoTipo: alinhamentoParcela,
+      });
 
       return {
         parcelaId: parcela.parcelaId,
         parcelaCodigo: parcela.parcelaCodigo,
         label: parcela.parcelaCodigo,
-        linhaInicial: parcela.linhaInicial,
-        linhaFinal: parcela.linhaFinal,
+        linhaInicial: faixaParcela.linhaInicial,
+        linhaFinal: faixaParcela.linhaFinal,
         alinhamentoTipo: alinhamentoParcela,
         sentidoRuas: sentidoParcela,
         faixasFalha: parcela.faixasFalha || [],
         previewRuasPorEquipe: [],
         ruasProgramadas: gerarRuasDaParcela({
-          linhaInicial: parcela.linhaInicial,
-          linhaFinal: parcela.linhaFinal,
+          linhaInicial: faixaParcela.linhaInicial,
+          linhaFinal: faixaParcela.linhaFinal,
           alinhamentoTipo: alinhamentoParcela,
           faixasFalha: parcela.faixasFalha,
           sentidoRuas: sentidoParcela,
@@ -97,6 +103,11 @@ export const planejarParcelasAvaliacao = ({
   return parcelas.map((parcela, parcelaIndex) => {
     const alinhamentoParcela = parcela.alinhamentoTipo || alinhamentoTipo;
     const sentidoParcela = parcela.sentidoRuas || sentidoRuas;
+    const faixaParcela = normalizarFaixaAlinhamento({
+      linhaInicial: parcela.linhaInicial,
+      linhaFinal: parcela.linhaFinal,
+      alinhamentoTipo: alinhamentoParcela,
+    });
     const faixas = planejamentoEquipes
       .map((equipe) => {
         const totalRuasConfigurado =
@@ -115,12 +126,12 @@ export const planejarParcelasAvaliacao = ({
 
         const linhaInicio =
           equipe.linhaInicio != null
-            ? Math.max(parcela.linhaInicial, equipe.linhaInicio)
-            : parcela.linhaInicial;
+            ? Math.max(faixaParcela.linhaInicial, equipe.linhaInicio)
+            : faixaParcela.linhaInicial;
         const linhaFim =
           equipe.linhaFim != null
-            ? Math.min(parcela.linhaFinal, equipe.linhaFim)
-            : parcela.linhaFinal;
+            ? Math.min(faixaParcela.linhaFinal, equipe.linhaFim)
+            : faixaParcela.linhaFinal;
 
         return {
           id: `${parcela.parcelaId}-${equipe.equipeId}`,
@@ -129,8 +140,8 @@ export const planejarParcelasAvaliacao = ({
           equipeNome: equipe.equipeNome,
           linhaInicio,
           linhaFim,
-          fallbackInicio: parcela.linhaInicial,
-          fallbackFim: parcela.linhaFinal,
+          fallbackInicio: faixaParcela.linhaInicial,
+          fallbackFim: faixaParcela.linhaFinal,
           totalRuas: totalRuasEquipe,
           alinhamentoTipo: alinhamentoParcela,
           faixasFalha: parcela.faixasFalha,
@@ -180,8 +191,8 @@ export const planejarParcelasAvaliacao = ({
       parcelaId: parcela.parcelaId,
       parcelaCodigo: parcela.parcelaCodigo,
       label: parcela.parcelaCodigo,
-      linhaInicial: parcela.linhaInicial,
-      linhaFinal: parcela.linhaFinal,
+      linhaInicial: faixaParcela.linhaInicial,
+      linhaFinal: faixaParcela.linhaFinal,
       alinhamentoTipo: alinhamentoParcela,
       sentidoRuas: sentidoParcela,
       faixasFalha: parcela.faixasFalha || [],

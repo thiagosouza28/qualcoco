@@ -1,6 +1,8 @@
 import { MAX_ALINHAMENTO, MAX_PARCELAS } from '@/core/constants';
 import type { FaixaFalhaParcela, SentidoRuas } from '@/core/types';
 
+export type AlinhamentoTipo = 'inferior-impar' | 'inferior-par';
+
 export const gerarCatalogoParcelas = () => {
   const parcelas: { codigo: string; descricao: string }[] = [];
   const letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -29,19 +31,16 @@ export const gerarRuasDaParcela = ({
 }: {
   linhaInicial: number;
   linhaFinal: number;
-  alinhamentoTipo: 'inferior-impar' | 'inferior-par';
+  alinhamentoTipo: AlinhamentoTipo;
   faixasFalha?: FaixaFalhaParcela[] | null;
   sentidoRuas?: SentidoRuas;
 }) => {
   const ruas: Array<{ ruaNumero: number; linhaInicial: number; linhaFinal: number }> = [];
-  const start = Math.max(1, linhaInicial);
-  const end = Math.min(MAX_ALINHAMENTO, linhaFinal);
-  const isImpar = alinhamentoTipo === 'inferior-impar';
+  const start = normalizarLinhaInicialPorAlinhamento(linhaInicial, alinhamentoTipo);
+  const end = clamp(linhaFinal, 1, MAX_ALINHAMENTO);
   const linhasValidas: number[] = [];
 
-  for (let linha = start; linha < end; linha += 1) {
-    const linhaValida = isImpar ? linha % 2 !== 0 : linha % 2 === 0;
-    if (!linhaValida) continue;
+  for (let linha = start; linha <= end - 1; linha += 2) {
     if (linhaEstaEmFalha(linha, linha + 1, alinhamentoTipo, faixasFalha)) continue;
     linhasValidas.push(linha);
   }
@@ -68,7 +67,7 @@ export const clamp = (value: number, min: number, max: number) =>
 
 export const inferirAlinhamentoTipoPorLinha = (
   linhaInicial: number | string | null | undefined,
-  fallback: 'inferior-impar' | 'inferior-par' = 'inferior-par',
+  fallback: AlinhamentoTipo = 'inferior-par',
 ) => {
   const linha = Number(linhaInicial);
   if (!Number.isFinite(linha) || linha <= 0) {
@@ -76,6 +75,74 @@ export const inferirAlinhamentoTipoPorLinha = (
   }
 
   return linha % 2 === 0 ? 'inferior-par' : 'inferior-impar';
+};
+
+export const linhaRespeitaAlinhamentoTipo = (
+  linhaInicial: number | string | null | undefined,
+  alinhamentoTipo: AlinhamentoTipo,
+) => {
+  const linha = Number(linhaInicial);
+  if (!Number.isFinite(linha) || linha <= 0) {
+    return false;
+  }
+
+  return inferirAlinhamentoTipoPorLinha(linha, alinhamentoTipo) === alinhamentoTipo;
+};
+
+export const normalizarLinhaInicialPorAlinhamento = (
+  linhaInicial: number | string | null | undefined,
+  alinhamentoTipo: AlinhamentoTipo,
+  fallback = 1,
+) => {
+  const linha = clamp(Number(linhaInicial || fallback), 1, MAX_ALINHAMENTO);
+  if (linhaRespeitaAlinhamentoTipo(linha, alinhamentoTipo)) {
+    return linha;
+  }
+
+  const anterior = linha - 1;
+  if (anterior >= 1 && linhaRespeitaAlinhamentoTipo(anterior, alinhamentoTipo)) {
+    return anterior;
+  }
+
+  const proxima = linha + 1;
+  if (proxima <= MAX_ALINHAMENTO && linhaRespeitaAlinhamentoTipo(proxima, alinhamentoTipo)) {
+    return proxima;
+  }
+
+  return linha;
+};
+
+export const normalizarFaixaAlinhamento = ({
+  linhaInicial,
+  linhaFinal,
+  alinhamentoTipo,
+  fallbackInicio = 1,
+  fallbackFim = MAX_ALINHAMENTO,
+}: {
+  linhaInicial: number | string | null | undefined;
+  linhaFinal: number | string | null | undefined;
+  alinhamentoTipo: AlinhamentoTipo;
+  fallbackInicio?: number;
+  fallbackFim?: number;
+}) => {
+  const inicio = normalizarLinhaInicialPorAlinhamento(
+    linhaInicial,
+    alinhamentoTipo,
+    fallbackInicio,
+  );
+  const fim = clamp(Number(linhaFinal || fallbackFim), 1, MAX_ALINHAMENTO);
+  const totalLinhas = fim >= inicio ? fim - inicio + 1 : 0;
+
+  return {
+    inicio,
+    fim,
+    linhaInicial: inicio,
+    linhaFinal: fim,
+    alinhamentoTipo,
+    totalLinhas,
+    totalDivisoes: Math.floor(totalLinhas / 2),
+    linhaInicialAjustada: inicio !== Number(linhaInicial || fallbackInicio),
+  };
 };
 
 export const distribuirRuasEntreParcelas = (
@@ -110,7 +177,7 @@ export const normalizarFaixaLinhas = (
 const linhaEstaEmFalha = (
   linhaInicial: number,
   linhaFinal: number,
-  alinhamentoTipo: 'inferior-impar' | 'inferior-par',
+  alinhamentoTipo: AlinhamentoTipo,
   faixasFalha: FaixaFalhaParcela[] | null | undefined,
 ) => {
   if (!Array.isArray(faixasFalha) || faixasFalha.length === 0) {
@@ -132,144 +199,6 @@ const linhaEstaEmFalha = (
   });
 };
 
-const selecionarItensDistribuidos = <T>(
-  itensOrdenados: T[],
-  totalSelecionado: number,
-) => {
-  if (!itensOrdenados.length || totalSelecionado <= 0) return [] as T[];
-
-  if (totalSelecionado >= itensOrdenados.length) {
-    return [...itensOrdenados];
-  }
-
-  if (totalSelecionado === 1) {
-    return [itensOrdenados[0]];
-  }
-
-  const ultimoIndice = itensOrdenados.length - 1;
-  const indicesSelecionados = Array.from(
-    { length: totalSelecionado },
-    (_, index) => Math.round((index * ultimoIndice) / (totalSelecionado - 1)),
-  );
-
-  const vistos = new Set<number>();
-  const selecionados = indicesSelecionados.reduce<T[]>((acc, indice) => {
-    if (vistos.has(indice)) return acc;
-    vistos.add(indice);
-    acc.push(itensOrdenados[indice]);
-    return acc;
-  }, []);
-
-  if (selecionados.length >= totalSelecionado) {
-    return selecionados;
-  }
-
-  for (let index = 0; index < itensOrdenados.length; index += 1) {
-    if (vistos.has(index)) continue;
-    vistos.add(index);
-    selecionados.push(itensOrdenados[index]);
-    if (selecionados.length >= totalSelecionado) {
-      break;
-    }
-  }
-
-  return selecionados;
-};
-
-const agruparLinhasContiguas = (linhasValidas: number[]) => {
-  const segmentos: number[][] = [];
-
-  linhasValidas.forEach((linha) => {
-    const ultimoSegmento = segmentos[segmentos.length - 1];
-    const ultimaLinha = ultimoSegmento?.[ultimoSegmento.length - 1];
-
-    if (!ultimoSegmento || ultimaLinha == null || linha - ultimaLinha > 2) {
-      segmentos.push([linha]);
-      return;
-    }
-
-    ultimoSegmento.push(linha);
-  });
-
-  return segmentos;
-};
-
-const distribuirLinhasValidas = (
-  linhasValidas: number[],
-  totalRuas: number,
-  sentidoRuas: SentidoRuas,
-) => {
-  if (!linhasValidas.length || totalRuas <= 0) return [] as Array<[number, number]>;
-
-  const linhasOrdenadas =
-    sentidoRuas === 'fim' ? [...linhasValidas].reverse() : linhasValidas;
-
-  if (totalRuas >= linhasValidas.length) {
-    return linhasOrdenadas.map(
-      (inicio) => [inicio, inicio + 1] as [number, number],
-    );
-  }
-
-  const segmentos = agruparLinhasContiguas(linhasValidas);
-
-  if (segmentos.length <= 1) {
-    return selecionarItensDistribuidos(linhasOrdenadas, totalRuas).map(
-      (inicio) => [inicio, inicio + 1] as [number, number],
-    );
-  }
-
-  const linhasPrioritariasAsc = segmentos.reduce<number[]>(
-    (acc, segmento, index) => {
-      if (!segmento.length) return acc;
-
-      if (index > 0) {
-        acc.push(segmento[0]);
-      }
-
-      if (index < segmentos.length - 1) {
-        acc.push(segmento[segmento.length - 1]);
-      }
-
-      return acc;
-    },
-    [],
-  );
-
-  const linhasPrioritarias = Array.from(new Set(linhasPrioritariasAsc));
-  const linhasPrioritariasOrdenadas =
-    sentidoRuas === 'fim'
-      ? [...linhasPrioritarias].sort((a, b) => b - a)
-      : [...linhasPrioritarias].sort((a, b) => a - b);
-
-  const linhasSelecionadasPrioritarias = selecionarItensDistribuidos(
-    linhasPrioritariasOrdenadas,
-    Math.min(totalRuas, linhasPrioritariasOrdenadas.length),
-  );
-
-  if (linhasSelecionadasPrioritarias.length >= totalRuas) {
-    return linhasSelecionadasPrioritarias.map(
-      (inicio) => [inicio, inicio + 1] as [number, number],
-    );
-  }
-
-  const linhasSelecionadasSet = new Set(linhasSelecionadasPrioritarias);
-  const linhasRestantes = linhasOrdenadas.filter(
-    (linha) => !linhasSelecionadasSet.has(linha),
-  );
-  const linhasComplementares = selecionarItensDistribuidos(
-    linhasRestantes,
-    totalRuas - linhasSelecionadasPrioritarias.length,
-  );
-  const linhasFinaisSet = new Set([
-    ...linhasSelecionadasPrioritarias,
-    ...linhasComplementares,
-  ]);
-
-  return linhasOrdenadas
-    .filter((linha) => linhasFinaisSet.has(linha))
-    .map((inicio) => [inicio, inicio + 1] as [number, number]);
-};
-
 export const gerarRuasComOffset = ({
   totalRuas,
   alinhamentoTipo,
@@ -279,30 +208,24 @@ export const gerarRuasComOffset = ({
   sentidoRuas = 'inicio',
 }: {
   totalRuas: number;
-  alinhamentoTipo: 'inferior-impar' | 'inferior-par';
+  alinhamentoTipo: AlinhamentoTipo;
   linhaInicio: number;
   linhaFim: number;
   faixasFalha?: FaixaFalhaParcela[] | null;
   sentidoRuas?: SentidoRuas;
 }) => {
-  const inicio = Number(linhaInicio) || 1;
-  const fim = Number(linhaFim) || MAX_ALINHAMENTO;
-  const linhasValidas: number[] = [];
+  const inicio = normalizarLinhaInicialPorAlinhamento(linhaInicio, alinhamentoTipo);
+  const fim = clamp(Number(linhaFim) || MAX_ALINHAMENTO, 1, MAX_ALINHAMENTO);
+  const ruas: Array<[number, number]> = [];
 
-  for (let linha = inicio; linha <= fim - 1; linha += 1) {
-    const usaLinha =
-      alinhamentoTipo === 'inferior-impar' ? linha % 2 !== 0 : linha % 2 === 0;
-    if (usaLinha) {
-      if (linhaEstaEmFalha(linha, linha + 1, alinhamentoTipo, faixasFalha)) {
-        continue;
-      }
-      linhasValidas.push(linha);
+  for (let linha = inicio; linha <= fim - 1 && ruas.length < totalRuas; linha += 2) {
+    if (linhaEstaEmFalha(linha, linha + 1, alinhamentoTipo, faixasFalha)) {
+      continue;
     }
+    ruas.push([linha, linha + 1]);
   }
 
-  return distribuirLinhasValidas(linhasValidas, totalRuas, sentidoRuas).filter(
-    ([linhaInicial, linhaFinal]) => linhaInicial < linhaFinal && linhaFinal <= fim,
-  );
+  return sentidoRuas === 'fim' ? [...ruas].reverse() : ruas;
 };
 
 export const gerarRuasDistribuidasPorFaixas = ({
@@ -310,7 +233,7 @@ export const gerarRuasDistribuidasPorFaixas = ({
   sentidoRuas = 'inicio',
   faixas,
 }: {
-  alinhamentoTipo: 'inferior-impar' | 'inferior-par';
+  alinhamentoTipo: AlinhamentoTipo;
   sentidoRuas?: SentidoRuas;
   faixas: Array<{
     id: string;
@@ -320,7 +243,7 @@ export const gerarRuasDistribuidasPorFaixas = ({
     fallbackInicio?: number;
     fallbackFim?: number;
     totalRuas: number;
-    alinhamentoTipo?: 'inferior-impar' | 'inferior-par';
+    alinhamentoTipo?: AlinhamentoTipo;
     faixasFalha?: FaixaFalhaParcela[] | null;
     equipeId: string | null;
     equipeNome: string;
@@ -328,12 +251,14 @@ export const gerarRuasDistribuidasPorFaixas = ({
 }) => {
   return faixas
     .map((faixa) => {
-      const normalizada = normalizarFaixaLinhas(
-        faixa.linhaInicio,
-        faixa.linhaFim,
-        faixa.fallbackInicio,
-        faixa.fallbackFim,
-      );
+      const alinhamentoFaixa = faixa.alinhamentoTipo || alinhamentoTipo;
+      const normalizada = normalizarFaixaAlinhamento({
+        linhaInicial: faixa.linhaInicio,
+        linhaFinal: faixa.linhaFim,
+        alinhamentoTipo: alinhamentoFaixa,
+        fallbackInicio: faixa.fallbackInicio,
+        fallbackFim: faixa.fallbackFim,
+      });
 
       if (normalizada.fim <= normalizada.inicio) {
         return null;
@@ -345,7 +270,7 @@ export const gerarRuasDistribuidasPorFaixas = ({
           fim: normalizada.fim,
           ruas: gerarRuasComOffset({
             totalRuas: Number(faixa.totalRuas) || 0,
-            alinhamentoTipo: faixa.alinhamentoTipo || alinhamentoTipo,
+            alinhamentoTipo: alinhamentoFaixa,
             linhaInicio: normalizada.inicio,
             linhaFim: normalizada.fim,
             faixasFalha: faixa.faixasFalha,

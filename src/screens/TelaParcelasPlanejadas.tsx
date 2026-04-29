@@ -31,6 +31,10 @@ import {
 } from '@/core/parcelCode';
 import { filtrarEquipesVisiveis, normalizePerfilUsuario } from '@/core/permissions';
 import {
+  inferirAlinhamentoTipoPorLinha,
+  normalizarFaixaAlinhamento,
+} from '@/core/plots';
+import {
   atualizarParcelaPlanejada,
   cadastrarParcelasPlanejadasEmLote,
   excluirParcelaPlanejada,
@@ -96,6 +100,9 @@ function formatarFaixaAlinhamento(
   return `${inicio}-${fim}`;
 }
 
+const formatarAlinhamentoTipo = (value?: ParcelaPlanejada['alinhamentoTipo']) =>
+  value === 'inferior-par' ? 'Par' : 'Ímpar';
+
 const parsearFaixaAlinhamento = (value: string) => {
   const numeros = String(value || '')
     .match(/\d+/g)
@@ -114,10 +121,24 @@ const parsearFaixaAlinhamento = (value: string) => {
     throw new Error('Informe um alinhamento válido. Use algo como 1-25.');
   }
 
+  const alinhamentoTipo = inferirAlinhamentoTipoPorLinha(alinhamentoInicial);
+  const faixaNormalizada = normalizarFaixaAlinhamento({
+    linhaInicial: alinhamentoInicial,
+    linhaFinal: alinhamentoFinal,
+    alinhamentoTipo,
+  });
+  if (faixaNormalizada.linhaFinal < faixaNormalizada.linhaInicial) {
+    throw new Error('Informe um alinhamento válido. Use algo como 1-25.');
+  }
+
   return {
-    alinhamentoInicial,
-    alinhamentoFinal,
-    alinhamento: formatarFaixaAlinhamento(alinhamentoInicial, alinhamentoFinal),
+    alinhamentoInicial: faixaNormalizada.linhaInicial,
+    alinhamentoFinal: faixaNormalizada.linhaFinal,
+    alinhamentoTipo,
+    alinhamento: formatarFaixaAlinhamento(
+      faixaNormalizada.linhaInicial,
+      faixaNormalizada.linhaFinal,
+    ),
   };
 };
 
@@ -373,6 +394,7 @@ export function TelaParcelasPlanejadas() {
             equipeId,
             alinhamentoInicial: validado.alinhamentoInicial,
             alinhamentoFinal: validado.alinhamentoFinal,
+            alinhamentoTipo: validado.alinhamentoTipo,
             dataColheita,
             observacao: validado.observacao,
             criadoPor: usuarioAtual.id,
@@ -407,6 +429,7 @@ export function TelaParcelasPlanejadas() {
         equipeId: editForm.equipeId || null,
         alinhamentoInicial: validado.alinhamentoInicial,
         alinhamentoFinal: validado.alinhamentoFinal,
+        alinhamentoTipo: validado.alinhamentoTipo,
         dataColheita: editForm.dataColheita,
         observacao: validado.observacao,
       });
@@ -767,6 +790,28 @@ export function TelaParcelasPlanejadas() {
                             parcela.alinhamentoFinal,
                           )}
                         </p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <Badge variant="slate">
+                            {formatarAlinhamentoTipo(
+                              parcela.alinhamentoTipo ||
+                                inferirAlinhamentoTipoPorLinha(
+                                  parcela.alinhamentoInicial,
+                                ),
+                            )}
+                          </Badge>
+                          <Badge variant="emerald">
+                            {Math.max(
+                              0,
+                              Math.floor(
+                                (parcela.alinhamentoFinal -
+                                  parcela.alinhamentoInicial +
+                                  1) /
+                                  2,
+                              ),
+                            )}{' '}
+                            divisões
+                          </Badge>
+                        </div>
                         <p className="mt-1 text-xs font-bold uppercase tracking-[0.16em] text-[var(--qc-secondary)]">
                           Inserido por {parcela.criadoPorNome || 'usuário não identificado'}
                         </p>

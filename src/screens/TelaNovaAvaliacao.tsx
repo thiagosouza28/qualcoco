@@ -27,7 +27,14 @@ import {
   atualizarAvaliacaoConfiguracao,
   obterAvaliacaoDetalhada,
 } from '@/core/evaluations';
-import { clamp } from '@/core/plots';
+import {
+  clamp,
+  gerarRuasDaParcela,
+  inferirAlinhamentoTipoPorLinha,
+  linhaRespeitaAlinhamentoTipo,
+  normalizarFaixaAlinhamento,
+  normalizarLinhaInicialPorAlinhamento,
+} from '@/core/plots';
 import {
   canEditCompletedEvaluation,
   canStartEvaluation,
@@ -85,6 +92,12 @@ const descreverSentidoRuas = (value: SentidoRuas) =>
 
 const formatarQuantidadeRuas = (value: number) =>
   `${value} ${value === 1 ? 'rua' : 'ruas'}`;
+
+const formatarQuantidadeLinhas = (value: number) =>
+  `${value} ${value === 1 ? 'linha' : 'linhas'}`;
+
+const formatarDivisaoRua = (linhaInicial: number, linhaFinal: number) =>
+  `${String(linhaInicial).padStart(2, '0')}-${String(linhaFinal).padStart(2, '0')}`;
 
 const formatarFaixasFalhaTexto = (
   faixasFalha: FaixaFalhaParcela[] | null | undefined,
@@ -592,12 +605,23 @@ export function TelaNovaAvaliacao() {
       const next = { ...current };
 
       for (const { parcelaPlanejada, parcelaCatalogo } of combinacoes) {
+        const tipoPlanejado =
+          parcelaPlanejada.alinhamentoTipo ||
+          inferirAlinhamentoTipoPorLinha(
+            parcelaPlanejada.alinhamentoInicial,
+            alinhamentoTipo,
+          );
+        const faixaPlanejada = normalizarFaixaAlinhamento({
+          linhaInicial: parcelaPlanejada.alinhamentoInicial,
+          linhaFinal: parcelaPlanejada.alinhamentoFinal,
+          alinhamentoTipo: tipoPlanejado,
+        });
         next[parcelaCatalogo.id] = {
-          linhaInicial: String(parcelaPlanejada.alinhamentoInicial || ''),
-          linhaFinal: String(parcelaPlanejada.alinhamentoFinal || ''),
+          linhaInicial: String(faixaPlanejada.linhaInicial || ''),
+          linhaFinal: String(faixaPlanejada.linhaFinal || ''),
           alinhamentoFalha:
             current[parcelaCatalogo.id]?.alinhamentoFalha ||
-            parcelaPlanejada.alinhamentoTipo ||
+            tipoPlanejado ||
             alinhamentoTipo,
           falhasLinhas: current[parcelaCatalogo.id]?.falhasLinhas || '',
           sentidoRuas: current[parcelaCatalogo.id]?.sentidoRuas || sentidoRuas,
@@ -608,7 +632,7 @@ export function TelaNovaAvaliacao() {
             current[parcelaCatalogo.id]?.ruasEquipe2 ||
             (duasEquipes ? String(Math.max(0, totalRuasEq2 || 0)) : '0'),
           alinhamentoTipo:
-            parcelaPlanejada.alinhamentoTipo ||
+            tipoPlanejado ||
             current[parcelaCatalogo.id]?.alinhamentoTipo ||
             alinhamentoTipo,
         };
@@ -750,16 +774,25 @@ export function TelaNovaAvaliacao() {
           ) {
             return null;
           }
+          const alinhamentoParcela =
+            selecionadas.length > 1
+              ? config.alinhamentoTipo || alinhamentoTipo
+              : alinhamentoTipo;
+          const faixaNormalizada = normalizarFaixaAlinhamento({
+            linhaInicial,
+            linhaFinal,
+            alinhamentoTipo: alinhamentoParcela,
+          });
+          if (faixaNormalizada.linhaFinal < faixaNormalizada.linhaInicial) {
+            return null;
+          }
 
           return {
             parcelaId: parcela.id,
             parcelaCodigo: parcela.codigo,
-            linhaInicial,
-            linhaFinal,
-            alinhamentoTipo:
-              selecionadas.length > 1
-                ? config.alinhamentoTipo || alinhamentoTipo
-                : alinhamentoTipo,
+            linhaInicial: faixaNormalizada.linhaInicial,
+            linhaFinal: faixaNormalizada.linhaFinal,
+            alinhamentoTipo: alinhamentoParcela,
             sentidoRuas:
               selecionadas.length > 1
                 ? config.sentidoRuas || sentidoRuas
@@ -799,11 +832,24 @@ export function TelaNovaAvaliacao() {
       const config = configuracoes[parcelaId];
       const linhaInicial = Number(config?.linhaInicial || 0);
       const linhaFinal = Number(config?.linhaFinal || 0);
+      const alinhamentoParcela =
+        selecionadas.length > 1
+          ? config?.alinhamentoTipo || alinhamentoTipo
+          : alinhamentoTipo;
+      const faixaNormalizada =
+        linhaInicial > 0 && linhaFinal > 0
+          ? normalizarFaixaAlinhamento({
+              linhaInicial,
+              linhaFinal,
+              alinhamentoTipo: alinhamentoParcela,
+            })
+          : null;
       return Boolean(
         config &&
           linhaInicial > 0 &&
           linhaFinal > 0 &&
-          linhaFinal >= linhaInicial,
+          faixaNormalizada &&
+          faixaNormalizada.linhaFinal >= faixaNormalizada.linhaInicial,
       );
     });
 
@@ -849,21 +895,36 @@ export function TelaNovaAvaliacao() {
         setEquipe1Id(parcelaPlanejada.equipeId);
       }
     }
-    setConfiguracoes((current) => ({
-      ...current,
-      [parcelaId]: {
-        ...criarConfigParcela(current[parcelaId]),
-        linhaInicial: parcelaPlanejada
-          ? String(parcelaPlanejada.alinhamentoInicial || '')
-          : criarConfigParcela(current[parcelaId]).linhaInicial,
-        linhaFinal: parcelaPlanejada
-          ? String(parcelaPlanejada.alinhamentoFinal || '')
-          : criarConfigParcela(current[parcelaId]).linhaFinal,
-        alinhamentoTipo:
-          parcelaPlanejada?.alinhamentoTipo ||
-          criarConfigParcela(current[parcelaId]).alinhamentoTipo,
-      },
-    }));
+    setConfiguracoes((current) => {
+      const baseConfig = criarConfigParcela(current[parcelaId]);
+      const tipoPlanejado =
+        parcelaPlanejada?.alinhamentoTipo ||
+        inferirAlinhamentoTipoPorLinha(
+          parcelaPlanejada?.alinhamentoInicial,
+          baseConfig.alinhamentoTipo,
+        );
+      const faixaPlanejada = parcelaPlanejada
+        ? normalizarFaixaAlinhamento({
+            linhaInicial: parcelaPlanejada.alinhamentoInicial,
+            linhaFinal: parcelaPlanejada.alinhamentoFinal,
+            alinhamentoTipo: tipoPlanejado,
+          })
+        : null;
+
+      return {
+        ...current,
+        [parcelaId]: {
+          ...baseConfig,
+          linhaInicial: faixaPlanejada
+            ? String(faixaPlanejada.linhaInicial || '')
+            : baseConfig.linhaInicial,
+          linhaFinal: faixaPlanejada
+            ? String(faixaPlanejada.linhaFinal || '')
+            : baseConfig.linhaFinal,
+          alinhamentoTipo: parcelaPlanejada ? tipoPlanejado : baseConfig.alinhamentoTipo,
+        },
+      };
+    });
   };
 
   const updateConfigParcela = (
@@ -872,6 +933,32 @@ export function TelaNovaAvaliacao() {
     value: string,
   ) => {
     const sanitized = value.replace(/\D/g, '').slice(0, 3);
+    if (field === 'linhaInicial' && sanitized) {
+      const linhaDigitada = clamp(Number(sanitized), 1, MAX_ALINHAMENTO);
+      const tipoDigitado = inferirAlinhamentoTipoPorLinha(linhaDigitada, alinhamentoTipo);
+      if (selecionadas.length === 1) {
+        setAlinhamentoTipo(tipoDigitado);
+      }
+
+      setConfiguracoes((current) => {
+        const baseConfig = criarConfigParcela(current[parcelaId]);
+        const linhaNormalizada = normalizarLinhaInicialPorAlinhamento(
+          linhaDigitada,
+          tipoDigitado,
+        );
+
+        return {
+          ...current,
+          [parcelaId]: {
+            ...baseConfig,
+            linhaInicial: String(linhaNormalizada),
+            alinhamentoTipo: tipoDigitado,
+          },
+        };
+      });
+      return;
+    }
+
     setConfiguracoes((current) => ({
       ...current,
       [parcelaId]: {
@@ -885,13 +972,55 @@ export function TelaNovaAvaliacao() {
     parcelaId: string,
     value: 'inferior-impar' | 'inferior-par',
   ) => {
-    setConfiguracoes((current) => ({
-      ...current,
-      [parcelaId]: {
-        ...criarConfigParcela(current[parcelaId]),
-        alinhamentoTipo: value,
-      },
-    }));
+    setConfiguracoes((current) => {
+      const baseConfig = criarConfigParcela(current[parcelaId]);
+      const linhaInicial = baseConfig.linhaInicial
+        ? String(
+            normalizarLinhaInicialPorAlinhamento(
+              baseConfig.linhaInicial,
+              value,
+            ),
+          )
+        : baseConfig.linhaInicial;
+
+      return {
+        ...current,
+        [parcelaId]: {
+          ...baseConfig,
+          linhaInicial,
+          alinhamentoTipo: value,
+        },
+      };
+    });
+  };
+
+  const updateAlinhamentoGeral = (value: 'inferior-impar' | 'inferior-par') => {
+    setAlinhamentoTipo(value);
+    if (selecionadas.length !== 1) {
+      return;
+    }
+
+    const [parcelaId] = selecionadas;
+    setConfiguracoes((current) => {
+      const baseConfig = criarConfigParcela(current[parcelaId]);
+      const linhaInicial = baseConfig.linhaInicial
+        ? String(
+            normalizarLinhaInicialPorAlinhamento(
+              baseConfig.linhaInicial,
+              value,
+            ),
+          )
+        : baseConfig.linhaInicial;
+
+      return {
+        ...current,
+        [parcelaId]: {
+          ...baseConfig,
+          linhaInicial,
+          alinhamentoTipo: value,
+        },
+      };
+    });
   };
 
   const updateSentidoParcela = (parcelaId: string, value: SentidoRuas) => {
@@ -1443,10 +1572,21 @@ export function TelaNovaAvaliacao() {
                           .map(({ parcela, config }) => {
                             const linhaInicial = Number(config?.linhaInicial || 0);
                             const linhaFinal = Number(config?.linhaFinal || 0);
+                            const alinhamentoParcela =
+                              selecionadas.length > 1
+                                ? config?.alinhamentoTipo || alinhamentoTipo
+                                : alinhamentoTipo;
+                            const faixaNormalizada =
+                              linhaInicial > 0 && linhaFinal > 0
+                                ? normalizarFaixaAlinhamento({
+                                    linhaInicial,
+                                    linhaFinal,
+                                    alinhamentoTipo: alinhamentoParcela,
+                                  })
+                                : null;
                             const pronta =
-                              linhaInicial > 0 &&
-                              linhaFinal > 0 &&
-                              linhaFinal >= linhaInicial;
+                              Boolean(faixaNormalizada) &&
+                              faixaNormalizada!.linhaFinal >= faixaNormalizada!.linhaInicial;
 
                             return (
                             <div
@@ -1460,9 +1600,22 @@ export function TelaNovaAvaliacao() {
                                   </p>
                                   <p className="mt-1 text-sm font-medium text-[var(--qc-text-muted)]">
                                     {pronta
-                                      ? `Linhas ${linhaInicial} a ${linhaFinal}`
+                                      ? `Linhas ${faixaNormalizada!.linhaInicial} a ${faixaNormalizada!.linhaFinal}`
                                       : 'As linhas serão definidas na próxima etapa.'}
                                   </p>
+                                  {pronta ? (
+                                    <div className="mt-2 flex flex-wrap gap-2">
+                                      <Badge variant="slate">
+                                        {formatarQuantidadeLinhas(faixaNormalizada!.totalLinhas)}
+                                      </Badge>
+                                      <Badge variant="slate">
+                                        {formatarAlinhamentoTipo(alinhamentoParcela)}
+                                      </Badge>
+                                      <Badge variant="emerald">
+                                        {faixaNormalizada!.totalDivisoes} divisões
+                                      </Badge>
+                                    </div>
+                                  ) : null}
                                 </div>
 
                                 <div className="flex items-center gap-2">
@@ -1535,9 +1688,6 @@ export function TelaNovaAvaliacao() {
                         }))
                         .filter((item) => item.parcela)
                         .map(({ parcela, config }) => {
-                          const pronta =
-                            Number(config.linhaInicial) > 0 &&
-                            Number(config.linhaFinal) >= Number(config.linhaInicial);
                           const alinhamentoParcela =
                             config.alinhamentoTipo || alinhamentoTipo;
                           const sentidoParcela = config.sentidoRuas || sentidoRuas;
@@ -1546,6 +1696,41 @@ export function TelaNovaAvaliacao() {
                           const bloqueadaPorPlanejamento = Boolean(
                             parcelaPlanejadaSelecionada,
                           );
+                          const linhaInicial = Number(config.linhaInicial || 0);
+                          const linhaFinal = Number(config.linhaFinal || 0);
+                          const faixaNormalizada =
+                            linhaInicial > 0 && linhaFinal > 0
+                              ? normalizarFaixaAlinhamento({
+                                  linhaInicial,
+                                  linhaFinal,
+                                  alinhamentoTipo: alinhamentoParcela,
+                                })
+                              : null;
+                          const alinhamentoCorreto =
+                            linhaInicial > 0 &&
+                            linhaRespeitaAlinhamentoTipo(
+                              linhaInicial,
+                              alinhamentoParcela,
+                            );
+                          const divisoesPreview =
+                            faixaNormalizada &&
+                            faixaNormalizada.linhaFinal >= faixaNormalizada.linhaInicial
+                              ? gerarRuasDaParcela({
+                                  linhaInicial: faixaNormalizada.linhaInicial,
+                                  linhaFinal: faixaNormalizada.linhaFinal,
+                                  alinhamentoTipo: alinhamentoParcela,
+                                  faixasFalha: normalizarFaixasFalhaParcela(
+                                    config.falhasLinhas || '',
+                                    config.alinhamentoFalha ||
+                                      config.alinhamentoTipo ||
+                                      alinhamentoTipo,
+                                  ),
+                                  sentidoRuas: sentidoParcela,
+                                })
+                              : [];
+                          const pronta =
+                            Boolean(faixaNormalizada) &&
+                            faixaNormalizada!.linhaFinal >= faixaNormalizada!.linhaInicial;
 
                           return (
                             <div
@@ -1618,6 +1803,43 @@ export function TelaNovaAvaliacao() {
                                   />
                                 </div>
                               </div>
+
+                              {faixaNormalizada ? (
+                                <div className="mt-4 rounded-2xl border border-[var(--qc-border)] bg-white p-3">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <Badge variant="slate">
+                                      {formatarQuantidadeLinhas(faixaNormalizada.totalLinhas)}
+                                    </Badge>
+                                    <Badge variant={alinhamentoCorreto ? 'emerald' : 'red'}>
+                                      {formatarAlinhamentoTipo(alinhamentoParcela)}
+                                    </Badge>
+                                    <Badge variant="emerald">
+                                      {divisoesPreview.length} divisões
+                                    </Badge>
+                                  </div>
+
+                                  {faixaNormalizada.linhaInicialAjustada ? (
+                                    <p className="mt-2 text-xs font-semibold text-[var(--qc-danger)]">
+                                      Início ajustado para {String(faixaNormalizada.linhaInicial).padStart(2, '0')}.
+                                    </p>
+                                  ) : null}
+
+                                  {divisoesPreview.length > 0 ? (
+                                    <p className="mt-2 text-sm font-bold text-[var(--qc-secondary)]">
+                                      {divisoesPreview
+                                        .slice(0, 12)
+                                        .map((rua) =>
+                                          formatarDivisaoRua(
+                                            rua.linhaInicial,
+                                            rua.linhaFinal,
+                                          ),
+                                        )
+                                        .join(' • ')}
+                                      {divisoesPreview.length > 12 ? ' • ...' : ''}
+                                    </p>
+                                  ) : null}
+                                </div>
+                              ) : null}
 
                               <div className="mt-4 stack-sm">
                                 <span className="ml-1 text-[10px] font-bold uppercase tracking-wider text-[var(--qc-secondary)]">
@@ -1970,7 +2192,7 @@ export function TelaNovaAvaliacao() {
                           type="button"
                           variant={alinhamentoTipo === 'inferior-impar' ? 'default' : 'outline'}
                           className={`h-12 rounded-xl ${alinhamentoTipo === 'inferior-impar' ? 'bg-[var(--qc-primary)] text-white' : 'bg-white text-[var(--qc-secondary)]'}`}
-                          onClick={() => setAlinhamentoTipo('inferior-impar')}
+                          onClick={() => updateAlinhamentoGeral('inferior-impar')}
                         >
                           Ímpar
                         </Button>
@@ -1978,7 +2200,7 @@ export function TelaNovaAvaliacao() {
                           type="button"
                           variant={alinhamentoTipo === 'inferior-par' ? 'default' : 'outline'}
                           className={`h-12 rounded-xl ${alinhamentoTipo === 'inferior-par' ? 'bg-[var(--qc-primary)] text-white' : 'bg-white text-[var(--qc-secondary)]'}`}
-                          onClick={() => setAlinhamentoTipo('inferior-par')}
+                          onClick={() => updateAlinhamentoGeral('inferior-par')}
                         >
                           Par
                         </Button>
@@ -2345,6 +2567,11 @@ export function TelaNovaAvaliacao() {
                                  <strong className="text-lg font-bold text-[var(--qc-text)]">{item.label}</strong>
                                  <div className="flex flex-wrap items-center justify-end gap-2">
                                    <Badge variant="emerald">{formatarQuantidadeRuas(item.ruasProgramadas.length)}</Badge>
+                                   <Badge variant="slate">
+                                     {formatarQuantidadeLinhas(
+                                       Math.max(0, item.linhaFinal - item.linhaInicial + 1),
+                                     )}
+                                   </Badge>
                                    <Badge variant="slate">{formatarAlinhamentoTipo(item.alinhamentoTipo)}</Badge>
                                    <Badge variant="slate">{formatarSentidoRuas(item.sentidoRuas)}</Badge>
                                    <Badge variant="slate">L{item.linhaInicial}-{item.linhaFinal}</Badge>
@@ -2378,7 +2605,9 @@ export function TelaNovaAvaliacao() {
                                          </div>
                                       </div>
                                       <p className="text-sm font-bold text-[var(--qc-secondary)]">
-                                        {faixa.ruas.map(([inicio, fim]) => `${inicio}-${fim}`).join(' • ')}
+                                        {faixa.ruas
+                                          .map(([inicio, fim]) => formatarDivisaoRua(inicio, fim))
+                                          .join(' • ')}
                                       </p>
                                    </div>
                                 ))}
