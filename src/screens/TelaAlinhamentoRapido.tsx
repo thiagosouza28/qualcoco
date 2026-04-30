@@ -60,6 +60,7 @@ export function TelaAlinhamentoRapido() {
   const [alinhamentoTipo, setAlinhamentoTipo] =
     useState<AlinhamentoTipo>('inferior-impar');
   const [alinhamentoInicial, setAlinhamentoInicial] = useState('1');
+  const [alinhamentoFinal, setAlinhamentoFinal] = useState('16');
   const [quantidadeRuas, setQuantidadeRuas] = useState('8');
 
   const resultado = useMemo(() => {
@@ -71,19 +72,27 @@ export function TelaAlinhamentoRapido() {
       alinhamentoInicial,
       fallbackInicioPorTipo(alinhamentoTipo),
     );
+    const finalDigitado = parsearInteiroPositivo(
+      alinhamentoFinal,
+      inicioAjustado + 1,
+    );
+    const finalAjustado = limitar(
+      finalDigitado,
+      inicioAjustado + 1,
+      MAX_ALINHAMENTO,
+    );
+    const totalLinhas = finalAjustado - inicioAjustado + 1;
     const maxRuas = Math.max(
       1,
-      Math.floor((MAX_ALINHAMENTO - inicioAjustado + 1) / 2),
+      Math.floor(totalLinhas / 2),
     );
     const quantidadeDigitada = parsearInteiroPositivo(quantidadeRuas, 8);
     const totalRuas = limitar(quantidadeDigitada, 1, maxRuas);
-    const totalLinhas = totalRuas * 2;
-    const linhaFinal = inicioAjustado + totalLinhas - 1;
     const divisoes = gerarRuasComOffset({
       totalRuas,
       alinhamentoTipo,
       linhaInicio: inicioAjustado,
-      linhaFim: linhaFinal,
+      linhaFim: finalAjustado,
     }).map(([linhaInicial, linhaFim], index) => ({
       numero: index + 1,
       linhaInicial,
@@ -94,16 +103,19 @@ export function TelaAlinhamentoRapido() {
       inicioAjustado,
       inicioDigitado,
       inicioFoiAjustado: inicioAjustado !== inicioDigitado,
+      finalAjustado,
+      finalDigitado,
+      finalFoiAjustado: finalAjustado !== finalDigitado,
       quantidadeDigitada,
       quantidadeFoiAjustada: totalRuas !== quantidadeDigitada,
       maxRuas,
       totalLinhas,
       totalRuas,
       totalDivisoes: divisoes.length,
-      linhaFinal,
+      linhaFinal: finalAjustado,
       divisoes,
     };
-  }, [alinhamentoInicial, alinhamentoTipo, quantidadeRuas]);
+  }, [alinhamentoFinal, alinhamentoInicial, alinhamentoTipo, quantidadeRuas]);
 
   const alterarTipo = (tipo: AlinhamentoTipo) => {
     const inicioAjustado = normalizarInicioRapido(alinhamentoInicial, tipo);
@@ -113,11 +125,16 @@ export function TelaAlinhamentoRapido() {
 
   const ajustarCampos = () => {
     setAlinhamentoInicial(String(resultado.inicioAjustado));
+    setAlinhamentoFinal(String(resultado.finalAjustado));
     setQuantidadeRuas(String(resultado.totalRuas));
   };
 
   const alterarAlinhamentoInicial = (event: ChangeEvent<HTMLInputElement>) => {
     setAlinhamentoInicial(limparNumero(event.target.value));
+  };
+
+  const alterarAlinhamentoFinal = (event: ChangeEvent<HTMLInputElement>) => {
+    setAlinhamentoFinal(limparNumero(event.target.value));
   };
 
   const alterarQuantidadeRuas = (event: ChangeEvent<HTMLInputElement>) => {
@@ -163,20 +180,38 @@ export function TelaAlinhamentoRapido() {
           </div>
 
           <div className="grid grid-cols-1 gap-3">
-            <div className="space-y-2">
-              <Label htmlFor="alinhamento-inicial" className="">
-                Alinhamento inicial
-              </Label>
-              <Input
-                id="alinhamento-inicial"
-                type="number"
-                inputMode="numeric"
-                min={1}
-                max={MAX_ALINHAMENTO}
-                value={alinhamentoInicial}
-                onBlur={ajustarCampos}
-                onChange={alterarAlinhamentoInicial}
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="alinhamento-inicial" className="">
+                  Alinhamento inicial
+                </Label>
+                <Input
+                  id="alinhamento-inicial"
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={MAX_ALINHAMENTO}
+                  value={alinhamentoInicial}
+                  onBlur={ajustarCampos}
+                  onChange={alterarAlinhamentoInicial}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="alinhamento-final" className="">
+                  Alinhamento final
+                </Label>
+                <Input
+                  id="alinhamento-final"
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={MAX_ALINHAMENTO}
+                  value={alinhamentoFinal}
+                  onBlur={ajustarCampos}
+                  onChange={alterarAlinhamentoFinal}
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -231,6 +266,13 @@ export function TelaAlinhamentoRapido() {
               <Badge variant="amber">
                 <AlertTriangle className="h-3.5 w-3.5" />
                 Quantidade ajustada
+              </Badge>
+            ) : null}
+
+            {resultado.finalFoiAjustado ? (
+              <Badge variant="amber">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                Final ajustado para {formatarLinha(resultado.finalAjustado)}
               </Badge>
             ) : null}
 
