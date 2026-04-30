@@ -7,9 +7,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { LayoutMobile } from '@/components/LayoutMobile';
-import { MAX_ALINHAMENTO } from '@/core/constants';
+import { MAX_ALINHAMENTO, MAX_RUAS_POR_ALINHAMENTO } from '@/core/constants';
 import {
   type AlinhamentoTipo,
+  gerarRuasComOffset,
   normalizarLinhaInicialPorAlinhamento,
 } from '@/core/plots';
 import { cn } from '@/utils';
@@ -70,31 +71,36 @@ export function TelaAlinhamentoRapido() {
       alinhamentoInicial,
       fallbackInicioPorTipo(alinhamentoTipo),
     );
-    const maxLinhas = Math.max(2, MAX_ALINHAMENTO - inicioAjustado + 1);
+    const maxRuas = Math.max(
+      1,
+      Math.floor((MAX_ALINHAMENTO - inicioAjustado + 1) / 2),
+    );
     const quantidadeDigitada = parsearInteiroPositivo(quantidadeRuas, 8);
-    const totalLinhas = limitar(quantidadeDigitada, 2, maxLinhas);
-    const totalDivisoes = Math.floor(totalLinhas / 2);
+    const totalRuas = limitar(quantidadeDigitada, 1, maxRuas);
+    const totalLinhas = totalRuas * 2;
     const linhaFinal = inicioAjustado + totalLinhas - 1;
-    const sobraLinha = totalLinhas % 2 === 1;
-    const divisoes = Array.from({ length: totalDivisoes }, (_, index) => {
-      const linhaInicial = inicioAjustado + index * 2;
-      return {
-        numero: index + 1,
-        linhaInicial,
-        linhaFinal: linhaInicial + 1,
-      };
-    });
+    const divisoes = gerarRuasComOffset({
+      totalRuas,
+      alinhamentoTipo,
+      linhaInicio: inicioAjustado,
+      linhaFim: linhaFinal,
+    }).map(([linhaInicial, linhaFim], index) => ({
+      numero: index + 1,
+      linhaInicial,
+      linhaFinal: linhaFim,
+    }));
 
     return {
       inicioAjustado,
       inicioDigitado,
       inicioFoiAjustado: inicioAjustado !== inicioDigitado,
       quantidadeDigitada,
-      quantidadeFoiAjustada: totalLinhas !== quantidadeDigitada,
+      quantidadeFoiAjustada: totalRuas !== quantidadeDigitada,
+      maxRuas,
       totalLinhas,
-      totalDivisoes,
+      totalRuas,
+      totalDivisoes: divisoes.length,
       linhaFinal,
-      sobraLinha,
       divisoes,
     };
   }, [alinhamentoInicial, alinhamentoTipo, quantidadeRuas]);
@@ -107,7 +113,7 @@ export function TelaAlinhamentoRapido() {
 
   const ajustarCampos = () => {
     setAlinhamentoInicial(String(resultado.inicioAjustado));
-    setQuantidadeRuas(String(resultado.totalLinhas));
+    setQuantidadeRuas(String(resultado.totalRuas));
   };
 
   const alterarAlinhamentoInicial = (event: ChangeEvent<HTMLInputElement>) => {
@@ -116,6 +122,16 @@ export function TelaAlinhamentoRapido() {
 
   const alterarQuantidadeRuas = (event: ChangeEvent<HTMLInputElement>) => {
     setQuantidadeRuas(limparNumero(event.target.value));
+  };
+
+  const alterarQuantidadePorPasso = (delta: number) => {
+    const quantidadeAtual = parsearInteiroPositivo(
+      quantidadeRuas,
+      resultado.totalRuas,
+    );
+    setQuantidadeRuas(
+      String(limitar(quantidadeAtual + delta, 1, resultado.maxRuas)),
+    );
   };
 
   return (
@@ -146,7 +162,7 @@ export function TelaAlinhamentoRapido() {
             </Button>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3">
             <div className="space-y-2">
               <Label htmlFor="alinhamento-inicial" className="">
                 Alinhamento inicial
@@ -167,16 +183,35 @@ export function TelaAlinhamentoRapido() {
               <Label htmlFor="quantidade-ruas" className="">
                 Quantidade de ruas
               </Label>
-              <Input
-                id="quantidade-ruas"
-                type="number"
-                inputMode="numeric"
-                min={2}
-                max={MAX_ALINHAMENTO}
-                value={quantidadeRuas}
-                onBlur={ajustarCampos}
-                onChange={alterarQuantidadeRuas}
-              />
+              <div className="flex h-12 items-center overflow-hidden rounded-2xl border border-[var(--qc-border)] bg-[var(--qc-surface-muted)] shadow-sm">
+                <button
+                  type="button"
+                  aria-label="Diminuir quantidade de ruas"
+                  className="h-full w-14 border-r border-[var(--qc-border)] text-lg font-black text-[var(--qc-secondary)]"
+                  onClick={() => alterarQuantidadePorPasso(-1)}
+                >
+                  -
+                </button>
+                <input
+                  id="quantidade-ruas"
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={Math.min(MAX_RUAS_POR_ALINHAMENTO, resultado.maxRuas)}
+                  value={quantidadeRuas}
+                  onBlur={ajustarCampos}
+                  onChange={alterarQuantidadeRuas}
+                  className="h-full min-w-0 flex-1 bg-transparent px-3 text-center text-lg font-black text-[var(--qc-text)] outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                />
+                <button
+                  type="button"
+                  aria-label="Aumentar quantidade de ruas"
+                  className="h-full w-14 border-l border-[var(--qc-border)] text-lg font-black text-[var(--qc-secondary)]"
+                  onClick={() => alterarQuantidadePorPasso(1)}
+                >
+                  +
+                </button>
+              </div>
             </div>
           </div>
 
@@ -199,11 +234,6 @@ export function TelaAlinhamentoRapido() {
               </Badge>
             ) : null}
 
-            {resultado.sobraLinha ? (
-              <Badge variant="amber">
-                <AlertTriangle className="h-3.5 w-3.5" />1 rua sem par
-              </Badge>
-            ) : null}
           </div>
         </CardContent>
       </Card>
@@ -241,10 +271,10 @@ export function TelaAlinhamentoRapido() {
 
             <div className="rounded-[16px] bg-[var(--qc-surface-muted)] p-3">
               <p className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-[var(--qc-text-muted)]">
-                Divisoes
+                Ruas
               </p>
               <p className="mt-1 text-3xl font-black text-[var(--qc-text)]">
-                {resultado.totalDivisoes}
+                {resultado.totalRuas}
               </p>
             </div>
           </div>
