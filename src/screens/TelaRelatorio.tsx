@@ -1557,7 +1557,7 @@ export function TelaRelatorio() {
               avaliacao,
               ruaDataAvaliacao: rua.dataAvaliacao,
             }) || dataFiltro;
-          const dataReferencia = dataRelatorio;
+          const dataReferencia = normalizeDateKey(avaliacao.dataColheita) || dataRelatorio;
           const areaNome = getAreaRelatorioLabel(avaliacao.areaId, pdfAreasMap);
           const limitesDaAvaliacao = getLimitesAreaRelatorio({
             areaId: avaliacao.areaId,
