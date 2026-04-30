@@ -87,7 +87,7 @@ export function TelaAlinhamentoRapido() {
       Math.floor(totalLinhas / 2),
     );
     const quantidadeDigitada = parsearInteiroPositivo(quantidadeRuas, 8);
-    const totalRuas = limitar(quantidadeDigitada, 1, maxRuas);
+    const totalRuas = maxRuas;
     const divisoes = gerarRuasComOffset({
       totalRuas,
       alinhamentoTipo,
@@ -107,7 +107,7 @@ export function TelaAlinhamentoRapido() {
       finalDigitado,
       finalFoiAjustado: finalAjustado !== finalDigitado,
       quantidadeDigitada,
-      quantidadeFoiAjustada: totalRuas !== quantidadeDigitada,
+      quantidadeFoiAjustada: quantidadeDigitada !== maxRuas,
       maxRuas,
       totalLinhas,
       totalRuas,
