@@ -25,6 +25,9 @@ const TelaSelecaoUsuario = lazy(async () => ({
 const TelaDashboard = lazy(async () => ({
   default: (await import('@/screens/TelaDashboard')).TelaDashboard,
 }));
+const TelaAlinhamentoRapido = lazy(async () => ({
+  default: (await import('@/screens/TelaAlinhamentoRapido')).TelaAlinhamentoRapido,
+}));
 const TelaNovaAvaliacao = lazy(async () => ({
   default: (await import('@/screens/TelaNovaAvaliacao')).TelaNovaAvaliacao,
 }));
@@ -77,6 +80,7 @@ const publicPaths = new Set([
   '/colaboradores/cadastro',
 ]);
 const areaPaths = new Set(['/areas', '/areas/gerenciar']);
+const localOnlyPaths = new Set(['/alinhamento-rapido']);
 
 const ROUTE_PULL_STALE_MS = 45_000;
 
@@ -105,7 +109,7 @@ const ONLINE_SHARED_PULL_STORES = uniqueStores([
 ]);
 
 const createRealtimeRouteConfig = (pathname: string): RealtimeRouteConfig | null => {
-  if (publicPaths.has(pathname)) {
+  if (publicPaths.has(pathname) || localOnlyPaths.has(pathname)) {
     return null;
   }
 
@@ -372,6 +376,7 @@ function ShellRoutes() {
           <Route path="/areas" element={<TelaSelecaoArea />} />
           <Route path="/areas/gerenciar" element={<TelaGerenciarAreas />} />
           <Route path="/dashboard" element={<TelaDashboard />} />
+          <Route path="/alinhamento-rapido" element={<TelaAlinhamentoRapido />} />
           <Route path="/avaliacoes/nova" element={<TelaNovaAvaliacao />} />
           <Route path="/avaliacoes/:id/editar" element={<TelaNovaAvaliacao />} />
           <Route path="/avaliacoes/:id" element={<TelaRegistroLinhas />} />

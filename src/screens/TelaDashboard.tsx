@@ -90,10 +90,9 @@ const criarBuscaAvaliacaoPlanejada = (parcelas: ParcelaPlanejada[]) => {
 const quickActionCatalog: QuickAction[] = [
   {
     label: 'Alinhamento rápido',
-    subtitle: 'Abrir avaliação e configurar ruas da parcela.',
+    subtitle: 'Dividir ruas por alinhamento par ou ímpar.',
     icon: PencilLine,
-    to: '/avaliacoes/nova',
-    permissionKey: 'iniciarAvaliacao',
+    to: '/alinhamento-rapido',
   },
   {
     label: 'Relatórios',
