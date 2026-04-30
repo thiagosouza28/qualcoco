@@ -132,10 +132,6 @@ export const planejarParcelasAvaliacao = ({
           equipe.linhaFim != null
             ? Math.min(faixaParcela.linhaFinal, equipe.linhaFim)
             : faixaParcela.linhaFinal;
-        const preencherAteFim =
-          planejamentoEquipes.length === 1 ||
-          (equipe.linhaInicio != null && equipe.linhaFim != null);
-
         return {
           id: `${parcela.parcelaId}-${equipe.equipeId}`,
           label: equipe.equipeNome,
@@ -146,7 +142,6 @@ export const planejarParcelasAvaliacao = ({
           fallbackInicio: faixaParcela.linhaInicial,
           fallbackFim: faixaParcela.linhaFinal,
           totalRuas: totalRuasEquipe,
-          preencherAteFim,
           alinhamentoTipo: alinhamentoParcela,
           faixasFalha: parcela.faixasFalha,
         };
@@ -161,7 +156,6 @@ export const planejarParcelasAvaliacao = ({
       fallbackInicio: number;
       fallbackFim: number;
       totalRuas: number;
-      preencherAteFim?: boolean;
       alinhamentoTipo: 'inferior-impar' | 'inferior-par';
       faixasFalha?: FaixaFalhaParcela[] | null;
     }>;

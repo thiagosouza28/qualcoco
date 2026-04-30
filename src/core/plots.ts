@@ -1,8 +1,4 @@
-import {
-  MAX_ALINHAMENTO,
-  MAX_PARCELAS,
-  MAX_RUAS_POR_ALINHAMENTO,
-} from '@/core/constants';
+import { MAX_ALINHAMENTO, MAX_PARCELAS } from '@/core/constants';
 import type { FaixaFalhaParcela, SentidoRuas } from '@/core/types';
 
 export type AlinhamentoTipo = 'inferior-impar' | 'inferior-par';
@@ -247,7 +243,6 @@ export const gerarRuasDistribuidasPorFaixas = ({
     fallbackInicio?: number;
     fallbackFim?: number;
     totalRuas: number;
-    preencherAteFim?: boolean;
     alinhamentoTipo?: AlinhamentoTipo;
     faixasFalha?: FaixaFalhaParcela[] | null;
     equipeId: string | null;
@@ -274,9 +269,7 @@ export const gerarRuasDistribuidasPorFaixas = ({
           inicio: normalizada.inicio,
           fim: normalizada.fim,
           ruas: gerarRuasComOffset({
-            totalRuas: faixa.preencherAteFim
-              ? MAX_RUAS_POR_ALINHAMENTO
-              : Number(faixa.totalRuas) || 0,
+            totalRuas: Number(faixa.totalRuas) || 0,
             alinhamentoTipo: alinhamentoFaixa,
             linhaInicio: normalizada.inicio,
             linhaFim: normalizada.fim,
