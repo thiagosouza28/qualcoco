@@ -199,6 +199,39 @@ const linhaEstaEmFalha = (
   });
 };
 
+const distribuirRuasNoIntervalo = (
+  linhasValidas: number[],
+  totalRuas: number,
+  linhaFim: number,
+) => {
+  if (!Number.isFinite(totalRuas) || totalRuas <= 0 || linhasValidas.length === 0) {
+    return [] as Array<[number, number]>;
+  }
+
+  const totalSelecionado = Math.trunc(totalRuas);
+  if (totalSelecionado <= 0) {
+    return [] as Array<[number, number]>;
+  }
+  if (totalSelecionado >= linhasValidas.length) {
+    return linhasValidas.map((linha) => [linha, Math.min(linha + 1, linhaFim)]);
+  }
+
+  if (totalSelecionado === 1) {
+    const [linha] = linhasValidas;
+    return [[linha, Math.min(linha + 1, linhaFim)]];
+  }
+
+  const ultimoIndice = linhasValidas.length - 1;
+  const indices = Array.from({ length: totalSelecionado }, (_, index) =>
+    Math.round((index * ultimoIndice) / (totalSelecionado - 1)),
+  );
+
+  return indices.map((indice) => {
+    const linha = linhasValidas[indice];
+    return [linha, Math.min(linha + 1, linhaFim)];
+  });
+};
+
 export const gerarRuasComOffset = ({
   totalRuas,
   alinhamentoTipo,
@@ -216,14 +249,16 @@ export const gerarRuasComOffset = ({
 }) => {
   const inicio = normalizarLinhaInicialPorAlinhamento(linhaInicio, alinhamentoTipo);
   const fim = clamp(Number(linhaFim) || MAX_ALINHAMENTO, 1, MAX_ALINHAMENTO);
-  const ruas: Array<[number, number]> = [];
+  const linhasValidas: number[] = [];
 
-  for (let linha = inicio; linha <= fim - 1 && ruas.length < totalRuas; linha += 2) {
+  for (let linha = inicio; linha <= fim - 1; linha += 2) {
     if (linhaEstaEmFalha(linha, linha + 1, alinhamentoTipo, faixasFalha)) {
       continue;
     }
-    ruas.push([linha, linha + 1]);
+    linhasValidas.push(linha);
   }
+
+  const ruas = distribuirRuasNoIntervalo(linhasValidas, totalRuas, fim);
 
   return sentidoRuas === 'fim' ? [...ruas].reverse() : ruas;
 };
@@ -264,18 +299,18 @@ export const gerarRuasDistribuidasPorFaixas = ({
         return null;
       }
 
-        return {
-          ...faixa,
-          inicio: normalizada.inicio,
-          fim: normalizada.fim,
-          ruas: gerarRuasComOffset({
-            totalRuas: Number(faixa.totalRuas) || 0,
-            alinhamentoTipo: alinhamentoFaixa,
-            linhaInicio: normalizada.inicio,
-            linhaFim: normalizada.fim,
-            faixasFalha: faixa.faixasFalha,
-            sentidoRuas,
-          }),
+      return {
+        ...faixa,
+        inicio: normalizada.inicio,
+        fim: normalizada.fim,
+        ruas: gerarRuasComOffset({
+          totalRuas: Number(faixa.totalRuas) || 0,
+          alinhamentoTipo: alinhamentoFaixa,
+          linhaInicio: normalizada.inicio,
+          linhaFim: normalizada.fim,
+          faixasFalha: faixa.faixasFalha,
+          sentidoRuas,
+        }),
       };
     })
     .filter(
