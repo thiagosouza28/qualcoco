@@ -39,7 +39,7 @@ export function TelaHistorico() {
   const queryClient = useQueryClient();
   const { usuarioAtual } = useCampoApp();
   const { permissionMatrix } = useRolePermissions(usuarioAtual?.perfil);
-  const [dataFilter, setDataFilter] = useState('');
+  const [dataFilter, setDataFilter] = useState(() => todayIso());
   const [colaboradorId, setColaboradorId] = useState('all');
   const [parcelaId, setParcelaId] = useState('all');
   const [syncStatus, setSyncStatus] = useState('all');
@@ -307,7 +307,7 @@ export function TelaHistorico() {
                 className="h-11 rounded-[16px] pl-11"
                 value={dataFilter}
                 onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                  setDataFilter(event.target.value)
+                  setDataFilter(event.target.value || todayIso())
                 }
               />
               <CalendarIcon className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--qc-text-muted)]" />
