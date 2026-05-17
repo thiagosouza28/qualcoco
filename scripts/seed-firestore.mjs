@@ -50,6 +50,20 @@ const projectId = String(env.VITE_FIREBASE_PROJECT_ID).trim();
 const nowIso = new Date().toISOString();
 
 const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const extraParcelCodes = [
+  'LM-051',
+  'LM-052',
+  'LM-062',
+  'LM-063',
+  'LM-064',
+  'LM-082',
+  'LM-083',
+  'LM-084',
+  'LM-091',
+  'LM-092',
+  'LM-093',
+  'LM-094',
+];
 const parcelas = [];
 
 for (const letter of letters) {
@@ -73,6 +87,24 @@ for (const letter of letters) {
       });
     }
   }
+}
+
+for (const codigo of extraParcelCodes) {
+  const id = `parcela_${codigo.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`;
+
+  parcelas.push({
+    id,
+    local_id: `seed:${id}`,
+    codigo,
+    descricao: `Parcela ${codigo}`,
+    ativo: true,
+    criado_em: nowIso,
+    atualizado_em: nowIso,
+    deletado_em: null,
+    sync_status: 'synced',
+    versao: 1,
+    origem_dispositivo_id: 'firebase_seed',
+  });
 }
 
 const configuracaoPadrao = {

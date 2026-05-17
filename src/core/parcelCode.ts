@@ -6,19 +6,19 @@ const sanitizeCodigoParcela = (value: string) =>
 
 export const formatarCodigoParcela = (value: string) => {
   const sanitized = sanitizeCodigoParcela(value);
-  const letra = sanitized.slice(0, 1).replace(/[^A-Z]/g, '');
-  const numeros = sanitized.slice(1).replace(/\D/g, '');
+  const prefixo = (sanitized.match(/^[A-Z]{1,2}/)?.[0] || '').slice(0, 2);
+  const numeros = sanitized.slice(prefixo.length).replace(/\D/g, '');
   const blocoPrincipal = numeros.slice(0, 3);
 
-  if (!letra) {
+  if (!prefixo) {
     return numeros.slice(0, 3);
   }
 
   if (!blocoPrincipal) {
-    return letra;
+    return prefixo;
   }
 
-  return `${letra}-${blocoPrincipal}`;
+  return `${prefixo}-${blocoPrincipal}`;
 };
 
 export const normalizarCodigoParcela = (value: string) =>

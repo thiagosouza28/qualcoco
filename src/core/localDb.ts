@@ -19,8 +19,8 @@ const DB_NAME = 'qualcoco-campo-v2';
 const DB_VERSION = 7;
 const SYNC_QUEUE_CHANGED_EVENT = 'qualcoco:sync-queue-changed';
 const LEGACY_STORAGE_KEYS = ['responsavel_nome', 'jornada_id', 'jornada_data'];
-const PARCELAS_CATALOGO_SEED_VERSION = '2026-03-23-v1';
-const PARCELAS_CATALOGO_SYNC_POLICY_VERSION = '2026-03-30-v1';
+const PARCELAS_CATALOGO_SEED_VERSION = '2026-05-17-v2';
+const PARCELAS_CATALOGO_SYNC_POLICY_VERSION = '2026-05-17-v2';
 
 const createDbPromise = () =>
   openDB(DB_NAME, DB_VERSION, {

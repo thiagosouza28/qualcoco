@@ -3,6 +3,21 @@ import type { FaixaFalhaParcela, SentidoRuas } from '@/core/types';
 
 export type AlinhamentoTipo = 'inferior-impar' | 'inferior-par';
 
+const PARCELAS_EXTRAS = [
+  'LM-051',
+  'LM-052',
+  'LM-062',
+  'LM-063',
+  'LM-064',
+  'LM-082',
+  'LM-083',
+  'LM-084',
+  'LM-091',
+  'LM-092',
+  'LM-093',
+  'LM-094',
+];
+
 export const gerarCatalogoParcelas = () => {
   const parcelas: { codigo: string; descricao: string }[] = [];
   const letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -17,6 +32,13 @@ export const gerarCatalogoParcelas = () => {
         });
       }
     }
+  }
+
+  for (const codigo of PARCELAS_EXTRAS) {
+    parcelas.push({
+      codigo,
+      descricao: `Parcela ${codigo}`,
+    });
   }
 
   return parcelas;
